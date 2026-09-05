@@ -10,6 +10,13 @@ const icons = {
   arrow: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg>',
 };
 
+const contactIcons = {
+  mail: '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.4" y="3.2" width="13.2" height="9.6" rx="1.4"/><path d="m1.9 4.4 5.35 3.9a1.3 1.3 0 0 0 1.5 0l5.35-3.9"/></svg>',
+  phone: '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.1 1.9H3.3c-.8 0-1.5.7-1.4 1.5.25 2.9 1.5 5.6 3.5 7.6s4.7 3.25 7.6 3.5c.8.07 1.5-.6 1.5-1.4v-1.8c0-.7-.5-1.3-1.2-1.4l-1.6-.25a1.4 1.4 0 0 0-1.35.6l-.5.75a9.4 9.4 0 0 1-3.9-3.9l.75-.5a1.4 1.4 0 0 0 .6-1.35L6.5 3.1c-.1-.7-.7-1.2-1.4-1.2Z"/></svg>',
+  github: '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 .5a7.5 7.5 0 0 0-2.37 14.62c.37.07.5-.16.5-.36v-1.3c-2.09.45-2.53-.9-2.53-.9-.34-.87-.83-1.1-.83-1.1-.68-.47.05-.46.05-.46.75.06 1.15.78 1.15.78.67 1.15 1.76.82 2.19.63.07-.49.26-.82.48-1.01-1.67-.19-3.42-.84-3.42-3.72 0-.82.29-1.5.78-2.02-.08-.19-.34-.96.07-2 0 0 .63-.2 2.07.77a7.2 7.2 0 0 1 3.77 0c1.44-.97 2.07-.77 2.07-.77.41 1.04.15 1.81.07 2 .49.52.78 1.2.78 2.02 0 2.89-1.76 3.53-3.43 3.71.27.23.51.69.51 1.39v2.06c0 .2.13.44.51.36A7.5 7.5 0 0 0 8 .5Z"/></svg>',
+  globe: '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M1.6 8h12.8M8 1.5c1.7 1.8 2.6 4.1 2.6 6.5S9.7 12.7 8 14.5C6.3 12.7 5.4 10.4 5.4 8S6.3 3.3 8 1.5Z"/></svg>',
+};
+
 // "Name · detail" -> name + muted detail
 const splitName = (name) => {
   const i = name.indexOf(' · ');
@@ -52,7 +59,7 @@ export function render(c, ctx) {
     <dl class="contact">
       ${c.contact.items
         .map(
-          (i) => `<div class="contact-row"><dt>${esc(i.label)}</dt><dd>
+          (i) => `<div class="contact-row"><dt>${contactIcons[i.icon] || ''}<span class="sr-only">${esc(i.label)}</span></dt><dd>
             <a href="${esc(i.href)}"${i.href.startsWith('http') ? ' rel="me noopener"' : ''}>${esc(i.value)}</a>
             ${i.copy ? `<button type="button" class="copy" data-copy="${esc(i.value)}" data-copied="${esc(c.ui.copied)}" hidden aria-label="${esc(c.ui.copy)}: ${esc(i.value)}">${esc(c.ui.copy)}</button>` : ''}
           </dd></div>`

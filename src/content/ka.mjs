@@ -51,17 +51,17 @@ export default {
       {
         label: 'ელფოსტა',
         value: 'contact@samsiani.com',
-        href: 'mailto:contact@samsiani.com',
+        href: 'mailto:contact@samsiani.com', icon: 'mail',
         copy: true,
       },
       {
         label: 'ტელეფონი',
         value: '+995 599 62 03 03',
-        href: 'tel:+995599620303',
+        href: 'tel:+995599620303', icon: 'phone',
         copy: true,
       },
-      { label: 'GitHub', value: 'github.com/Samsiani', href: 'https://github.com/Samsiani' },
-      { label: 'ვებსაიტი', value: 'samsiani.com', href: 'https://samsiani.com' },
+      { label: 'GitHub', value: 'github.com/Samsiani', href: 'https://github.com/Samsiani', icon: 'github' },
+      { label: 'ვებსაიტი', value: 'samsiani.com', href: 'https://samsiani.com', icon: 'globe' },
     ],
   },
   sections: {

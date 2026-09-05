@@ -141,9 +141,8 @@ html[lang="ka"] .name { font-size: 38px; line-height: 1.08; letter-spacing: -0.0
 .role { margin-top: 15px; font: 400 17px/1.35 var(--sans); color: var(--ink-2); }
 .subrole { margin-top: 6px; font: 400 12.5px/1.5 var(--sans); color: var(--muted); }
 .rail-block { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
-.contact { display: grid; gap: 15px; }
-.contact-row { display: grid; grid-template-columns: 48px 1fr; gap: 8px; align-items: baseline; }
-html[lang="ka"] .contact-row { grid-template-columns: 58px 1fr; }
+.contact { display: grid; gap: 13px; }
+.contact-row { display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: center; }
 .contact dt { font: 400 10.5px/1.5 var(--mono); letter-spacing: 0.09em; text-transform: var(--caps); color: var(--muted); }
 html[lang="ka"] .contact dt { font-family: var(--sans); letter-spacing: 0.01em; font-size: 10.5px; white-space: nowrap; }
 .contact dd { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }

@@ -48,10 +48,10 @@ export default {
   contact: {
     heading: 'Contact',
     items: [
-      { label: 'Email', value: 'contact@samsiani.com', href: 'mailto:contact@samsiani.com', copy: true },
-      { label: 'Phone', value: '+995 599 62 03 03', href: 'tel:+995599620303', copy: true },
-      { label: 'GitHub', value: 'github.com/Samsiani', href: 'https://github.com/Samsiani' },
-      { label: 'Web', value: 'samsiani.com', href: 'https://samsiani.com' },
+      { label: 'Email', value: 'contact@samsiani.com', href: 'mailto:contact@samsiani.com', icon: 'mail', copy: true },
+      { label: 'Phone', value: '+995 599 62 03 03', href: 'tel:+995599620303', icon: 'phone', copy: true },
+      { label: 'GitHub', value: 'github.com/Samsiani', href: 'https://github.com/Samsiani', icon: 'github' },
+      { label: 'Web', value: 'samsiani.com', href: 'https://samsiani.com', icon: 'globe' },
     ],
   },
   sections: {
