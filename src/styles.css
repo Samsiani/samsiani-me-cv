@@ -190,7 +190,10 @@ html[lang="ka"] .lvl { font-family: var(--sans); letter-spacing: 0.03em; }
 .lvl[data-level="strong"] { color: var(--label-strong); }
 .lvl[data-level="working"] { color: var(--muted-2); }
 
-.prose { margin-top: 24px; max-width: 720px; display: grid; gap: 16px; font: 400 15.5px/1.6 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+.prose { margin-top: 24px; max-width: none; font: 400 15.5px/1.62 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+.prose p { margin-bottom: 15px; break-inside: avoid; }
+.prose p:last-child { margin-bottom: 0; }
+@media (min-width: 1180px) { .prose { columns: 2; column-gap: 52px; } }
 
 /* skills ledger */
 .ledger { margin-top: 34px; border-top: 1px solid var(--rule); container-type: inline-size; }
@@ -343,7 +346,8 @@ html[lang="ka"] .foot { font-family: var(--sans); letter-spacing: 0.01em; }
   .sec h2 { font-size: 15pt; }
   .lead { margin-top: 6px; font-size: 9.5pt; }
   .legend { margin-top: 8px; font-size: 8pt; }
-  .prose { margin-top: 10px; font-size: 10pt; gap: 8px; max-width: none; }
+  .prose { margin-top: 10px; font-size: 10pt; max-width: none; columns: 2; column-gap: 28px; }
+  .prose p { margin-bottom: 7px; }
   .ledger, .list { margin-top: 12px; }
   .group { grid-template-columns: 150px 1fr; gap: 18px; padding: 8px 0 10px; break-inside: auto; }
   .group-head { break-after: avoid; }
