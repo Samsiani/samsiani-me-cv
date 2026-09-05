@@ -16,13 +16,14 @@ npm run build    # dist/ only
 `BUILD_DATE=2026-09-05 node build.mjs` pins the "last updated" date; `SITE_URL` overrides the canonical origin.
 
 ## Deploy
-Push to `main` — GitHub Actions builds and rsyncs `dist/` to the OpenLiteSpeed vhost at
-`/home/samsiani.me/public_html/` on the VPS. Requires repo secret `VPS_SSH_KEY`
-(private half of a key in the server's `/root/.ssh/authorized_keys`).
+Push to `main` — GitHub Actions builds and rsyncs `dist/` to the OpenLiteSpeed vhost on the
+production server. The host, user, document root and deploy key all come from repository
+secrets (`VPS_HOST`, `VPS_USER`, `VPS_PATH`, `VPS_SSH_KEY`), so no server details live in
+this repository. Without them the workflow builds and skips the deploy step.
 
-Manual fallback:
+Manual fallback, using your own SSH config entry for the server:
 ```bash
-node build.mjs && rsync -az --delete dist/ root@194.163.189.230:/home/samsiani.me/public_html/
+node build.mjs && rsync -az --delete dist/ samsiani-me:/path/to/public_html/
 ```
 
 ## Structure
