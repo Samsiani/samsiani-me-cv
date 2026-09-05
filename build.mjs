@@ -6,7 +6,7 @@ import en from './src/content/en.mjs';
 import ka from './src/content/ka.mjs';
 
 const SITE = process.env.SITE_URL || 'https://samsiani.me';
-const updated = process.env.BUILD_DATE || new Date().toISOString().slice(0, 10);
+const updated = process.env.BUILD_DATE || '2026-06-07';
 const hash = (s) => createHash('md5').update(s).digest('hex').slice(0, 8);
 
 await rm('dist', { recursive: true, force: true });
