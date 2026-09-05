@@ -43,8 +43,7 @@ export function render(c, ctx) {
     telephone: '+995599620303',
     address: { '@type': 'PostalAddress', addressLocality: 'Tbilisi', addressCountry: 'GE' },
     sameAs: ['https://github.com/Samsiani', 'https://samsiani.com', 'https://codeon.ge'],
-    alumniOf: { '@type': 'CollegeOrUniversity', name: s.education.items[0].title },
-    knowsLanguage: ['ka', 'en'],
+    knowsLanguage: s.education.langs.map((l) => l.name),
     knowsAbout: s.skills.groups.flatMap((g) => g.items.filter((i) => i.level === 'core').map((i) => i.name.split(' · ')[0])),
     worksFor: s.experience.items.filter((e) => e.orgHref).map((e) => ({ '@type': 'Organization', name: e.org, url: e.orgHref })),
   };
@@ -110,6 +109,8 @@ export function render(c, ctx) {
 <meta property="og:locale" content="${c.meta.ogLocale}">
 <meta property="og:locale:alternate" content="${alt.meta.ogLocale}">
 <meta property="og:image" content="${site}/og-${c.lang}.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="${esc(c.hero.name)} — ${esc(c.hero.role)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="profile:first_name" content="${isKa ? 'გიორგი' : 'Giorgi'}">
@@ -118,8 +119,10 @@ export function render(c, ctx) {
 <meta name="twitter:title" content="${esc(c.meta.title)}">
 <meta name="twitter:description" content="${esc(c.meta.description)}">
 <meta name="twitter:image" content="${site}/og-${c.lang}.png">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 ${preload.map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')}
 <link rel="stylesheet" href="${cssHref}">
 <script>(function(){var d=document.documentElement;d.classList.add('js');try{var t=localStorage.getItem('theme');var m=location.search.match(/[?&]theme=(light|dark)/);if(m){t=m[1]}if(t==='dark'||t==='light'){d.dataset.theme=t}}catch(e){}})();</script>
@@ -155,7 +158,6 @@ ${preload.map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" typ
     <p class="subrole">${esc(c.hero.subrole)}</p>
     <div class="rail-block" aria-label="${esc(c.contact.heading)}">${contactList}</div>
     <nav class="railnav rail-block" aria-label="${esc(c.ui.nav)}">${navLinks(true)}</nav>
-    <p class="rail-meta rail-block">${esc(c.ui.updated)} <time datetime="${updated}">${updated}</time><br>${esc(c.ui.builtWith)}</p>
   </aside>
 
   <main id="main" class="content">
@@ -218,9 +220,7 @@ ${preload.map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" typ
     <section class="sec" id="${s.education.id}" aria-labelledby="${s.education.id}-title">
       ${secHead(s.education, 7)}
       <ul class="list">
-        <li class="item"><div class="item-head"><span class="item-label">${esc(s.education.uniLabel)}</span></div><div>${s.education.items.map((e) => `<h3>${esc(e.title)}</h3><p>${esc(e.text)}</p>`).join('')}</div></li>
-        <li class="item"><div class="item-head"><span class="item-label">${esc(s.education.certsTitle)}</span></div><ul class="plain">${s.education.certs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></li>
-        <li class="item"><div class="item-head"><span class="item-label">${esc(s.education.langsTitle)}</span></div><ul class="plain">${s.education.langs.map((l) => `<li>${esc(l.name)} <span class="row-sub">· ${esc(l.level)}</span></li>`).join('')}</ul></li>
+        ${s.education.langs.map((l) => `<li class="item"><div class="item-head"><span class="item-label">${esc(l.name)}</span></div><div><p class="lang-level">${esc(l.level)}</p></div></li>`).join('')}
       </ul>
       ${secEnd}
     </section>
@@ -237,7 +237,7 @@ ${preload.map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" typ
     </section>
 
     <footer class="foot">
-      <span>© ${updated.slice(0, 4)} ${esc(c.hero.name)} · ${esc(c.ui.builtWith)}</span>
+      <span>© ${updated.slice(0, 4)} ${esc(c.hero.name)} · ${esc(c.ui.updated)} <time datetime="${updated}">${updated}</time> · ${esc(c.ui.builtWith)}</span>
       <span class="foot-links"><a href="${c.altPath}" hreflang="${alt.lang}" lang="${alt.lang}" data-lang-switch="${alt.lang}">${esc(c.altTitle)}</a><a href="#main">${esc(c.ui.top)} ↑</a></span>
     </footer>
   </main>

@@ -19,10 +19,31 @@ const jsName = `main.${hash(js)}.js`;
 await writeFile(`dist/${cssName}`, css);
 await writeFile(`dist/${jsName}`, js);
 await cp('src/fonts', 'dist/fonts', { recursive: true });
-await cp('src/favicon.svg', 'dist/favicon.svg');
-for (const f of ['og-en.png', 'og-ka.png', 'apple-touch-icon.png']) {
-  try { await cp(`src/${f}`, `dist/${f}`); } catch {}
+for (const [from, to] of [
+  ['src/og-en.png', 'dist/og-en.png'],
+  ['src/og-ka.png', 'dist/og-ka.png'],
+  ['src/brand/icon-32.png', 'dist/favicon-32.png'],
+  ['src/brand/icon-180.png', 'dist/apple-touch-icon.png'],
+  ['src/brand/icon-192.png', 'dist/icon-192.png'],
+  ['src/brand/icon-512.png', 'dist/icon-512.png'],
+]) {
+  try { await cp(from, to); } catch (e) { console.warn('missing asset', from); }
 }
+await writeFile(
+  'dist/site.webmanifest',
+  JSON.stringify({
+    name: 'Giorgi Samsiani — Full-Stack Web Developer',
+    short_name: 'Samsiani',
+    start_url: '/',
+    display: 'browser',
+    background_color: '#111318',
+    theme_color: '#1a4fd6',
+    icons: [
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  }, null, 2)
+);
 
 const ctx = { site: SITE, cssHref: `/${cssName}`, jsHref: `/${jsName}`, updated };
 await writeFile('dist/index.html', render(en, { ...ctx, alt: ka }));

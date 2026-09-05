@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Chivo;src:url('../fonts/chivo-latin-normal-400-700.woff2') format('woff2');font-weight:400 700;font-display:block}
+@font-face{font-family:'JetBrains Mono';src:url('../fonts/jetbrains-mono-latin-normal-400-500.woff2') format('woff2');font-weight:400 500;font-display:block}
+@font-face{font-family:'Noto Sans Georgian';src:url('../fonts/noto-sans-georgian-georgian-normal-400-700.woff2') format('woff2');font-weight:400 700;font-display:block}
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;background:oklch(.185 .012 258);color:oklch(.96 .004 250);
+     font-family:Chivo,'Noto Sans Georgian',sans-serif;overflow:hidden;position:relative}
+.ka body,body.ka{font-family:'Noto Sans Georgian',Chivo,sans-serif}
+.wrap{position:absolute;inset:0;display:grid;grid-template-columns:86px 1fr;}
+.rail{border-right:1px solid oklch(.295 .01 258);display:flex;align-items:flex-start;justify-content:center;padding-top:64px}
+.mark{width:52px;height:52px;display:grid;place-items:center;background:oklch(.96 .004 250);color:oklch(.185 .012 258);
+      font:600 20px/1 Chivo,sans-serif;letter-spacing:.05em}
+.main{padding:64px 72px 56px 56px;display:flex;flex-direction:column;height:100%}
+.eyebrow{font:500 15px/1 'JetBrains Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:oklch(.755 .008 250)}
+body.ka .eyebrow{font-family:'Noto Sans Georgian',sans-serif;letter-spacing:.04em;text-transform:none;font-size:16px}
+h1{margin-top:34px;font:600 82px/.98 Chivo,sans-serif;letter-spacing:-.03em}
+body.ka h1{font-family:'Noto Sans Georgian',sans-serif;font-size:64px;line-height:1.06;letter-spacing:-.015em}
+.role{margin-top:22px;font:400 32px/1.25 Chivo,sans-serif;color:oklch(.88 .006 250);letter-spacing:-.01em}
+body.ka .role{font-family:'Noto Sans Georgian',sans-serif;font-size:27px}
+.sub{margin-top:14px;font:400 21px/1.4 Chivo,sans-serif;color:oklch(.755 .008 250)}
+.spacer{flex:1}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid oklch(.52 .012 258);padding-top:24px}
+.f{padding-right:24px;border-right:1px solid oklch(.295 .01 258)}
+.f:last-child{border-right:0}
+.fv{font:600 30px/1 Chivo,sans-serif;letter-spacing:-.025em}
+body.ka .fv{font-family:Chivo,sans-serif}
+.fl{margin-top:10px;font:400 12px/1.4 'JetBrains Mono',monospace;letter-spacing:.045em;text-transform:uppercase;color:oklch(.755 .008 250)}
+body.ka .fl{font-family:'Noto Sans Georgian',sans-serif;letter-spacing:.01em;text-transform:none;font-size:14px}
+.url{position:absolute;right:72px;top:64px;font:500 19px/1 'JetBrains Mono',monospace;color:oklch(.80 .15 255);letter-spacing:.02em}
+.accent{position:absolute;left:0;top:0;width:6px;height:100%;background:oklch(.80 .15 255)}
+</style></head><body>
+<div class="accent"></div>
+<div class="wrap">
+  <div class="rail"><span class="mark">GS</span></div>
+  <div class="main">
+    <div class="eyebrow" id="eyebrow">Curriculum vitae · 2026</div>
+    <h1 id="name">Giorgi<br>Samsiani</h1>
+    <div class="role" id="role">Full-Stack Web Developer</div>
+    <div class="sub" id="sub">WordPress · WooCommerce · Next.js · TypeScript</div>
+    <div class="spacer"></div>
+    <div class="facts" id="facts"></div>
+  </div>
+</div>
+<div class="url">samsiani.me</div>
+</body></html>

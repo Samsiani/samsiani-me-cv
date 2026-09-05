@@ -35,14 +35,14 @@ export default {
     name: 'Giorgi Samsiani',
     role: 'Full-Stack Web Developer',
     subrole: 'WordPress · WooCommerce · Next.js · TypeScript',
-    tagline: 'I build e-commerce systems that stay fast, talk to banks and ERPs, and hold up under real traffic.',
+    tagline: 'I build websites and e-commerce systems that stay fast, talk to banks and ERPs, and hold up under real traffic.',
     location: 'Tbilisi, Georgia',
     availability: 'Open to remote and contract work',
     facts: [
       { value: '10+', label: 'years building for the web' },
       { value: 'PHP · TS', label: 'primary languages' },
       { value: 'WP · Next', label: 'primary platforms' },
-      { value: 'KA · EN · RU', label: 'product locales shipped' },
+      { value: 'KA · EN', label: 'product locales shipped' },
     ],
   },
   contact: {
@@ -166,7 +166,7 @@ export default {
           items: [
             { name: 'Git · trunk-based, semantic releases', level: 'core' },
             { name: 'Claude Code & agentic workflows', level: 'core' },
-            { name: 'Multilingual products · KA / EN / RU, WPML & custom engines', level: 'core' },
+            { name: 'Multilingual products · WPML, Polylang & custom engines', level: 'core' },
             { name: 'Vitest · PHPUnit · test-gated CI', level: 'strong' },
             { name: 'MCP servers & tool integration', level: 'strong' },
             { name: 'Technical writing · specs, runbooks, changelogs', level: 'strong' },
@@ -187,7 +187,7 @@ export default {
         { title: 'Store rescue', text: 'Take over a slow, hacked or half-finished WooCommerce site: audit, clean, harden, upgrade PHP and plugins, and bring it back to green Web Vitals.' },
         { title: 'Production diagnostics', text: 'Read access logs, slow logs and CPU steal to tell "your change" from "host throttle", then fix the real cause instead of restarting things.' },
         { title: 'Sync engines', text: 'Design one-way and two-way sync between shops and ERPs with idempotent upserts, plausibility guards, dry-run modes and pause switches.' },
-        { title: 'Multilingual by default', text: 'Build Georgian, English and Russian products where every cache key, URL and template is language-aware from day one.' },
+        { title: 'Multilingual by default', text: 'Build Georgian and English products where every cache key, URL and template is language-aware from day one.' },
       ],
     },
     workstyle: {
@@ -243,12 +243,8 @@ export default {
       ],
     },
     education: {
-      id: 'education',
-      title: 'Education',
-      uniLabel: 'University',
-      items: [{ title: 'Ivane Javakhishvili Tbilisi State University', text: 'Faculty of Economics and Business' }],
-      certsTitle: 'Certificates',
-      certs: ['Google Analytics Qualification', 'Google Tag Manager Fundamentals', 'Introduction to Data Studio'],
+      id: 'languages',
+      title: 'Languages',
       langsTitle: 'Languages',
       langs: [
         { name: 'Georgian', level: 'Native' },
