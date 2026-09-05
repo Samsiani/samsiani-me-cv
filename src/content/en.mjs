@@ -230,9 +230,9 @@ export default {
           text: 'Independent studio providing web development, technical SEO and hosting for clients in retail, industrial B2B, consumer lending, automotive and education. Work includes WordPress and WooCommerce sites on Divi, Avada, Elementor and WoodMart, custom plugins, and headless Next.js front ends. I am the long-term engineering partner for several large online stores, covering payments, ERP sync, speed and infrastructure.',
         },
         {
-          period: '2025 — present',
-          role: 'Founder, plugin products',
-          org: 'CodeOn',
+          period: '2022 — present',
+          role: 'Founder, plugins',
+          org: 'CodeOn.ge',
           orgHref: 'https://codeon.ge',
           text: 'A line of WordPress and WooCommerce plugins for online stores: card and installment payments, ERP sync, delivery, SMS and a multilingual engine. Each product ships with licensing, automatic updates, documentation and support.',
         },
