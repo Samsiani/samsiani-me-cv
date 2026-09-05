@@ -179,7 +179,7 @@ export default {
     abilities: {
       id: 'abilities',
       title: 'What I can own end to end',
-      lead: 'Work I can take on and deliver end to end.',
+      lead: 'Work I take on and see through to production.',
       items: [
         { title: 'Figma to production', text: 'I turn a design file into a working Next.js or Vue front end with typed components, accessible markup and a real build pipeline.' },
         { title: 'Custom WordPress builds', text: 'I model the content the way the business works, using custom post types, ACF fields and editor-friendly blocks, and write a theme that stays fast as the site grows.' },
@@ -195,7 +195,7 @@ export default {
     workstyle: {
       id: 'work-style',
       title: 'How I work',
-      lead: 'How I work on every project.',
+      lead: 'The practices I follow on every project.',
       items: [
         { title: 'Check the code before blaming the cache.', text: 'I reproduce every bug and trace it to a specific line before changing anything. A guess is not a diagnosis.' },
         { title: 'Small, verified steps.', text: 'I build in thin slices and verify the visible result once before moving on. No large rewrites, no untested changes.' },
