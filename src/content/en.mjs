@@ -37,7 +37,7 @@ export default {
     subrole: 'Web applications · online stores · system integrations',
     tagline: 'I build websites and online stores that load fast, connect to banks and ERP systems, and stay reliable under heavy traffic.',
     location: 'Tbilisi, Georgia',
-    availability: 'Open to remote and contract work',
+    availability: 'Open to remote work',
     facts: [
       { value: '10+', label: 'years of experience' },
       { value: 'PHP · TS', label: 'main languages' },
@@ -256,7 +256,7 @@ export default {
     contact: {
       id: 'contact',
       title: 'Let’s talk',
-      lead: 'Available for remote and contract work. Email is the fastest way to reach me.',
+      lead: 'I work on remote projects. Email is the fastest way to reach me.',
       cta: 'Write to me',
     },
   },
