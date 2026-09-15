@@ -1,116 +1,41 @@
-// Zero-dependency static build: node build.mjs  ->  dist/
-import { mkdir, writeFile, readFile, cp, rm } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
-import { render } from './src/template.mjs';
-import en from './src/content/en.mjs';
-import ka from './src/content/ka.mjs';
+// CLI over buildSite(): node build.mjs  ->  dist/
+// Content: src/content/site.json (SITE_JSON=path overrides; a server envelope { kind, ..., site } is accepted).
+// Test overrides validated like any value: LAYOUT=studio PALETTE=lime node build.mjs
+// Local-preview overrides applied after validation: SITE_URL=http://localhost:4173 BUILD_DATE=2026-06-07
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { buildSite, BuildValidationError } from './src/build-site.mjs';
+import { renderBrand } from './src/brand/render.mjs';
 
-const SITE = process.env.SITE_URL || 'https://samsiani.me';
-const updated = process.env.BUILD_DATE || '2026-06-07';
-const hash = (s) => createHash('md5').update(s).digest('hex').slice(0, 8);
+const SITE_JSON = process.env.SITE_JSON || 'src/content/site.json';
+const OUT = process.env.OUT_DIR || 'dist';
+const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tbilisi' }).format(new Date());
 
-await rm('dist', { recursive: true, force: true });
-await mkdir('dist/ka', { recursive: true });
+const raw = JSON.parse(await readFile(SITE_JSON, 'utf8'));
+const site = raw && raw.kind && raw.site ? raw.site : raw;
+if (process.env.LAYOUT) site.settings.layout = process.env.LAYOUT;
+if (process.env.PALETTE) site.settings.palette = process.env.PALETTE;
 
-const css = (await readFile('src/fonts.css', 'utf8')) + '\n' + (await readFile('src/styles.css', 'utf8'));
-const js = await readFile('src/main.js', 'utf8');
-const cssName = `styles.${hash(css)}.css`;
-const jsName = `main.${hash(js)}.js`;
-await writeFile(`dist/${cssName}`, css);
-await writeFile(`dist/${jsName}`, js);
-await cp('src/fonts', 'dist/fonts', { recursive: true });
-for (const [from, to] of [
-  ['src/og-en.png', 'dist/og-en.png'],
-  ['src/og-ka.png', 'dist/og-ka.png'],
-  ['src/brand/icon-32.png', 'dist/favicon-32.png'],
-  ['src/brand/icon-180.png', 'dist/apple-touch-icon.png'],
-  ['src/brand/icon-192.png', 'dist/icon-192.png'],
-  ['src/brand/icon-512.png', 'dist/icon-512.png'],
-]) {
-  try { await cp(from, to); } catch (e) { console.warn('missing asset', from); }
+let files;
+try {
+  files = await buildSite(site, {
+    mode: 'publish',
+    brand: (s, pal, layoutMeta) => renderBrand(s, pal, layoutMeta, { cacheDir: '.cache/brand' }),
+    today,
+    after: { siteUrl: process.env.SITE_URL, updated: process.env.BUILD_DATE },
+  });
+} catch (e) {
+  if (e instanceof BuildValidationError) {
+    for (const x of e.errors) console.error(`error ${x.code} ${x.path}: ${x.msg}`);
+    console.error(`${SITE_JSON}: ${e.errors.length} error(s); nothing was built`);
+  } else console.error(e.message);
+  process.exit(1);
 }
-await writeFile(
-  'dist/site.webmanifest',
-  JSON.stringify({
-    name: 'Giorgi Samsiani — Full-Stack Web Developer',
-    short_name: 'Samsiani',
-    start_url: '/',
-    display: 'browser',
-    background_color: '#111318',
-    theme_color: '#1a4fd6',
-    icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-  }, null, 2)
-);
+for (const w of files.warnings) console.warn(`warning ${w.code} ${w.path}: ${w.msg}`);
 
-const ctx = { site: SITE, cssHref: `/${cssName}`, jsHref: `/${jsName}`, updated };
-await writeFile('dist/index.html', render(en, { ...ctx, alt: ka }));
-await writeFile('dist/ka/index.html', render(ka, { ...ctx, alt: en }));
-await writeFile('dist/404.html', render(en, { ...ctx, alt: ka }));
-
-await writeFile(
-  'dist/sitemap.xml',
-  `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${[en, ka]
-  .map(
-    (c) => `  <url>
-    <loc>${SITE}${c.path}</loc>
-    <lastmod>${updated}</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="${SITE}/"/>
-    <xhtml:link rel="alternate" hreflang="ka" href="${SITE}/ka/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/"/>
-  </url>`
-  )
-  .join('\n')}
-</urlset>
-`
-);
-await writeFile('dist/robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
-
-// OpenLiteSpeed / Apache: caching + security headers + 404
-await writeFile(
-  'dist/.htaccess',
-  `ErrorDocument 404 /404.html
-
-<IfModule mod_headers.c>
-  Header always set X-Content-Type-Options "nosniff"
-  Header always set Referrer-Policy "strict-origin-when-cross-origin"
-  Header always set X-Frame-Options "SAMEORIGIN"
-  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
-  <FilesMatch "\\.(woff2|css|js|svg|png|jpg|webp)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
-  </FilesMatch>
-  <FilesMatch "\\.(html|xml|txt)$">
-    Header set Cache-Control "public, max-age=0, must-revalidate"
-  </FilesMatch>
-</IfModule>
-
-<IfModule mod_mime.c>
-  AddType font/woff2 .woff2
-  AddType image/svg+xml .svg
-</IfModule>
-
-<IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css application/javascript image/svg+xml application/xml text/plain
-</IfModule>
-`
-);
-await writeFile(
-  'dist/_headers',
-  `/*
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Frame-Options: DENY
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
-/fonts/*
-  Cache-Control: public, max-age=31536000, immutable
-/styles.*.css
-  Cache-Control: public, max-age=31536000, immutable
-/main.*.js
-  Cache-Control: public, max-age=31536000, immutable
-`
-);
-console.log(`built dist/ (${cssName}, ${jsName}) · updated ${updated}`);
+await rm(OUT, { recursive: true, force: true });
+for (const [name, f] of files) {
+  await mkdir(dirname(join(OUT, name)), { recursive: true });
+  await writeFile(join(OUT, name), f.body);
+}
+console.log(`built ${OUT}/ (${files.layoutId}, ${files.paletteId}, ${files.cssName}, ${files.jsName}) · updated ${site.settings.updated}`);

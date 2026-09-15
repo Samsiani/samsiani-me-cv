@@ -1,0 +1,1442 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "layout": "precision",
+    "palette": "cobalt",
+    "defaultTheme": "system",
+    "updated": "2026-06-07",
+    "autoUpdateDateOnPublish": false,
+    "siteUrl": "https://samsiani.me"
+  },
+  "person": {
+    "givenName": {
+      "en": "Giorgi",
+      "ka": "გიორგი"
+    },
+    "familyName": {
+      "en": "Samsiani",
+      "ka": "სამსიანი"
+    },
+    "alternateName": {
+      "en": "George Samsiani",
+      "ka": "Giorgi Samsiani"
+    },
+    "monogram": "GS",
+    "address": {
+      "locality": "Tbilisi",
+      "country": "GE"
+    },
+    "sameAs": [
+      "https://github.com/Samsiani",
+      "https://samsiani.com",
+      "https://codeon.ge"
+    ]
+  },
+  "meta": {
+    "title": {
+      "en": "Giorgi Samsiani — Full-Stack Web Developer · WordPress, WooCommerce, Next.js",
+      "ka": "გიორგი სამსიანი — Full-Stack ვებდეველოპერი · WordPress, WooCommerce, Next.js"
+    },
+    "description": {
+      "en": "Full-stack web developer in Tbilisi, Georgia. Custom and headless WordPress, WooCommerce engineering, Next.js and TypeScript front ends, bank and ERP integrations, performance and technical SEO.",
+      "ka": "Full-Stack ვებდეველოპერი თბილისში, საქართველოში. ინდივიდუალური და headless WordPress, WooCommerce-ის ინჟინერია, Next.js-ისა და TypeScript-ის ფრონტენდი, საბანკო და ERP-ინტეგრაციები, წარმადობა და ტექნიკური SEO."
+    }
+  },
+  "ui": {
+    "skip": {
+      "en": "Skip to content",
+      "ka": "კონტენტზე გადასვლა"
+    },
+    "nav": {
+      "en": "Sections",
+      "ka": "სექციები"
+    },
+    "theme": {
+      "en": "Toggle colour theme",
+      "ka": "თემის შეცვლა"
+    },
+    "themeShort": {
+      "en": "Theme",
+      "ka": "თემა"
+    },
+    "print": {
+      "en": "Save as PDF",
+      "ka": "PDF-ად შენახვა"
+    },
+    "printShort": {
+      "en": "PDF",
+      "ka": "PDF"
+    },
+    "language": {
+      "en": "Language",
+      "ka": "ენა"
+    },
+    "langShort": {
+      "en": "EN",
+      "ka": "ქართ"
+    },
+    "langSwitch": {
+      "en": "In English",
+      "ka": "ქართულად"
+    },
+    "copy": {
+      "en": "copy",
+      "ka": "ასლი"
+    },
+    "copied": {
+      "en": "copied",
+      "ka": "დაკოპირდა"
+    },
+    "legend": {
+      "en": "Depth of use",
+      "ka": "გამოყენების დონე"
+    },
+    "levels": {
+      "core": {
+        "en": "Core",
+        "ka": "ძირითადი"
+      },
+      "strong": {
+        "en": "Strong",
+        "ka": "საფუძვლიანი"
+      },
+      "working": {
+        "en": "Working",
+        "ka": "სამუშაო"
+      }
+    },
+    "levelHints": {
+      "core": {
+        "en": "daily, production",
+        "ka": "ყოველდღიური, პროდაქშენში"
+      },
+      "strong": {
+        "en": "regular",
+        "ka": "რეგულარული"
+      },
+      "working": {
+        "en": "as needed",
+        "ka": "საჭიროებისამებრ"
+      }
+    },
+    "colGroup": {
+      "en": "Group",
+      "ka": "ჯგუფი"
+    },
+    "colSkill": {
+      "en": "Skill",
+      "ka": "უნარი"
+    },
+    "colDepth": {
+      "en": "Depth",
+      "ka": "დონე"
+    },
+    "present": {
+      "en": "present",
+      "ka": "დღემდე"
+    },
+    "atAGlance": {
+      "en": "At a glance",
+      "ka": "მოკლედ"
+    },
+    "updated": {
+      "en": "Last updated",
+      "ka": "ბოლოს განახლდა"
+    },
+    "builtWith": {
+      "en": "Plain HTML & CSS · no trackers",
+      "ka": "სუფთა HTML და CSS · ტრეკერების გარეშე"
+    },
+    "top": {
+      "en": "Back to top",
+      "ka": "ზემოთ დაბრუნება"
+    }
+  },
+  "hero": {
+    "eyebrow": {
+      "en": "Curriculum vitae · 2026",
+      "ka": "რეზიუმე · 2026"
+    },
+    "role": {
+      "en": "Full-Stack Web Developer",
+      "ka": "Full-Stack ვებდეველოპერი"
+    },
+    "subrole": {
+      "en": "Web applications · online stores · system integrations",
+      "ka": "ვებაპლიკაციები · ონლაინ მაღაზიები · სისტემური ინტეგრაციები"
+    },
+    "tagline": {
+      "en": "I build websites and online stores that load fast, connect to banks and ERP systems, and stay reliable under heavy traffic.",
+      "ka": "ვქმნი სწრაფ და საიმედო ვებსაიტებსა და ონლაინ მაღაზიებს, რომლებიც უკავშირდება ბანკებსა და ERP-სისტემებს და უძლებს მაღალ დატვირთვას."
+    },
+    "location": {
+      "en": "Tbilisi, Georgia",
+      "ka": "თბილისი, საქართველო"
+    },
+    "availability": {
+      "en": "Open to remote work",
+      "ka": "ღია ვარ დისტანციური მუშაობისთვის"
+    },
+    "facts": [
+      {
+        "id": "years-of-experience",
+        "value": {
+          "en": "10+",
+          "ka": "10+"
+        },
+        "label": {
+          "en": "years of experience",
+          "ka": "წლის გამოცდილება"
+        }
+      },
+      {
+        "id": "main-languages",
+        "value": {
+          "en": "PHP · TS",
+          "ka": "PHP · TS"
+        },
+        "label": {
+          "en": "main languages",
+          "ka": "ძირითადი ენები"
+        }
+      },
+      {
+        "id": "main-platforms",
+        "value": {
+          "en": "WP · Next",
+          "ka": "WP · Next"
+        },
+        "label": {
+          "en": "main platforms",
+          "ka": "ძირითადი პლატფორმები"
+        }
+      },
+      {
+        "id": "interface-languages",
+        "value": {
+          "en": "KA · EN",
+          "ka": "KA · EN"
+        },
+        "label": {
+          "en": "interface languages",
+          "ka": "ინტერფეისის ენები"
+        }
+      }
+    ]
+  },
+  "contact": {
+    "heading": {
+      "en": "Contact",
+      "ka": "კონტაქტი"
+    },
+    "items": [
+      {
+        "id": "email",
+        "label": {
+          "en": "Email",
+          "ka": "ელფოსტა"
+        },
+        "value": "contact@samsiani.com",
+        "href": "mailto:contact@samsiani.com",
+        "icon": "mail",
+        "copy": true
+      },
+      {
+        "id": "phone",
+        "label": {
+          "en": "Phone",
+          "ka": "ტელეფონი"
+        },
+        "value": "+995 599 62 03 03",
+        "href": "tel:+995599620303",
+        "icon": "phone",
+        "copy": true
+      },
+      {
+        "id": "github",
+        "label": {
+          "en": "GitHub",
+          "ka": "GitHub"
+        },
+        "value": "github.com/Samsiani",
+        "href": "https://github.com/Samsiani",
+        "icon": "github",
+        "copy": false
+      },
+      {
+        "id": "web",
+        "label": {
+          "en": "Web",
+          "ka": "ვებსაიტი"
+        },
+        "value": "samsiani.com",
+        "href": "https://samsiani.com",
+        "icon": "globe",
+        "copy": false
+      }
+    ]
+  },
+  "sections": {
+    "profile": {
+      "nav": null,
+      "title": {
+        "en": "Profile",
+        "ka": "პროფილი"
+      },
+      "lead": null,
+      "paragraphs": [
+        {
+          "id": "intro",
+          "text": {
+            "en": "I am a full-stack web developer based in Tbilisi. For more than ten years I have built and maintained commercial websites, online stores and internal business tools for companies in Georgia and abroad.",
+            "ka": "ვარ Full-Stack ვებდეველოპერი თბილისიდან. ათ წელზე მეტია ვაწყობ და ვმართავ კორპორატიულ ვებსაიტებს, ონლაინ მაღაზიებსა და შიდა ბიზნესინსტრუმენტებს ადგილობრივი და უცხოური კომპანიებისთვის."
+          }
+        },
+        {
+          "id": "stack",
+          "text": {
+            "en": "On the front end I use Next.js, React, Vue and TypeScript; on the back end PHP, Laravel, Node.js and WordPress. I write custom themes and plugins, set up and repair WooCommerce stores, and run headless architectures where the CMS only serves data to a separate interface. I also make mobile apps with React Native, admin dashboards and internal CRM tools, and I manage the Linux servers, deployment and caching behind them.",
+            "ka": "ფრონტენდზე ვიყენებ Next.js-ს, React-ს, Vue-სა და TypeScript-ს, ბექენდზე კი — PHP-ს, Laravel-ს, Node.js-სა და WordPress-ს. ვწერ ინდივიდუალურ თემებსა და პლაგინებს, ვაწყობ და ვასწორებ WooCommerce-ის მაღაზიებს და ვამუშავებ headless არქიტექტურებს, სადაც CMS დამოუკიდებელ ინტერფეისს მხოლოდ მონაცემებს აწვდის. React Native-ით ვქმნი მობილურ აპლიკაციებს, ადმინისტრაციულ პანელებსა და შიდა CRM-ინსტრუმენტებს, ასევე ვმართავ მათ Linux-სერვერებს, დეპლოისა და ქეშირებას."
+          }
+        },
+        {
+          "id": "integrations",
+          "text": {
+            "en": "A large part of my work is integration. I connect shops to bank payment and installment systems, to ERP and accounting software, and to delivery, SMS and CRM providers. I design the sync engines that keep products, stock, prices and orders correct on both sides.",
+            "ka": "ჩემი საქმიანობის დიდი ნაწილი ინტეგრაციებია. ონლაინ მაღაზიებს ვუკავშირებ ბანკების საგადახდო და განვადების სისტემებს, ERP-სა და საბუღალტრო პროგრამებს, ასევე მიტანის, SMS-ისა და CRM-ის პროვაიდერებს. ვაპროექტებ სინქრონიზაციის ძრავებს, რაც პროდუქტების, მარაგების, ფასებისა და შეკვეთების ორივე მხარეს ზუსტ ასახვას უზრუნველყოფს."
+          }
+        },
+        {
+          "id": "plugins",
+          "text": {
+            "en": "I also develop and sell my own line of WordPress and WooCommerce plugins, so I write code that other developers use as well. Performance, security and technical SEO are part of every project, not an afterthought.",
+            "ka": "ამასთან, ვავითარებ და ვყიდი WordPress-ისა და WooCommerce-ის საკუთარ პლაგინებს, ამიტომ ვწერ ისეთ კოდს, რომელსაც სხვა დეველოპერებიც იყენებენ. წარმადობა, უსაფრთხოება და ტექნიკური SEO თითოეული პროექტის ძირითადი ნაწილია და არა ბოლოს მოსაგვარებელი დეტალი."
+          }
+        }
+      ]
+    },
+    "skills": {
+      "nav": null,
+      "title": {
+        "en": "Stack & skills",
+        "ka": "სტეკი და უნარები"
+      },
+      "lead": {
+        "en": "Grouped by where each tool sits in a system. The level shows how much I use it in production, not how well I think I know it.",
+        "ka": "დაჯგუფებულია სისტემაში მათი ადგილის მიხედვით. მითითებული დონე ასახავს ტექნოლოგიის პროდაქშენში გამოყენების სიხშირეს და არა უბრალოდ ჩემს თვითშეფასებას."
+      },
+      "groups": [
+        {
+          "id": "wordpress-woocommerce",
+          "title": {
+            "en": "WordPress & WooCommerce",
+            "ka": "WordPress და WooCommerce"
+          },
+          "lead": {
+            "en": "Custom themes and plugins, online stores and headless setups.",
+            "ka": "ინდივიდუალური თემები და პლაგინები, ონლაინ მაღაზიები და headless-სისტემები."
+          },
+          "items": [
+            {
+              "id": "custom-wordpress-development",
+              "name": {
+                "en": "Custom WordPress development",
+                "ka": "WordPress-ის ინდივიდუალური დეველოპმენტი"
+              },
+              "detail": {
+                "en": "themes, child themes, CPTs, ACF",
+                "ka": "თემები, child-თემები, CPT, ACF"
+              },
+              "level": "core"
+            },
+            {
+              "id": "woocommerce-customisation",
+              "name": {
+                "en": "WooCommerce customisation",
+                "ka": "WooCommerce-ის კასტომიზაცია"
+              },
+              "detail": {
+                "en": "checkout, product types, pricing, roles",
+                "ka": "checkout, პროდუქტის ტიპები, ფასები, როლები"
+              },
+              "level": "core"
+            },
+            {
+              "id": "headless-wordpress",
+              "name": {
+                "en": "Headless WordPress",
+                "ka": "Headless WordPress"
+              },
+              "detail": {
+                "en": "REST, WPGraphQL, Store API behind Next.js",
+                "ka": "REST, WPGraphQL, Store API Next.js-ის უკან"
+              },
+              "level": "core"
+            },
+            {
+              "id": "plugin-architecture",
+              "name": {
+                "en": "Plugin architecture",
+                "ka": "პლაგინების არქიტექტურა"
+              },
+              "detail": {
+                "en": "hooks, REST, cron, WP-CLI, auto-updates",
+                "ka": "hooks, REST, cron, WP-CLI, ავტოგანახლებები"
+              },
+              "level": "core"
+            },
+            {
+              "id": "page-builders",
+              "name": {
+                "en": "Page builders",
+                "ka": "Page builder-ები"
+              },
+              "detail": {
+                "en": "Divi, Avada, Elementor, WPBakery, Gutenberg / FSE",
+                "ka": "Divi, Avada, Elementor, WPBakery, Gutenberg / FSE"
+              },
+              "level": "core"
+            },
+            {
+              "id": "premium-themes",
+              "name": {
+                "en": "Premium themes",
+                "ka": "პრემიუმ-თემები"
+              },
+              "detail": {
+                "en": "WoodMart, Flatsome, Astra, Kadence",
+                "ka": "WoodMart, Flatsome, Astra, Kadence"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "multilingual",
+              "name": {
+                "en": "Multilingual",
+                "ka": "მრავალენოვნება"
+              },
+              "detail": {
+                "en": "WPML, Polylang, TranslatePress, custom engine",
+                "ka": "WPML, Polylang, TranslatePress, ინდივიდუალური ძრავა"
+              },
+              "level": "core"
+            },
+            {
+              "id": "performance",
+              "name": {
+                "en": "Performance",
+                "ka": "წარმადობა"
+              },
+              "detail": {
+                "en": "LiteSpeed Cache, Redis object cache, WP Rocket",
+                "ka": "LiteSpeed Cache, Redis object cache, WP Rocket"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "security-hardening",
+              "name": {
+                "en": "Security & hardening",
+                "ka": "უსაფრთხოება და გამკაცრება"
+              },
+              "detail": {
+                "en": "WAF, malware cleanup, backups, updates",
+                "ka": "WAF, malware-ის გაწმენდა, ბექაფები, განახლებები"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "migrations-maintenance",
+              "name": {
+                "en": "Migrations & maintenance",
+                "ka": "მიგრაცია და ტექნიკური მხარდაჭერა"
+              },
+              "detail": {
+                "en": "hosting moves, PHP upgrades, staging",
+                "ka": "ჰოსტინგის შეცვლა, PHP-ის განახლება, staging"
+              },
+              "level": "strong"
+            }
+          ]
+        },
+        {
+          "id": "front-end-ui",
+          "title": {
+            "en": "Front end & UI",
+            "ka": "ფრონტენდი და UI"
+          },
+          "lead": {
+            "en": "Typed, accessible interfaces built from design files.",
+            "ka": "დიზაინ-ფაილებიდან აწყობილი ტიპიზებული და ხელმისაწვდომი ინტერფეისები."
+          },
+          "items": [
+            {
+              "id": "typescript",
+              "name": {
+                "en": "TypeScript",
+                "ka": "TypeScript"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "react-19",
+              "name": {
+                "en": "React 19",
+                "ka": "React 19"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "next-js-16",
+              "name": {
+                "en": "Next.js 16",
+                "ka": "Next.js 16"
+              },
+              "detail": {
+                "en": "App Router, server actions",
+                "ka": "App Router, server actions"
+              },
+              "level": "core"
+            },
+            {
+              "id": "vue-3-vite",
+              "name": {
+                "en": "Vue 3 + Vite",
+                "ka": "Vue 3 + Vite"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "tailwind-css",
+              "name": {
+                "en": "Tailwind CSS",
+                "ka": "Tailwind CSS"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "modern-css",
+              "name": {
+                "en": "Modern CSS",
+                "ka": "თანამედროვე CSS"
+              },
+              "detail": {
+                "en": "container queries, view transitions, oklch",
+                "ka": "container queries, view transitions, oklch"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "figma-production",
+              "name": {
+                "en": "Figma → production",
+                "ka": "Figma → პროდაქშენი"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "accessibility",
+              "name": {
+                "en": "Accessibility",
+                "ka": "ხელმისაწვდომობა"
+              },
+              "detail": {
+                "en": "WCAG 2.1 AA",
+                "ka": "WCAG 2.1 AA"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "design-systems",
+              "name": {
+                "en": "Design systems",
+                "ka": "დიზაინ-სისტემები"
+              },
+              "detail": {
+                "en": "tokens, components, dark mode",
+                "ka": "ტოკენები, კომპონენტები, dark mode"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "expo-react-native",
+              "name": {
+                "en": "Expo / React Native",
+                "ka": "Expo / React Native"
+              },
+              "detail": null,
+              "level": "working"
+            }
+          ]
+        },
+        {
+          "id": "back-end-data",
+          "title": {
+            "en": "Back end & data",
+            "ka": "ბექენდი და მონაცემები"
+          },
+          "lead": {
+            "en": "Server code, databases and APIs.",
+            "ka": "სერვერის კოდი, მონაცემთა ბაზები და API-ები."
+          },
+          "items": [
+            {
+              "id": "php-8",
+              "name": {
+                "en": "PHP 8",
+                "ka": "PHP 8"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "woocommerce-internals",
+              "name": {
+                "en": "WooCommerce internals",
+                "ka": "WooCommerce-ის შიდა მექანიზმები"
+              },
+              "detail": {
+                "en": "gateways, shipping, Store API, HPOS",
+                "ka": "gateways, shipping, Store API, HPOS"
+              },
+              "level": "core"
+            },
+            {
+              "id": "mysql-mariadb",
+              "name": {
+                "en": "MySQL / MariaDB",
+                "ka": "MySQL / MariaDB"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "rest-graphql-api-design",
+              "name": {
+                "en": "REST & GraphQL API design",
+                "ka": "REST და GraphQL API-ების დიზაინი"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "laravel-12",
+              "name": {
+                "en": "Laravel 12",
+                "ka": "Laravel 12"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "node-js-hono",
+              "name": {
+                "en": "Node.js + Hono",
+                "ka": "Node.js + Hono"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "sqlite",
+              "name": {
+                "en": "SQLite",
+                "ka": "SQLite"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "redis-object-caching",
+              "name": {
+                "en": "Redis & object caching",
+                "ka": "Redis და ობიექტების ქეშირება"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "queues-cron-background-jobs",
+              "name": {
+                "en": "Queues, cron & background jobs",
+                "ka": "რიგები, cron და ფონური პროცესები"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "python-django",
+              "name": {
+                "en": "Python / Django",
+                "ka": "Python / Django"
+              },
+              "detail": null,
+              "level": "working"
+            }
+          ]
+        },
+        {
+          "id": "payments-integrations",
+          "title": {
+            "en": "Payments & integrations",
+            "ka": "გადახდები და ინტეგრაციები"
+          },
+          "lead": {
+            "en": "Connecting shops to banks, ERP systems and service providers.",
+            "ka": "მაღაზიების დაკავშირება ბანკებთან, ERP-სისტემებსა და სერვისების პროვაიდერებთან."
+          },
+          "items": [
+            {
+              "id": "bank-payment-gateways",
+              "name": {
+                "en": "Bank payment gateways",
+                "ka": "საბანკო გადახდის სისტემები"
+              },
+              "detail": {
+                "en": "BOG, TBC, Liberty, Credo, Flitt, iPay",
+                "ka": "BOG, TBC, Liberty, Credo, Flitt, iPay"
+              },
+              "level": "core"
+            },
+            {
+              "id": "installment-bnpl-flows",
+              "name": {
+                "en": "Installment & BNPL flows",
+                "ka": "განვადებისა და BNPL-ის ნაკადები"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "erp-synchronisation",
+              "name": {
+                "en": "ERP synchronisation",
+                "ka": "ERP-სინქრონიზაცია"
+              },
+              "detail": {
+                "en": "1C, Fina, Balance",
+                "ka": "1C, Fina, Balance"
+              },
+              "level": "core"
+            },
+            {
+              "id": "webhooks-polling-reconciliation",
+              "name": {
+                "en": "Webhooks, polling & reconciliation",
+                "ka": "Webhook-ები, polling და ტრანზაქციების შეჯერება"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "apple-pay-via-bank-processors",
+              "name": {
+                "en": "Apple Pay via bank processors",
+                "ka": "Apple Pay საბანკო პროცესორების გავლით"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "delivery-logistics-apis",
+              "name": {
+                "en": "Delivery & logistics APIs",
+                "ka": "მიტანისა და ლოგისტიკის API-ები"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "sms-gateways",
+              "name": {
+                "en": "SMS gateways",
+                "ka": "SMS-გეითვეიები"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "oauth-2-sso-jwt",
+              "name": {
+                "en": "OAuth 2 / SSO / JWT",
+                "ka": "OAuth 2 / SSO / JWT"
+              },
+              "detail": null,
+              "level": "strong"
+            }
+          ]
+        },
+        {
+          "id": "infrastructure-delivery",
+          "title": {
+            "en": "Infrastructure & delivery",
+            "ka": "ინფრასტრუქტურა და დეპლოი"
+          },
+          "lead": {
+            "en": "Servers, deployment pipelines, caching and monitoring.",
+            "ka": "სერვერები, დეპლოის პროცესები, ქეშირება და მონიტორინგი."
+          },
+          "items": [
+            {
+              "id": "linux-vps-administration",
+              "name": {
+                "en": "Linux VPS administration",
+                "ka": "Linux VPS ადმინისტრირება"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "openlitespeed-cyberpanel",
+              "name": {
+                "en": "OpenLiteSpeed / CyberPanel",
+                "ka": "OpenLiteSpeed / CyberPanel"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "github-actions-ci-cd",
+              "name": {
+                "en": "GitHub Actions CI/CD",
+                "ka": "GitHub Actions CI/CD"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "cloudflare",
+              "name": {
+                "en": "Cloudflare",
+                "ka": "Cloudflare"
+              },
+              "detail": {
+                "en": "DNS, cache rules, WAF, bot control",
+                "ka": "DNS, ქეშის წესები, WAF, ბოტების კონტროლი"
+              },
+              "level": "core"
+            },
+            {
+              "id": "cpanel-directadmin",
+              "name": {
+                "en": "cPanel / DirectAdmin",
+                "ka": "cPanel / DirectAdmin"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "nginx-apache-php-fpm",
+              "name": {
+                "en": "nginx / Apache / php-fpm",
+                "ka": "nginx / Apache / php-fpm"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "pm2-node-process-management",
+              "name": {
+                "en": "PM2 & Node process management",
+                "ka": "PM2 და Node-ის პროცესების მართვა"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "tls-acme-litespeed-cache",
+              "name": {
+                "en": "TLS / ACME, LiteSpeed Cache",
+                "ka": "TLS / ACME, LiteSpeed Cache"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "mail",
+              "name": {
+                "en": "Mail",
+                "ka": "ელფოსტა"
+              },
+              "detail": {
+                "en": "Postfix, Dovecot, Exim, DMARC",
+                "ka": "Postfix, Dovecot, Exim, DMARC"
+              },
+              "level": "working"
+            },
+            {
+              "id": "docker",
+              "name": {
+                "en": "Docker",
+                "ka": "Docker"
+              },
+              "detail": null,
+              "level": "working"
+            }
+          ]
+        },
+        {
+          "id": "seo-performance-analytics",
+          "title": {
+            "en": "SEO, performance & analytics",
+            "ka": "SEO, წარმადობა და ანალიტიკა"
+          },
+          "lead": {
+            "en": "Making sites fast and easy to find in search.",
+            "ka": "საიტების აჩქარება და საძიებო სისტემებისთვის ოპტიმიზაცია."
+          },
+          "items": [
+            {
+              "id": "technical-seo",
+              "name": {
+                "en": "Technical SEO",
+                "ka": "ტექნიკური SEO"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "core-web-vitals-lcp-tuning",
+              "name": {
+                "en": "Core Web Vitals & LCP tuning",
+                "ka": "Core Web Vitals და LCP-ის ოპტიმიზაცია"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "structured-data",
+              "name": {
+                "en": "Structured data",
+                "ka": "სტრუქტურირებული მონაცემები"
+              },
+              "detail": {
+                "en": "JSON-LD",
+                "ka": "JSON-LD"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "i18n-hreflang",
+              "name": {
+                "en": "i18n & hreflang",
+                "ka": "i18n და hreflang"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "crawl-budget-faceted-navigation",
+              "name": {
+                "en": "Crawl budget & faceted-navigation control",
+                "ka": "Crawl budget და ფასეტური ნავიგაციის კონტროლი"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "google-search-console-crawl",
+              "name": {
+                "en": "Google Search Console & crawl diagnostics",
+                "ka": "Google Search Console და crawl-დიაგნოსტიკა"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "ga4",
+              "name": {
+                "en": "GA4",
+                "ka": "GA4"
+              },
+              "detail": {
+                "en": "Tag Manager · Looker Studio",
+                "ka": "Tag Manager · Looker Studio"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "rank-math-yoast",
+              "name": {
+                "en": "Rank Math / Yoast",
+                "ka": "Rank Math / Yoast"
+              },
+              "detail": null,
+              "level": "strong"
+            }
+          ]
+        },
+        {
+          "id": "engineering-practice-ai-tooling",
+          "title": {
+            "en": "Engineering practice & AI tooling",
+            "ka": "საინჟინრო პრაქტიკა და AI-ხელსაწყოები"
+          },
+          "lead": {
+            "en": "How the code gets written, checked and released.",
+            "ka": "როგორ იწერება, მოწმდება და ეშვება კოდი პროდაქშენში."
+          },
+          "items": [
+            {
+              "id": "git",
+              "name": {
+                "en": "Git",
+                "ka": "Git"
+              },
+              "detail": {
+                "en": "trunk-based, semantic releases",
+                "ka": "trunk-based, სემანტიკური რელიზები"
+              },
+              "level": "core"
+            },
+            {
+              "id": "claude-code-agentic-workflows",
+              "name": {
+                "en": "Claude Code & agentic workflows",
+                "ka": "Claude Code და AI-აგენტების სამუშაო პროცესი"
+              },
+              "detail": null,
+              "level": "core"
+            },
+            {
+              "id": "multilingual-products",
+              "name": {
+                "en": "Multilingual products",
+                "ka": "მრავალენოვანი პროდუქტები"
+              },
+              "detail": {
+                "en": "WPML, Polylang & custom engines",
+                "ka": "WPML, Polylang და ინდივიდუალური ძრავები"
+              },
+              "level": "core"
+            },
+            {
+              "id": "vitest",
+              "name": {
+                "en": "Vitest",
+                "ka": "Vitest"
+              },
+              "detail": {
+                "en": "PHPUnit · test-gated CI",
+                "ka": "PHPUnit · ტესტებით დაცული CI"
+              },
+              "level": "strong"
+            },
+            {
+              "id": "mcp-servers-tool-integration",
+              "name": {
+                "en": "MCP servers & tool integration",
+                "ka": "MCP-სერვერები და ინსტრუმენტების ინტეგრაცია"
+              },
+              "detail": null,
+              "level": "strong"
+            },
+            {
+              "id": "technical-writing",
+              "name": {
+                "en": "Technical writing",
+                "ka": "ტექნიკური წერა"
+              },
+              "detail": {
+                "en": "specs, runbooks, changelogs",
+                "ka": "სპეციფიკაციები, runbook-ები, changelog-ები"
+              },
+              "level": "strong"
+            }
+          ]
+        }
+      ]
+    },
+    "abilities": {
+      "nav": null,
+      "title": {
+        "en": "What I can own end to end",
+        "ka": "რას ვასრულებ თავიდან ბოლომდე"
+      },
+      "lead": {
+        "en": "Work I take on and see through to production.",
+        "ka": "ამოცანები, რომლებსაც ვიბარებ და რეალურ გარემოში ვნერგავ."
+      },
+      "items": [
+        {
+          "id": "figma-to-production",
+          "title": {
+            "en": "Figma to production",
+            "ka": "Figma-დან პროდაქშენამდე"
+          },
+          "text": {
+            "en": "I turn a design file into a working Next.js or Vue front end with typed components, accessible markup and a real build pipeline.",
+            "ka": "დიზაინის ფაილს ვაქცევ Next.js-ის ან Vue-ს სრულფასოვან ფრონტენდად, ტიპიზებული კომპონენტებით, ხელმისაწვდომი მარკაპითა და რეალური build-პროცესით."
+          }
+        },
+        {
+          "id": "custom-wordpress-builds",
+          "title": {
+            "en": "Custom WordPress builds",
+            "ka": "WordPress-ის ინდივიდუალური აწყობა"
+          },
+          "text": {
+            "en": "I model the content the way the business works, using custom post types, ACF fields and editor-friendly blocks, and write a theme that stays fast as the site grows.",
+            "ka": "კონტენტს ვაპროექტებ ბიზნესის ლოგიკის შესაბამისად, custom post type-ების, ACF-ველებისა და რედაქტორისთვის მოსახერხებელი ბლოკების გამოყენებით. ვწერ თემას, რომელიც საიტის ზრდასთან ერთად სისწრაფეს ინარჩუნებს."
+          }
+        },
+        {
+          "id": "headless-wordpress",
+          "title": {
+            "en": "Headless WordPress",
+            "ka": "Headless WordPress"
+          },
+          "text": {
+            "en": "WordPress stays the editing tool and the data source through REST, WPGraphQL and the Store API, while visitors get a fast Next.js front end.",
+            "ka": "WordPress რჩება რედაქტირების ინსტრუმენტად და მონაცემთა წყაროდ REST-ის, WPGraphQL-ისა და Store API-ის გავლით, მომხმარებელი კი იღებს Next.js-ის სწრაფ ფრონტენდს."
+          }
+        },
+        {
+          "id": "undocumented-apis",
+          "title": {
+            "en": "Undocumented APIs",
+            "ka": "დაუდოკუმენტებელი API-ები"
+          },
+          "text": {
+            "en": "When a bank, ERP or delivery API has partial or outdated documentation, I map its real behaviour by testing endpoints, logging every request and response, and reconciling state by polling.",
+            "ka": "როდესაც ბანკის, ERP-ის ან მიტანის სერვისის API-ს არასრული ან მოძველებული დოკუმენტაცია აქვს, ვადგენ მის რეალურ ქცევას ენდპოინტების ტესტირებით, თითოეული მოთხოვნისა და პასუხის ლოგირებითა და მონაცემთა polling-ით შეჯერებით."
+          }
+        },
+        {
+          "id": "plugins-other-developers-use",
+          "title": {
+            "en": "Plugins other developers use",
+            "ka": "პლაგინები სხვა დეველოპერებისთვის"
+          },
+          "text": {
+            "en": "I release WordPress and WooCommerce plugins with licensing, automatic updates, database migrations, safe activation and a clean uninstall.",
+            "ka": "ვუშვებ WordPress-ისა და WooCommerce-ის პლაგინებს ლიცენზირებით, ავტომატური განახლებებით, მონაცემთა ბაზის მიგრაციით, უსაფრთხო აქტივაციითა და სუფთა დეინსტალაციით."
+          }
+        },
+        {
+          "id": "store-rescue",
+          "title": {
+            "en": "Store rescue",
+            "ka": "მაღაზიის აღდგენა"
+          },
+          "text": {
+            "en": "I take over a slow, hacked or unfinished WooCommerce site, audit it, remove the damage, update PHP and plugins, and bring the loading speed back to normal.",
+            "ka": "ვიბარებ ნელ, გატეხილ ან დაუსრულებელ WooCommerce-საიტს, ვატარებ მის აუდიტს, ვასუფთავებ დაზიანებულ კოდს, ვანახლებ PHP-სა და პლაგინებს და ჩატვირთვის სიჩქარეს ნორმაში მომყავს."
+          }
+        },
+        {
+          "id": "production-diagnostics",
+          "title": {
+            "en": "Production diagnostics",
+            "ka": "პროდაქშენის დიაგნოსტიკა"
+          },
+          "text": {
+            "en": "I use access logs, slow query logs and server metrics to find what actually causes a slowdown, instead of restarting services at random.",
+            "ka": "ვიყენებ access-ისა და ნელი მოთხოვნების ლოგებს, ასევე სერვერის მეტრიკას, რათა ვიპოვო შენელების რეალური მიზეზი, ნაცვლად სერვისების ბრმად გადატვირთვისა."
+          }
+        },
+        {
+          "id": "sync-engines",
+          "title": {
+            "en": "Sync engines",
+            "ka": "სინქრონიზაციის ძრავები"
+          },
+          "text": {
+            "en": "I design one-way and two-way sync between shops and ERP systems, with safe repeated writes, sanity checks on incoming data, a dry-run mode and a pause switch.",
+            "ka": "ვაპროექტებ ცალმხრივ და ორმხრივ სინქრონიზაციას მაღაზიებსა და ERP-სისტემებს შორის, უსაფრთხო განმეორებადი ჩანაწერებით, შემომავალი მონაცემების შემოწმებით, dry-run რეჟიმითა და პაუზის ფუნქციით."
+          }
+        },
+        {
+          "id": "multilingual-by-default",
+          "title": {
+            "en": "Multilingual by default",
+            "ka": "მრავალენოვნება სტანდარტულად"
+          },
+          "text": {
+            "en": "I build Georgian and English versions from the start, so every URL, template and cache entry is tied to its language.",
+            "ka": "ქართულ და ინგლისურ ვერსიებს ვქმნი თავიდანვე, ამიტომ თითოეული URL, შაბლონი და ქეშის ჩანაწერი კონკრეტულ ენაზეა მიბმული."
+          }
+        }
+      ]
+    },
+    "workstyle": {
+      "nav": null,
+      "title": {
+        "en": "How I work",
+        "ka": "როგორ ვმუშაობ"
+      },
+      "lead": {
+        "en": "The practices I follow on every project.",
+        "ka": "პრაქტიკები, რომლებსაც ყველა პროექტში ვიყენებ."
+      },
+      "items": [
+        {
+          "id": "check-the-code-before-blaming",
+          "title": {
+            "en": "Check the code before blaming the cache.",
+            "ka": "ჯერ კოდი შეამოწმე, მერე ქეშს დააბრალე."
+          },
+          "text": {
+            "en": "I reproduce every bug and trace it to a specific line before changing anything. A guess is not a diagnosis.",
+            "ka": "ყველა ბაგს ვარეპროდუცირებ და ცვლილების შეტანამდე კოდის კონკრეტულ ხაზამდე მივყვები. ვარაუდი დიაგნოზი არ არის."
+          }
+        },
+        {
+          "id": "small-verified-steps",
+          "title": {
+            "en": "Small, verified steps.",
+            "ka": "მცირე, გადამოწმებული ნაბიჯები."
+          },
+          "text": {
+            "en": "I build in thin slices and verify the visible result once before moving on. No large rewrites, no untested changes.",
+            "ka": "ვაწყობ წვრილ ნაწილებად და გაგრძელებამდე ერთხელ ვადასტურებ ხილულ შედეგს. არავითარი მასშტაბური გადაწერა ან დაუტესტავი ცვლილება."
+          }
+        },
+        {
+          "id": "read-only-until-told-otherwise",
+          "title": {
+            "en": "Read-only until told otherwise.",
+            "ka": "Read-only სხვა მითითებამდე."
+          },
+          "text": {
+            "en": "I treat live data, client shops and third-party systems as read-only unless the task is specifically to change them.",
+            "ka": "ლაივ-მონაცემებს, კლიენტების მაღაზიებსა და მესამე მხარის სისტემებს ვეპყრობი როგორც მხოლოდ-წასაკითხს, სანამ დავალება კონკრეტულად მათ შეცვლას არ მოითხოვს."
+          }
+        },
+        {
+          "id": "plan-then-build-then-review",
+          "title": {
+            "en": "Plan, then build, then review.",
+            "ka": "ჯერ დაგეგმვა, მერე აწყობა და შემოწმება."
+          },
+          "text": {
+            "en": "Complex work starts with a written plan that we agree on. It is then built in parts, tested and released through CI.",
+            "ka": "რთული სამუშაო იწყება წერილობითი გეგმით, რომელზეც ვთანხმდებით. შემდეგ ის ნაწილ-ნაწილ იწერება, იტესტება და პროდაქშენში CI-ის გავლით ეშვება."
+          }
+        },
+        {
+          "id": "logs-that-answer-questions",
+          "title": {
+            "en": "Logs that answer questions.",
+            "ka": "ლოგები, რომლებიც კითხვებზე პასუხობს."
+          },
+          "text": {
+            "en": "Every payment, sync and API call records its full request and response, so a later problem can be traced instead of guessed at.",
+            "ka": "თითოეული გადახდა, სინქრონიზაცია და API-მოთხოვნა სრულად იწერს გაგზავნილ და მიღებულ მონაცემებს, რათა პრობლემის გაჩენისას მიზეზი ზუსტად დადგინდეს და არა ვარაუდით."
+          }
+        },
+        {
+          "id": "async-and-written",
+          "title": {
+            "en": "Async and written.",
+            "ka": "ასინქრონული და წერილობითი."
+          },
+          "text": {
+            "en": "Clear commit messages, changelogs and short guides, so the next person can continue exactly where I stopped.",
+            "ka": "მკაფიო commit-შეტყობინებები, changelog-ები და მოკლე სახელმძღვანელოები, რათა მომდევნო ადამიანმა საქმე ზუსტად იქიდან გააგრძელოს, სადაც გავჩერდი."
+          }
+        }
+      ]
+    },
+    "principles": {
+      "nav": null,
+      "title": {
+        "en": "Principles",
+        "ka": "პრინციპები"
+      },
+      "lead": {
+        "en": "Rules I follow in production work.",
+        "ka": "წესები, რომლებსაც პროდაქშენში მუშაობისას ვიცავ."
+      },
+      "items": [
+        {
+          "id": "performance-is-a-constraint-not",
+          "title": {
+            "en": "Performance is a constraint, not a feature.",
+            "ka": "წარმადობა სავალდებულო პირობაა და არა უბრალოდ ფუნქცია."
+          },
+          "text": {
+            "en": "Extra database work on a page that runs on every request is a bug and is fixed like one.",
+            "ka": "ყოველ მოთხოვნაზე გაშვებულ გვერდზე მონაცემთა ბაზის ზედმეტი დატვირთვა ბაგია და ისევე სწორდება, როგორც სხვა შეცდომები."
+          }
+        },
+        {
+          "id": "data-integrity-beats-convenience",
+          "title": {
+            "en": "Data integrity beats convenience.",
+            "ka": "მონაცემთა მთლიანობა სიმარტივეზე მნიშვნელოვანია."
+          },
+          "text": {
+            "en": "A sync that can delete half the data after one incomplete response needs a safety check before it gets any new features.",
+            "ka": "სინქრონიზაცია, რომელსაც ერთი არასრული პასუხის შემდეგ მონაცემების ნახევრის წაშლა შეუძლია, ახალი ფუნქციების დამატებამდე უსაფრთხოების მექანიზმს საჭიროებს."
+          }
+        },
+        {
+          "id": "production-changes-go-through-ci",
+          "title": {
+            "en": "Production changes go through CI.",
+            "ka": "ცვლილებები პროდაქშენში გადის CI-ით."
+          },
+          "text": {
+            "en": "Deploys happen from a pushed commit, never from a hand-copied file. Rollback is a revert.",
+            "ka": "დეპლოი სრულდება დაპუშული კომიტიდან და არასდროს — ხელით დაკოპირებული ფაილიდან. Rollback არის revert."
+          }
+        },
+        {
+          "id": "the-source-of-truth-is-decided",
+          "title": {
+            "en": "The source of truth is decided in advance.",
+            "ka": "ჭეშმარიტების წყარო წინასწარ განისაზღვრება."
+          },
+          "text": {
+            "en": "One-way syncs stay one-way. When two systems disagree, the design already says which one is right.",
+            "ka": "ცალმხრივი სინქრონიზაცია ცალმხრივი რჩება. როდესაც ორი სისტემა ერთმანეთს არ ეთანხმება, არქიტექტურა უკვე მიუთითებს, რომელია სწორი."
+          }
+        },
+        {
+          "id": "every-integration-is-observable",
+          "title": {
+            "en": "Every integration is observable.",
+            "ka": "ყველა ინტეგრაცია დაკვირვებადია."
+          },
+          "text": {
+            "en": "Requests, statuses and identifiers are logged, and local records match the provider within one sync cycle.",
+            "ka": "მოთხოვნები, სტატუსები და იდენტიფიკატორები ილოგება, ლოკალური ჩანაწერები კი პროვაიდერისას სინქრონიზაციის ერთ ციკლში ემთხვევა."
+          }
+        },
+        {
+          "id": "simple-solutions-win",
+          "title": {
+            "en": "Simple solutions win.",
+            "ka": "მარტივი გადაწყვეტილებები ამართლებს."
+          },
+          "text": {
+            "en": "Standard tools, clear configuration, fewer moving parts. Clever code is harder for the next person to maintain.",
+            "ka": "სტანდარტული ინსტრუმენტები, ცხადი კონფიგურაცია, ნაკლები მოძრავი ნაწილი. ზედმეტად „ჭკვიანი“ კოდის მართვა მომდევნო დეველოპერს ურთულდება."
+          }
+        }
+      ]
+    },
+    "experience": {
+      "nav": null,
+      "title": {
+        "en": "Experience",
+        "ka": "გამოცდილება"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "samsiani-web",
+          "from": 2018,
+          "to": null,
+          "role": {
+            "en": "Founder & Lead Developer",
+            "ka": "დამფუძნებელი და წამყვანი დეველოპერი"
+          },
+          "org": {
+            "en": "Samsiani Web",
+            "ka": "Samsiani Web"
+          },
+          "orgHref": "https://samsiani.com",
+          "text": {
+            "en": "Independent studio providing web development, technical SEO and hosting for clients in retail, industrial B2B, consumer lending, automotive and education. Work includes WordPress and WooCommerce sites on Divi, Avada, Elementor and WoodMart, custom plugins, and headless Next.js front ends. I am the long-term engineering partner for several large online stores, covering payments, ERP sync, speed and infrastructure.",
+            "ka": "დამოუკიდებელი სტუდია, რომელიც უზრუნველყოფს ვებდეველოპმენტს, ტექნიკურ SEO-სა და ჰოსტინგს კლიენტებისთვის საცალო ვაჭრობის, B2B, სამომხმარებლო სესხების, ავტოინდუსტრიისა და განათლების სექტორებში. სამუშაო მოიცავს WordPress-ისა და WooCommerce-ის საიტებს Divi, Avada, Elementor და WoodMart-ზე, ინდივიდუალურ პლაგინებსა და headless Next.js-ის ფრონტენდებს. ვარ რამდენიმე მსხვილი ონლაინ მაღაზიის გრძელვადიანი საინჟინრო პარტნიორი გადახდების, ERP-სინქრონიზაციის, წარმადობისა და ინფრასტრუქტურის მიმართულებით."
+          }
+        },
+        {
+          "id": "codeon-ge",
+          "from": 2022,
+          "to": null,
+          "role": {
+            "en": "Founder, plugins",
+            "ka": "დამფუძნებელი, პლაგინები"
+          },
+          "org": {
+            "en": "CodeOn.ge",
+            "ka": "CodeOn.ge"
+          },
+          "orgHref": "https://codeon.ge",
+          "text": {
+            "en": "A line of WordPress and WooCommerce plugins for online stores: card and installment payments, ERP sync, delivery, SMS and a multilingual engine. Each product ships with licensing, automatic updates, documentation and support.",
+            "ka": "WordPress-ისა და WooCommerce-ის პლაგინების ხაზი ონლაინ მაღაზიებისთვის: ბარათით გადახდა და განვადება, ERP-სინქრონიზაცია, მიტანის სერვისები, SMS და მრავალენოვანი ძრავა. თითოეულ პროდუქტს მოჰყვება ლიცენზირება, ავტომატური განახლებები, დოკუმენტაცია და მხარდაჭერა."
+          }
+        },
+        {
+          "id": "e-commerce-brands",
+          "from": 2017,
+          "to": null,
+          "role": {
+            "en": "Web Developer & Project Manager",
+            "ka": "ვებდეველოპერი და პროექტის მენეჯერი"
+          },
+          "org": {
+            "en": "E-commerce brands",
+            "ka": "ელექტრონული კომერციის ბრენდები"
+          },
+          "orgHref": null,
+          "text": {
+            "en": "I build and maintain online stores and corporate sites for wine, fashion, furniture and retail brands, covering development, optimisation, technical support and on-page and off-page SEO.",
+            "ka": "ვქმნი და ვმართავ სხვადასხვა ონლაინ მაღაზიებსა და კორპორატიულ საიტებს ღვინის, მოდის, ავეჯისა და საცალო ვაჭრობის ბრენდებისთვის. ვუზრუნველყოფ დეველოპმენტს, ოპტიმიზაციას, ტექნიკურ მხარდაჭერასა და on-page და off-page SEO-ს."
+          }
+        }
+      ]
+    },
+    "languages": {
+      "nav": null,
+      "title": {
+        "en": "Languages",
+        "ka": "ენები"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "georgian",
+          "name": {
+            "en": "Georgian",
+            "ka": "ქართული"
+          },
+          "proficiency": {
+            "en": "Native",
+            "ka": "მშობლიური"
+          }
+        },
+        {
+          "id": "english",
+          "name": {
+            "en": "English",
+            "ka": "ინგლისური"
+          },
+          "proficiency": {
+            "en": "Professional working",
+            "ka": "პროფესიული"
+          }
+        }
+      ]
+    },
+    "contact": {
+      "nav": null,
+      "title": {
+        "en": "Let’s talk",
+        "ka": "ვისაუბროთ"
+      },
+      "lead": {
+        "en": "I work on remote projects. Email is the fastest way to reach me.",
+        "ka": "დისტანციურ პროექტებზე ვმუშაობ. ჩემთან დაკავშირების ყველაზე სწრაფი გზა ელფოსტაა."
+      },
+      "cta": {
+        "en": "Write to me",
+        "ka": "მომწერეთ"
+      },
+      "primary": "email",
+      "buttons": [
+        "github",
+        "phone"
+      ]
+    }
+  }
+}

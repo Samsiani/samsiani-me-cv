@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="B · Studio layout: dark page, bento hero, hairline bands, three-column skills table">
+  <rect width="320" height="200" fill="#101419"/>
+  <!-- header -->
+  <rect x="10" y="4" width="8" height="8" fill="#b6e630"/>
+  <rect x="21" y="7" width="26" height="2" fill="#f0f2f4"/>
+  <g fill="#a7abb0">
+    <rect x="96" y="7" width="14" height="2"/><rect x="114" y="7" width="18" height="2"/><rect x="136" y="7" width="30" height="2"/>
+    <rect x="170" y="7" width="14" height="2"/><rect x="188" y="7" width="14" height="2"/><rect x="206" y="7" width="15" height="2"/>
+  </g>
+  <rect x="96" y="10" width="14" height="1" fill="#b6e630"/>
+  <rect x="254" y="4" width="18" height="8" fill="none" stroke="#3a3d42"/>
+  <rect x="275" y="4" width="8" height="8" fill="none" stroke="#3a3d42"/>
+  <rect x="286" y="4" width="24" height="8" fill="#b6e630"/>
+  <rect x="0" y="16" width="320" height="1" fill="#303338"/>
+  <!-- hero bento: row 1 = name (7 cols) + role (5 cols) -->
+  <rect x="10" y="24" width="173.75" height="60" fill="#1b1e24"/>
+  <rect x="18" y="30" width="30" height="2" fill="#b6e630"/>
+  <rect x="18" y="50" width="62" height="11" fill="#f0f2f4"/>
+  <rect x="18" y="65" width="90" height="11" fill="#f0f2f4"/>
+  <rect x="186.75" y="24" width="123.25" height="60" fill="#1b1e24"/>
+  <rect x="194" y="31" width="72" height="4" fill="#f0f2f4"/>
+  <rect x="194" y="40" width="104" height="2.5" fill="#c7cbd0"/><rect x="194" y="45" width="96" height="2.5" fill="#c7cbd0"/><rect x="194" y="50" width="60" height="2.5" fill="#c7cbd0"/>
+  <rect x="194" y="72" width="108" height="0.75" fill="#303338"/>
+  <rect x="194" y="76" width="3" height="3" fill="#b6e630"/><rect x="200" y="76.5" width="56" height="2" fill="#babec3"/>
+  <!-- row 2 = contact (5 cols) + facts 2x2 (7 cols) -->
+  <rect x="10" y="87" width="123.25" height="40" fill="#1b1e24"/>
+  <rect x="17" y="92" width="16" height="1.5" fill="#a7abb0"/>
+  <g fill="#f0f2f4"><rect x="17" y="98" width="46" height="2.5"/><rect x="17" y="106" width="40" height="2.5"/><rect x="17" y="114" width="42" height="2.5"/><rect x="17" y="121" width="30" height="2.5"/></g>
+  <g fill="none" stroke="#4b5d1f" stroke-width="0.75"><rect x="113" y="97" width="12" height="4.5"/><rect x="113" y="105" width="12" height="4.5"/></g>
+  <g fill="#2b2e33"><rect x="17" y="103.5" width="108" height="0.5"/><rect x="17" y="111.5" width="108" height="0.5"/><rect x="17" y="119" width="108" height="0.5"/></g>
+  <g fill="#1b1e24"><rect x="136.25" y="87" width="85.4" height="18.5"/><rect x="224.65" y="87" width="85.4" height="18.5"/><rect x="136.25" y="108.5" width="85.4" height="18.5"/><rect x="224.65" y="108.5" width="85.4" height="18.5"/></g>
+  <g fill="#f0f2f4"><rect x="142" y="91" width="18" height="6"/><rect x="230" y="91" width="34" height="6"/><rect x="142" y="112.5" width="36" height="6"/><rect x="230" y="112.5" width="30" height="6"/></g>
+  <g fill="#a7abb0"><rect x="142" y="100" width="30" height="1.5"/><rect x="230" y="100" width="26" height="1.5"/><rect x="142" y="121.5" width="28" height="1.5"/><rect x="230" y="121.5" width="34" height="1.5"/></g>
+  <!-- hairline band: section head + skills table -->
+  <rect x="0" y="136" width="320" height="1" fill="#303338"/>
+  <rect x="10" y="146" width="6" height="2" fill="#b6e630"/>
+  <rect x="20" y="142" width="62" height="8" fill="#f0f2f4"/>
+  <rect x="200" y="143" width="110" height="2" fill="#babec3"/><rect x="200" y="147.5" width="84" height="2" fill="#babec3"/>
+  <rect x="10" y="157" width="300" height="0.75" fill="#303338"/>
+  <rect x="10" y="163" width="52" height="4" fill="#f0f2f4"/>
+  <rect x="10" y="170" width="60" height="2" fill="#babec3"/><rect x="10" y="174" width="44" height="2" fill="#babec3"/>
+  <g fill="#f0f2f4">
+    <rect x="96" y="163" width="44" height="3"/><rect x="168" y="163" width="36" height="3"/><rect x="240" y="163" width="50" height="3"/>
+    <rect x="96" y="178" width="38" height="3"/><rect x="168" y="178" width="48" height="3"/><rect x="240" y="178" width="30" height="3"/>
+    <rect x="96" y="193" width="42" height="3"/><rect x="168" y="193" width="34" height="3"/>
+  </g>
+  <g fill="#b6e630">
+    <rect x="96" y="168.5" width="3" height="3"/><rect x="168" y="168.5" width="3" height="3"/><rect x="240" y="168.5" width="3" height="3"/>
+    <rect x="96" y="183.5" width="3" height="3"/><rect x="168" y="183.5" width="1.5" height="3"/><rect x="240" y="183.5" width="1.5" height="3"/>
+  </g>
+  <g fill="none" stroke-width="0.6"><rect x="168.3" y="183.8" width="2.4" height="2.4" stroke="#b6e630"/><rect x="240.3" y="183.8" width="2.4" height="2.4" stroke="#b6e630"/></g>
+  <g fill="#26292e"><rect x="96" y="174.5" width="214" height="0.6"/><rect x="96" y="189.5" width="214" height="0.6"/></g>
+</svg>

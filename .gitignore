@@ -1,3 +1,11 @@
 dist/
 node_modules/
 .DS_Store
+.cache/
+data/
+.builds/
+admin/web/dist/
+.env*
+!.env.example
+release/
+release.tgz
