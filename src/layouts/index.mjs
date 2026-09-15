@@ -4,9 +4,11 @@ import precision from './precision/layout.mjs';
 import { renderBody as precisionBody } from './precision/template.mjs';
 import studio from './studio/layout.mjs';
 import { renderBody as studioBody } from './studio/template.mjs';
+import ledger from './ledger/layout.mjs';
+import { renderBody as ledgerBody } from './ledger/template.mjs';
 
 export const LAYOUTS = {
   precision: { meta: precision, renderBody: precisionBody },
   studio: { meta: studio, renderBody: studioBody },
-  // ledger: { meta: ledger, renderBody: ledgerBody },   // added by the Ledger plan
+  ledger: { meta: ledger, renderBody: ledgerBody },
 };

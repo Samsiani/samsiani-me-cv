@@ -9,7 +9,9 @@
     "dev": "node build.mjs && node serve.mjs",
     "migrate": "node scripts/migrate-content.mjs",
     "test": "node --test \"test/unit/**/*.test.mjs\"",
-    "check:stress": "SITE_JSON=test/fixtures/site.stress.json OUT_DIR=/tmp/dist-stress node build.mjs && node scripts/check-layout-stress.mjs --dist /tmp/dist-stress"
+    "check:stress": "SITE_JSON=test/fixtures/site.stress.json OUT_DIR=/tmp/dist-stress node build.mjs && node scripts/check-layout-stress.mjs --dist /tmp/dist-stress",
+    "check:all": "node scripts/check-all.mjs",
+    "check:pages": "node scripts/check-pages.mjs --dist dist"
   },
   "engines": {
     "node": ">=22"
