@@ -1,41 +1,30 @@
 # samsiani.me — CV website
 
-Bilingual (English `/`, Georgian `/ka/`) static CV for Giorgi Samsiani.
-No frameworks, no dependencies, no trackers. Design direction: **Precision** — sticky identity rail,
-Chivo + JetBrains Mono + Noto Sans Georgian, cobalt accent, skills as a ledger table.
+Bilingual (English `/`, Georgian `/ka/`) CV for Giorgi Samsiani. The public site is plain static HTML and CSS: no frameworks at runtime, no trackers.
 
 ## Edit content
-- `src/content/en.mjs` — English
-- `src/content/ka.mjs` — Georgian (keys mirror `en.mjs`)
+All text lives once in `src/content/site.json`, with English and Georgian side by side (`{ "en": "…", "ka": "…" }`). The build validates it before rendering: no `javascript:` or `http:` links, no Cyrillic, length limits per field, both languages present. An admin panel for editing it is being built (see `docs/plans/admin-layouts-palettes.md`).
 
 ## Build & preview
 ```bash
-npm run dev      # builds dist/ and serves http://localhost:4173
-npm run build    # dist/ only
+npm run dev        # builds dist/ and serves http://localhost:4173
+npm run build      # dist/ only
+npm test           # unit tests
+npm run check:stress   # every layout against the worst-case content fixture (needs Playwright)
 ```
-`BUILD_DATE=2026-09-05 node build.mjs` pins the "last updated" date; `SITE_URL` overrides the canonical origin.
+`SITE_URL=http://localhost:4173` overrides the canonical origin for local previews; `SITE_JSON=path` builds another content file; `LAYOUT=` and `PALETTE=` override the settings for a test build.
 
 ## Deploy
-Push to `main` — GitHub Actions builds and rsyncs `dist/` to the OpenLiteSpeed vhost on the
-production server. The host, user, document root and deploy key all come from repository
-secrets (`VPS_HOST`, `VPS_USER`, `VPS_PATH`, `VPS_SSH_KEY`), so no server details live in
-this repository. Without them the workflow builds and skips the deploy step.
-
-Manual fallback, using your own SSH config entry for the server:
-```bash
-node build.mjs && rsync -az --delete dist/ samsiani-me:/path/to/public_html/
-```
+Push to `main` — GitHub Actions builds and rsyncs `dist/` to the production server. The host, user, document root, file owner and deploy key all come from repository secrets (`VPS_HOST`, `VPS_USER`, `VPS_PATH`, `VPS_SITE_USER`, `VPS_SSH_KEY`), so no server details live in this repository. Without them the workflow builds and skips the deploy step.
 
 ## Structure
-- `build.mjs` — renders both languages, hashes CSS/JS for immutable caching, writes sitemap, robots, `.htaccess`.
-- `src/template.mjs` — one HTML template for both languages (hreflang, canonical, Open Graph, JSON-LD Person).
-- `src/styles.css` — design tokens (light/dark via `prefers-color-scheme` + manual toggle), layout, A4 print stylesheet.
-- `src/fonts/` — self-hosted woff2: Chivo + JetBrains Mono (Latin), Noto Sans Georgian.
+- `build.mjs` — validates `site.json`, renders every page through the active layout, hashes CSS/JS, writes `dist/`.
+- `src/content/site.json` — the content.
+- `src/schema/validate.mjs` — the content schema, validation rules and canonical serialisation.
+- `src/render.mjs` — `renderSite(site, { layout, palette, assets })`: pure, no file system, shared by the build and the future admin preview.
+- `src/shared/` — language localisation, escaping, icons, document head, JSON-LD, sitemap, web manifest.
+- `src/layouts/<id>/` — each layout's manifest (`layout.mjs`), body template (`template.mjs`) and CSS. Registered in `src/layouts/index.mjs`.
 - `src/main.js` — theme toggle, copy buttons, print, reveal-on-scroll, scroll-spy (progressive enhancement).
-
-Optional: drop `og-en.png`, `og-ka.png` (1200×630) and `apple-touch-icon.png` (180×180) into `src/` and they are copied on build.
-
-## Verified
-- No horizontal overflow at any width from 320 to 1600 px.
-- WCAG 2.1 AA contrast for every text token in both light and dark.
-- "Save as PDF" produces a clean 5-page A4 document (6 pages in Georgian).
+- `src/fonts/` — self-hosted woff2.
+- `scripts/` — content migration and layout stress gate. `test/` — unit tests and the stress fixture.
+- `docs/plans/` — design record: the build plan and its specs.

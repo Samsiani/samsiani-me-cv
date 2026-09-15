@@ -1,0 +1,67 @@
+// Shared HTML document shell + <head> for every layout.
+// A layout contributes only renderBody(c, ctx) and its meta (preload fonts, theme-color).
+import { esc, jsonForScript } from './escape.mjs';
+import { themeInitScript } from './theme-init.mjs';
+import { personJsonLd } from './jsonld.mjs';
+
+export function renderHead(c, ctx) {
+  const { siteUrl: site, alt, assets, layout } = ctx;
+  const url = site + c.path;
+  const altUrl = site + c.altPath;
+  const ogImage = site + assets.og[c.lang];
+  return `<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>${esc(c.meta.title)}</title>
+<meta name="description" content="${esc(c.meta.description)}">
+<meta name="author" content="${esc(ctx.authorName)}">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="${layout.themeColor.light}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="${layout.themeColor.dark}" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="${url}">
+<link rel="alternate" hreflang="${c.lang}" href="${url}">
+<link rel="alternate" hreflang="${alt.lang}" href="${altUrl}">
+<link rel="alternate" hreflang="x-default" href="${site}/">
+<meta property="og:type" content="profile">
+<meta property="og:title" content="${esc(c.meta.title)}">
+<meta property="og:description" content="${esc(c.meta.description)}">
+<meta property="og:url" content="${url}">
+<meta property="og:site_name" content="${esc(ctx.host)}">
+<meta property="og:locale" content="${c.meta.ogLocale}">
+<meta property="og:locale:alternate" content="${alt.meta.ogLocale}">
+<meta property="og:image" content="${ogImage}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="${esc(c.hero.name)} — ${esc(c.hero.role)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="profile:first_name" content="${esc(c.hero.givenName)}">
+<meta property="profile:last_name" content="${esc(c.hero.familyName)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(c.meta.title)}">
+<meta name="twitter:description" content="${esc(c.meta.description)}">
+<meta name="twitter:image" content="${ogImage}">
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+${layout.preload[c.lang].map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')}
+<link rel="stylesheet" href="${assets.cssHref}">
+${themeInitScript(ctx.defaultTheme)}
+<script type="application/ld+json">${jsonForScript(personJsonLd(c, ctx))}</script>`;
+}
+
+export function renderDocument(c, ctx, body) {
+  return `<!doctype html>
+<html lang="${c.lang}" dir="${c.dir}">
+<head>
+${renderHead(c, ctx)}
+</head>
+<body>
+<a class="skip" href="#main">${esc(c.ui.skip)}</a>
+
+${body}
+
+<script src="${ctx.assets.jsHref}" defer></script>
+</body>
+</html>
+`;
+}

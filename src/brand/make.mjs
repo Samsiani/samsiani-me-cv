@@ -2,8 +2,11 @@ import { chromium } from '/Users/george/Documents/codeon/node_modules/playwright
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
-const en = (await import('../content/en.mjs')).default;
-const ka = (await import('../content/ka.mjs')).default;
+import { readFileSync } from 'node:fs';
+import { localize } from '../shared/localize.mjs';
+const site = JSON.parse(readFileSync(join(here, '..', 'content', 'site.json'), 'utf8'));
+const en = localize(site, 'en');
+const ka = localize(site, 'ka');
 
 const b = await chromium.launch();
 

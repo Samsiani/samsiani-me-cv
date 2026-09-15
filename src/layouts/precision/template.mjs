@@ -1,0 +1,173 @@
+// A · Precision — body markup only. The document shell and <head> live in src/shared/document.mjs.
+// Pure function: (c = localize(site, lang), ctx) -> HTML string.
+import { esc, pad } from '../../shared/escape.mjs';
+import { UI_ICONS, CONTACT_ICONS } from '../../shared/icons.mjs';
+import { copyButton, themeToggle, printButton, langSwitchLink, orderedSections, isExternal } from '../../shared/fragments.mjs';
+
+// label + muted detail (replaces splitName(): localize() already split "Name · detail")
+const skillName = (i) => (i.detail ? `${esc(i.label)} <span class="row-sub">· ${esc(i.detail)}</span>` : esc(i.label));
+
+export function renderBody(c, ctx) {
+  const { alt } = ctx;
+  const s = c.sections;
+  const order = orderedSections(c);
+  const navLinks = (withIdx) =>
+    order
+      .map((sec, i) => `<a href="#${sec.id}" data-spy="${sec.id}">${withIdx ? `<span class="idx">${pad(i + 1)}</span>` : ''}${esc(sec.navLabel)}</a>`)
+      .join('');
+
+  const contactList = `
+    <dl class="contact">
+      ${c.contact.items
+        .map(
+          (i) => `<div class="contact-row"><dt>${CONTACT_ICONS[i.icon] || ''}<span class="sr-only">${esc(i.label)}</span></dt><dd>
+            <a href="${esc(i.href)}"${isExternal(i.href) ? ' rel="me noopener"' : ''}>${esc(i.value)}</a>
+            ${i.copy ? copyButton(i.value, c.ui) : ''}
+          </dd></div>`
+        )
+        .join('')}
+    </dl>`;
+
+  const secHead = (sec, i, extra = '') => `
+    <span class="sec-idx" aria-hidden="true">${pad(i)}</span>
+    <div class="sec-body">
+      <h2 id="${sec.id}-title">${esc(sec.title)}</h2>
+      ${sec.lead ? `<p class="lead">${esc(sec.lead)}</p>` : ''}
+      ${extra}`;
+  const secEnd = `</div>`;
+
+  const legend = `
+    <p class="legend" aria-label="${esc(c.ui.legend)}">
+      ${['core', 'strong', 'working'].map((l) => `<span><span class="lvl" data-level="${l}">${esc(c.ui.levels[l])}</span> — ${esc(c.ui.levelHints[l])}</span>`).join('')}
+    </p>`;
+
+  const skillGroups = s.skills.groups
+    .map((g) => {
+      const items = g.items.map((i) => `<li class="row"><span class="row-name">${skillName(i)}</span><span class="lvl" data-level="${i.level}">${esc(c.ui.levels[i.level])}</span></li>`);
+      return `
+      <div class="group">
+        <div class="group-head"><h3>${esc(g.title)}</h3><p>${esc(g.lead)}</p></div>
+        <ul class="rows">${items.join('')}</ul>
+      </div>`;
+    })
+    .join('');
+
+  const nameHtml = `${esc(c.hero.givenName)}<br>${esc(c.hero.familyName)}`;
+  const primary = s.contact.primary;
+  // links show their label ("GitHub"), email/phone show the value ("+995 599 62 03 03")
+  const ghost = (i) =>
+    isExternal(i.href)
+      ? `<a class="btn ghost" href="${esc(i.href)}" rel="me noopener">${esc(i.label)}</a>`
+      : `<a class="btn ghost" href="${esc(i.href)}">${esc(i.value)}</a>`;
+
+  return `<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="${c.path}"><span class="mark" aria-hidden="true">${esc(ctx.person.monogram)}</span><span class="brand-name">${esc(c.hero.name)}</span></a>
+    <nav class="topnav" aria-label="${esc(c.ui.nav)}">${navLinks(false)}</nav>
+    <div class="controls">
+      <nav class="lang" aria-label="${esc(c.ui.language)}">
+        <span class="lang-current" aria-current="page" lang="${c.lang}">${esc(c.selfLabel)}</span>
+        ${langSwitchLink(c, alt, c.altLabel, ` title="${esc(c.altTitle)}"`)}
+      </nav>
+      ${themeToggle(c.ui)}
+      ${printButton(c.ui)}
+      <details class="menu">
+        <summary aria-label="${esc(c.ui.nav)}">${UI_ICONS.menu}</summary>
+        <nav class="menu-list" aria-label="${esc(c.ui.nav)}">${navLinks(true)}</nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail">
+    <p class="eyebrow">${esc(c.hero.eyebrow)}</p>
+    <h1 class="name">${nameHtml}</h1>
+    <p class="role">${esc(c.hero.role)}</p>
+    <p class="subrole">${esc(c.hero.subrole)}</p>
+    <div class="rail-block" aria-label="${esc(c.contact.heading)}">${contactList}</div>
+    <nav class="railnav rail-block" aria-label="${esc(c.ui.nav)}">${navLinks(true)}</nav>
+  </aside>
+
+  <main id="main" class="content">
+    <section class="intro" aria-label="${esc(c.ui.atAGlance)}">
+      <p class="tagline">${esc(c.hero.tagline)}</p>
+      <p class="loc"><span class="dot" aria-hidden="true"></span>${esc(c.hero.location)} · ${esc(c.hero.availability)}</p>
+      <ul class="facts">
+        ${c.hero.facts.map((f) => `<li><span class="fact-value">${esc(f.value)}</span><span class="fact-label">${esc(f.label)}</span></li>`).join('')}
+      </ul>
+    </section>
+
+    <section class="sec" id="${s.profile.id}" aria-labelledby="${s.profile.id}-title">
+      ${secHead(s.profile, 1)}
+      <div class="prose">${s.profile.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</div>
+      ${secEnd}
+    </section>
+
+    <section class="sec" id="${s.skills.id}" aria-labelledby="${s.skills.id}-title">
+      ${secHead(s.skills, 2, legend)}
+      <div class="ledger">${skillGroups}</div>
+      ${secEnd}
+    </section>
+
+    <section class="sec" id="${s.abilities.id}" aria-labelledby="${s.abilities.id}-title">
+      ${secHead(s.abilities, 3)}
+      <ol class="list">
+        ${s.abilities.items.map((a, i) => `<li class="item"><div class="item-head"><span class="item-idx" aria-hidden="true">${pad(i + 1)}</span><h3>${esc(a.title)}</h3></div><p>${esc(a.text)}</p></li>`).join('')}
+      </ol>
+      ${secEnd}
+    </section>
+
+    <section class="sec" id="${s.workstyle.id}" aria-labelledby="${s.workstyle.id}-title">
+      ${secHead(s.workstyle, 4)}
+      <ul class="list">
+        ${s.workstyle.items.map((w) => `<li class="item"><div class="item-head"><h3>${esc(w.title)}</h3></div><p>${esc(w.text)}</p></li>`).join('')}
+      </ul>
+      ${secEnd}
+    </section>
+
+    <section class="sec" id="${s.principles.id}" aria-labelledby="${s.principles.id}-title">
+      ${secHead(s.principles, 5)}
+      <ol class="list">
+        ${s.principles.items.map((p, i) => `<li class="item"><div class="item-head"><span class="item-idx" aria-hidden="true">${pad(i + 1)}</span><h3>${esc(p.title)}</h3></div><p>${esc(p.text)}</p></li>`).join('')}
+      </ol>
+      ${secEnd}
+    </section>
+
+    <section class="sec" id="${s.experience.id}" aria-labelledby="${s.experience.id}-title">
+      ${secHead(s.experience, 6)}
+      <ol class="list">
+        ${s.experience.items
+          .map(
+            (e) => `<li class="item"><div class="item-head"><span class="item-label">${esc(e.period)}</span></div><div><h3>${esc(e.role)} <span class="org">· ${e.orgHref ? `<a href="${esc(e.orgHref)}" rel="noopener">${esc(e.org)}</a>` : esc(e.org)}</span></h3><p>${esc(e.text)}</p></div></li>`
+          )
+          .join('')}
+      </ol>
+      ${secEnd}
+    </section>
+
+    <section class="sec" id="${s.education.id}" aria-labelledby="${s.education.id}-title">
+      ${secHead(s.education, 7)}
+      <ul class="list">
+        ${s.education.langs.map((l) => `<li class="item"><div class="item-head"><span class="item-label">${esc(l.name)}</span></div><div><p class="lang-level">${esc(l.level)}</p></div></li>`).join('')}
+      </ul>
+      ${secEnd}
+    </section>
+
+    <section class="sec sec-contact" id="${s.contact.id}" aria-labelledby="${s.contact.id}-title">
+      ${secHead(s.contact, 8)}
+      ${primary ? `<a class="big-mail" href="${esc(primary.href)}">${esc(primary.value)} ${UI_ICONS.arrow}</a>
+      <div class="cta-row">
+        <a class="btn" href="${esc(primary.href)}">${esc(s.contact.cta)}</a>
+        ${s.contact.buttons.map(ghost).join('\n        ')}
+      </div>` : ''}
+      ${secEnd}
+    </section>
+
+    <footer class="foot">
+      <span>© ${esc(ctx.updated.slice(0, 4))} ${esc(c.hero.name)} · ${esc(c.ui.updated)} <time datetime="${esc(ctx.updated)}">${esc(ctx.updated)}</time> · ${esc(c.ui.builtWith)}</span>
+      <span class="foot-links">${langSwitchLink(c, alt, c.altTitle)}<a href="#main">${esc(c.ui.top)} ↑</a></span>
+    </footer>
+  </main>
+</div>`;
+}

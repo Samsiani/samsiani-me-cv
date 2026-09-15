@@ -1,78 +1,69 @@
 // Zero-dependency static build: node build.mjs  ->  dist/
+// Content: src/content/site.json (SITE_JSON=path overrides). Layout and palette come from site.json settings.
 import { mkdir, writeFile, readFile, cp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { render } from './src/template.mjs';
-import en from './src/content/en.mjs';
-import ka from './src/content/ka.mjs';
+import { dirname, join } from 'node:path';
+import { validate } from './src/schema/validate.mjs';
+import { renderSite } from './src/render.mjs';
+import { LAYOUTS } from './src/layouts/index.mjs';
 
-const SITE = process.env.SITE_URL || 'https://samsiani.me';
-const updated = process.env.BUILD_DATE || '2026-06-07';
+const SITE_JSON = process.env.SITE_JSON || 'src/content/site.json';
+const OUT = process.env.OUT_DIR || 'dist';
 const hash = (s) => createHash('md5').update(s).digest('hex').slice(0, 8);
 
-await rm('dist', { recursive: true, force: true });
-await mkdir('dist/ka', { recursive: true });
+// Phase 1: one palette, still baked into precision/styles.css. Phase 2 replaces this with
+// src/palettes.json + src/palettes.mjs (docs/plans/palettes.md §5).
+const PALETTES = { cobalt: { id: 'cobalt', css: '', manifestTheme: '#1a4fd6' } };
 
-const css = (await readFile('src/fonts.css', 'utf8')) + '\n' + (await readFile('src/styles.css', 'utf8'));
+const site = JSON.parse(await readFile(SITE_JSON, 'utf8'));
+// Test overrides (validated like any other value): LAYOUT=studio PALETTE=lime node build.mjs
+if (process.env.LAYOUT) site.settings.layout = process.env.LAYOUT;
+if (process.env.PALETTE) site.settings.palette = process.env.PALETTE;
+const { errors, warnings } = validate(site, { mode: 'build', layoutIds: Object.keys(LAYOUTS), paletteIds: Object.keys(PALETTES) });
+for (const w of warnings) console.warn(`warning ${w.code} ${w.path}: ${w.msg}`);
+if (errors.length) {
+  for (const e of errors) console.error(`error ${e.code} ${e.path}: ${e.msg}`);
+  console.error(`${SITE_JSON}: ${errors.length} error(s); nothing was built`);
+  process.exit(1);
+}
+// Local-preview overrides, applied after validation. CI never sets these.
+if (process.env.SITE_URL) site.settings.siteUrl = process.env.SITE_URL;
+if (process.env.BUILD_DATE) site.settings.updated = process.env.BUILD_DATE;
+
+const layout = LAYOUTS[site.settings.layout];
+const palette = PALETTES[site.settings.palette] || PALETTES.cobalt;
+
+const css = (await Promise.all(layout.meta.css.map((f) => readFile(join('src/layouts', layout.meta.id, f), 'utf8')))).join('\n') + palette.css;
 const js = await readFile('src/main.js', 'utf8');
 const cssName = `styles.${hash(css)}.css`;
 const jsName = `main.${hash(js)}.js`;
-await writeFile(`dist/${cssName}`, css);
-await writeFile(`dist/${jsName}`, js);
-await cp('src/fonts', 'dist/fonts', { recursive: true });
+const assets = { cssHref: `/${cssName}`, jsHref: `/${jsName}`, og: { en: '/og-en.png', ka: '/og-ka.png' } };
+
+await rm(OUT, { recursive: true, force: true });
+await mkdir(`${OUT}/ka`, { recursive: true });
+await writeFile(`${OUT}/${cssName}`, css);
+await writeFile(`${OUT}/${jsName}`, js);
+await mkdir(`${OUT}/fonts`, { recursive: true });
+for (const f of layout.meta.fonts) await cp(`src/fonts/${f}.woff2`, `${OUT}/fonts/${f}.woff2`);
 for (const [from, to] of [
-  ['src/og-en.png', 'dist/og-en.png'],
-  ['src/og-ka.png', 'dist/og-ka.png'],
-  ['src/brand/icon-32.png', 'dist/favicon-32.png'],
-  ['src/brand/icon-180.png', 'dist/apple-touch-icon.png'],
-  ['src/brand/icon-192.png', 'dist/icon-192.png'],
-  ['src/brand/icon-512.png', 'dist/icon-512.png'],
+  ['src/og-en.png', 'og-en.png'],
+  ['src/og-ka.png', 'og-ka.png'],
+  ['src/brand/icon-32.png', 'favicon-32.png'],
+  ['src/brand/icon-180.png', 'apple-touch-icon.png'],
+  ['src/brand/icon-192.png', 'icon-192.png'],
+  ['src/brand/icon-512.png', 'icon-512.png'],
 ]) {
-  try { await cp(from, to); } catch (e) { console.warn('missing asset', from); }
+  try { await cp(from, `${OUT}/${to}`); } catch (e) { console.warn('missing asset', from); }
 }
-await writeFile(
-  'dist/site.webmanifest',
-  JSON.stringify({
-    name: 'Giorgi Samsiani — Full-Stack Web Developer',
-    short_name: 'Samsiani',
-    start_url: '/',
-    display: 'browser',
-    background_color: '#111318',
-    theme_color: '#1a4fd6',
-    icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-  }, null, 2)
-);
 
-const ctx = { site: SITE, cssHref: `/${cssName}`, jsHref: `/${jsName}`, updated };
-await writeFile('dist/index.html', render(en, { ...ctx, alt: ka }));
-await writeFile('dist/ka/index.html', render(ka, { ...ctx, alt: en }));
-await writeFile('dist/404.html', render(en, { ...ctx, alt: ka }));
-
-await writeFile(
-  'dist/sitemap.xml',
-  `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${[en, ka]
-  .map(
-    (c) => `  <url>
-    <loc>${SITE}${c.path}</loc>
-    <lastmod>${updated}</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="${SITE}/"/>
-    <xhtml:link rel="alternate" hreflang="ka" href="${SITE}/ka/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/"/>
-  </url>`
-  )
-  .join('\n')}
-</urlset>
-`
-);
-await writeFile('dist/robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
+for (const [name, body] of Object.entries(renderSite(site, { layout, palette, assets }))) {
+  await mkdir(dirname(join(OUT, name)), { recursive: true });
+  await writeFile(join(OUT, name), body);
+}
 
 // OpenLiteSpeed / Apache: caching + security headers + 404
 await writeFile(
-  'dist/.htaccess',
+  `${OUT}/.htaccess`,
   `ErrorDocument 404 /404.html
 
 <IfModule mod_headers.c>
@@ -99,7 +90,7 @@ await writeFile(
 `
 );
 await writeFile(
-  'dist/_headers',
+  `${OUT}/_headers`,
   `/*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
@@ -113,4 +104,4 @@ await writeFile(
   Cache-Control: public, max-age=31536000, immutable
 `
 );
-console.log(`built dist/ (${cssName}, ${jsName}) · updated ${updated}`);
+console.log(`built ${OUT}/ (${layout.meta.id}, ${palette.id}, ${cssName}, ${jsName}) · updated ${site.settings.updated}`);

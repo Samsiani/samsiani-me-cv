@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with: { node-version: 24 }
       - name: Build
         run: node build.mjs
       - name: Deploy
@@ -19,13 +19,17 @@ jobs:
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
           DEST: ${{ secrets.VPS_PATH }}
+          SITE_USER: ${{ secrets.VPS_SITE_USER }}
         run: |
           if [ -z "$KEY" ] || [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$DEST" ]; then
             echo "Deploy secrets are not set — skipping deploy"; exit 0
+          fi
+          if [ -z "$SITE_USER" ]; then
+            echo "VPS_SITE_USER is not set — refusing to deploy without an owner for the files"; exit 1
           fi
           mkdir -p ~/.ssh && printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
           rsync -az --delete -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
             dist/ "$USER@$HOST:$DEST"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$USER@$HOST" \
-            "chown -R samsi7128:samsi7128 '$DEST' && find '$DEST' -type d -exec chmod 755 {} + && find '$DEST' -type f -exec chmod 644 {} +"
+            "chown -R '$SITE_USER:$SITE_USER' '$DEST' && find '$DEST' -type d -exec chmod 755 {} + && find '$DEST' -type f -exec chmod 644 {} +"

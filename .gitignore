@@ -9,4 +9,3 @@ admin/web/dist/
 !.env.example
 release/
 release.tgz
-node_modules/
