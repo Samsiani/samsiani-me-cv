@@ -125,7 +125,9 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
   async function pruneBuilds(state) {
     let names = [];
     try { names = (await readdir(buildsDir)).filter((n) => BUILD_ID_RE.test(n)).sort().reverse(); } catch { return; }
-    const keep = new Set([...names.slice(0, KEEP_BUILDS), state?.current].filter(Boolean));
+    // the newest builds, the live one and every build the publish history still names (rollback targets;
+    // after a rollback to an old build, that build is history[1] of the next publish, whatever its age)
+    const keep = new Set([...names.slice(0, KEEP_BUILDS), state?.current, ...(state?.history || [])].filter(Boolean));
     for (const n of names) if (!keep.has(n)) await rm(dirOf(n), { recursive: true, force: true });
   }
 

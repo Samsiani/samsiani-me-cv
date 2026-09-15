@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { hooks as swapHooks, gcWebRoot } from '../server/lib/swap.mjs';
-import { hooks as pubHooks } from '../server/lib/publish.mjs';
+import { hooks as pubHooks, KEEP_BUILDS } from '../server/lib/publish.mjs';
 import { setup, seed, makeClock } from './_helpers.mjs';
 
 const sha = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
@@ -188,4 +188,21 @@ test('rollback defaults to the build that was live before, even when build ids s
   const rb = await deps.publisher.rollback({});
   assert.equal(rb.current, a2.buildId, 'the previously live build, not the lexically smaller id');
   assert.notEqual(rb.current, b.buildId);
+});
+
+test('pruning keeps every build the publish history names, however old', async () => {
+  const { deps, cfg, clock } = await setup({ password: null });
+  const publishNext = async (palette) => {
+    clock.advance(60_000); // build ids sort by time
+    await draftEdit(deps, (s) => { s.settings.palette = palette; });
+    return (await publishDraft(deps)).buildId;
+  };
+  const ids = [];
+  for (let i = 0; i < KEEP_BUILDS; i++) ids.push(await publishNext(i % 2 ? 'cobalt' : 'lime'));
+  await deps.publisher.rollback({ buildId: ids[1] }); // the second-oldest kept build goes live again
+  await publishNext('emerald');
+  await publishNext('amber'); // ids[1] is no longer among the ten newest builds, but the history names it
+  assert.ok((await deps.store.readState()).history.includes(ids[1]));
+  assert.ok(existsSync(join(cfg.buildsDir, ids[1], 'manifest.json')), 'a build named by the history survives pruning');
+  assert.equal((await deps.publisher.rollback({ buildId: ids[1] })).current, ids[1]);
 });
