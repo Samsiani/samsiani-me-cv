@@ -15,6 +15,7 @@ import { validate } from '../../src/schema/validate.mjs';
 import { LAYOUTS } from '../../src/layouts/index.mjs';
 import { loadPalettes, checkPalettes } from '../../src/palettes.mjs';
 
+process.umask(0o022);
 const CTRL_C = String.fromCharCode(3);
 const BACKSPACE = String.fromCharCode(127);
 
@@ -36,14 +37,16 @@ const deps = createDeps(cfg);
 const { store, auth, audit } = deps;
 const backup = () => createBackup({ dataDir: cfg.dataDir, store, release: cfg.release, paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, audit });
 
-async function newestBuildSite() {
+// the newest build by its manifest's createdAt that still has its .site.json
+async function newestBuild() {
   let names = [];
-  try { names = (await readdir(cfg.buildsDir)).filter((n) => BUILD_ID_RE.test(n)).sort().reverse(); } catch { return null; }
+  try { names = (await readdir(cfg.buildsDir)).filter((n) => BUILD_ID_RE.test(n)); } catch { return null; }
+  const builds = [];
   for (const n of names) {
-    const f = join(cfg.buildsDir, n, '.site.json');
-    if (existsSync(f)) return { buildId: n, site: JSON.parse(await readFile(f, 'utf8')) };
+    try { builds.push({ id: n, m: JSON.parse(await readFile(join(cfg.buildsDir, n, 'manifest.json'), 'utf8')) }); } catch {}
   }
-  return null;
+  builds.sort((a, b) => (a.m.createdAt < b.m.createdAt ? 1 : -1));
+  return builds[0] || null;
 }
 
 async function healthAnswers() {
@@ -125,11 +128,19 @@ try {
         console.log(`data already initialised in ${cfg.dataDir}; nothing changed`);
         break;
       }
-      // init never migrates; when data/ is gone but a build exists, it restores from that build instead of the seed
-      const fromBuild = await newestBuildSite();
-      const site = fromBuild ? fromBuild.site : JSON.parse(await readFile(cfg.seedFile, 'utf8'));
-      const r = await store.init(site, { source: fromBuild ? `build ${fromBuild.buildId}` : 'seed' });
-      console.log(r.created ? `initialised ${cfg.dataDir} from ${fromBuild ? `build ${fromBuild.buildId}` : 'the seed'}` : 'nothing changed');
+      // init never migrates. When data/ is gone but builds exist, the newest build is restored (it is what is
+      // live); re-seeding from the repository would publish stale content at the next re-render.
+      const b = await newestBuild();
+      if (b) {
+        let site;
+        try { site = JSON.parse(await readFile(join(cfg.buildsDir, b.id, '.site.json'), 'utf8')); }
+        catch { die(`init: builds exist but ${b.id}/.site.json is unreadable; see runbooks R7 and R10`); }
+        await store.init(site, { source: `build ${b.id}`, buildId: b.id, rev: b.m.rev ?? 1 });
+        console.log(`::warning::data/ was missing; restored from build ${b.id}`);
+      } else {
+        const r = await store.init(JSON.parse(await readFile(cfg.seedFile, 'utf8')), { source: 'seed' });
+        console.log(r.created ? `initialised ${cfg.dataDir} from the seed` : 'nothing changed');
+      }
       break;
     }
     case 'migrate': {
@@ -149,20 +160,37 @@ try {
     }
     case 'verify': {
       const problems = [];
-      const pub = await store.getPublished().catch((e) => { problems.push(`site.json: ${e.message}`); return null; });
-      if (pub) {
-        const v = validate(pub.site, { mode: 'build', paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, today: store.today() });
-        if (v.errors.length) problems.push(`published document has ${v.errors.length} error(s)`);
+      const [major] = process.versions.node.split('.').map(Number);
+      if (major < 24) problems.push(`Node ${process.versions.node} < 24`);
+      if (cfg.production && typeof process.getuid === 'function' && process.getuid() === 0) problems.push('running as root; run as the site user');
+      const { access, constants } = await import('node:fs/promises');
+      for (const [k, d] of [['data dir', cfg.dataDir], ['web root', cfg.webRoot]]) {
+        if (existsSync(d)) { try { await access(d, constants.W_OK); } catch { problems.push(`${k} ${d} is not writable`); } }
+        else if (k === 'web root') problems.push(`web root ${d} does not exist`);
       }
-      await store.getDraft().catch((e) => problems.push(`draft.json: ${e.message}`));
+      if (existsSync(cfg.buildsDir) && existsSync(cfg.webRoot)) {
+        const [a, b] = await Promise.all([stat(cfg.buildsDir), stat(cfg.webRoot)]);
+        if (a.dev !== b.dev) problems.push('builds and the web root are on different filesystems (the hard-link swap needs one)');
+      }
+      try {
+        const seedDoc = JSON.parse(await readFile(cfg.seedFile, 'utf8'));
+        const v = validate(seedDoc, { mode: 'build', paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, today: store.today() });
+        if (v.errors.length) problems.push(`the seed has ${v.errors.length} error(s)`);
+      } catch (e) { problems.push(`seed ${cfg.seedFile}: ${e.message}`); }
+      try { await import('../../src/build-site.mjs'); } catch (e) { problems.push(`buildSite import failed: ${e.message}`); }
       for (const { meta } of Object.values(LAYOUTS)) {
         for (const f of meta.fonts) if (!existsSync(join(cfg.root, 'src/fonts', f + '.woff2'))) problems.push(`font missing: ${f}`);
       }
       const gate = checkPalettes(loadPalettes());
       if (gate.failed) problems.push(`palette gate: ${gate.failed} failed`);
-      if (existsSync(cfg.buildsDir) && existsSync(cfg.webRoot)) {
-        const [a, b] = await Promise.all([stat(cfg.buildsDir), stat(cfg.webRoot)]);
-        if (a.dev !== b.dev) problems.push('builds and the web root are on different filesystems (the hard-link swap needs one)');
+      // content: only once initialised (the first deploy runs verify before init)
+      if (existsSync(join(cfg.dataDir, 'site.json'))) {
+        const pub = await store.getPublished().catch((e) => { problems.push(`site.json: ${e.message}`); return null; });
+        if (pub) {
+          const v = validate(pub.site, { mode: 'build', paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, today: store.today() });
+          if (v.errors.length) problems.push(`the published document has ${v.errors.length} error(s) under this release: ${v.errors.slice(0, 3).map((e) => `${e.code} ${e.path}`).join(', ')}`);
+        }
+        await store.getDraft().catch((e) => problems.push(`draft.json: ${e.message}`));
       }
       if (flag('web-root')) {
         const w = await deps.publisher.verifyWebRoot();

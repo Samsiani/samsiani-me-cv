@@ -8,6 +8,7 @@ import { createBackup } from './lib/backup.mjs';
 import { cleanupTemp, exists } from './lib/fsx.mjs';
 import { withFileLock } from './lib/lock.mjs';
 
+process.umask(0o022);
 let cfg;
 try { cfg = loadConfig(process.env); }
 catch (e) { if (e instanceof ConfigError) { console.error(`samsiani-admin: ${e.message}`); process.exit(1); } throw e; }

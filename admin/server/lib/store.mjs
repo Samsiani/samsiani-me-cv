@@ -277,7 +277,7 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
     },
 
     /** First-boot content: site.json + draft.json at rev 1 from a document (seed or a build's .site.json). */
-    async init(site, { source = 'seed' } = {}) {
+    async init(site, { source = 'seed', buildId = null, rev = 1 } = {}) {
       await mkdir(dataDir, { recursive: true, mode: 0o700 });
       await chmod(dataDir, 0o700).catch(() => {});
       for (const d of [F.revisions, F.locks, join(dataDir, 'backups')]) await mkdir(d, { recursive: true, mode: 0o700 });
@@ -288,7 +288,11 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
         const v = validate(s, vopts('build'));
         if (v.errors.length) throw new AppError(400, 'invalid', `${source} document is invalid: ${v.errors.map((e) => `${e.code} ${e.path}`).join(', ')}`);
         const canonical = canonicalize(s), etag = sha256(canonical);
-        if (!haveSite) await writeJsonAtomic(F.site, envelope({ kind: 'published', rev: 1, etag, publishedAt: null, buildId: null, source }, s));
+        if (!haveSite) {
+          await writeJsonAtomic(F.site, envelope({ kind: 'published', rev, etag, publishedAt: null, buildId, source }, s));
+          // restored from a build that is still live in the web root: record it as the current build
+          if (buildId) await writeJsonAtomic(F.state, { current: buildId, history: [buildId], publishedRev: rev, publishedEtag: etag, publishedAt: null, pending: null });
+        }
         if (!haveDraft) {
           const pub = await readJson(F.site);
           await writeJsonAtomic(F.draft, envelope({ kind: 'draft', rev: pub.rev, etag: pub.etag, savedAt: iso(), issues: { errors: 0, warnings: v.warnings.length } }, pub.site));

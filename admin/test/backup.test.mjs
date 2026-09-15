@@ -70,12 +70,21 @@ test('a valid backup restores the draft', async () => {
 test('init restores from the newest build when site.json is gone but a build exists', async () => {
   const ctx = await setup({ init: false, password: null });
   const s = seed(); s.hero.tagline.en = 'content from the newest build';
+  const older = join(ctx.cfg.buildsDir, '20260915T090000Z-r6'); mkdirSync(older, { recursive: true });
+  writeFileSync(join(older, '.site.json'), JSON.stringify(seed()));
+  writeFileSync(join(older, 'manifest.json'), JSON.stringify({ buildId: '20260915T090000Z-r6', rev: 6, createdAt: '2026-09-15T09:00:00.000Z', files: {} }));
   const bdir = join(ctx.cfg.buildsDir, '20260915T100000Z-r7'); mkdirSync(bdir, { recursive: true });
   writeFileSync(join(bdir, '.site.json'), JSON.stringify(s));
+  writeFileSync(join(bdir, 'manifest.json'), JSON.stringify({ buildId: '20260915T100000Z-r7', rev: 7, createdAt: '2026-09-15T10:00:00.000Z', files: {} }));
   const r = spawnSync(process.execPath, ['admin/server/cli.mjs', 'init'], { env: { ...process.env, NODE_ENV: 'development', DATA_DIR: ctx.cfg.dataDir, BUILDS_DIR: ctx.cfg.buildsDir, WEB_ROOT: ctx.cfg.webRoot }, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /from build 20260915T100000Z-r7/);
-  assert.equal(JSON.parse(readFileSync(join(ctx.cfg.dataDir, 'site.json'), 'utf8')).site.hero.tagline.en, 'content from the newest build');
+  assert.match(r.stdout, /restored from build 20260915T100000Z-r7/);
+  const site = JSON.parse(readFileSync(join(ctx.cfg.dataDir, 'site.json'), 'utf8'));
+  assert.equal(site.site.hero.tagline.en, 'content from the newest build');
+  assert.equal(site.rev, 7);
+  assert.equal(site.buildId, '20260915T100000Z-r7');
+  const state = JSON.parse(readFileSync(join(ctx.cfg.dataDir, 'publish-state.json'), 'utf8'));
+  assert.equal(state.current, '20260915T100000Z-r7');
 });
 
 test('migrate --dry-run exits 0 with nothing pending and 10 with a pending migration', async () => {

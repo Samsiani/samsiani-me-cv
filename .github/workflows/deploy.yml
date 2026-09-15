@@ -1,35 +1,107 @@
-name: build & deploy
+name: test, build & deploy
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'production-deploy' }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+env:
+  NPM_FLAGS: --ignore-scripts --no-audit --no-fund   # not npm ci: a macOS lockfile omits Linux optional packages
+
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 24 }
-      - name: Build
-        run: node build.mjs
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 2, persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: '24' }
+      - name: Seed notice
+        if: github.event_name == 'push'
+        run: |
+          if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qx 'src/content/site.json'; then
+            echo "::notice::src/content/site.json is only the seed; production content is edited in the admin"
+          fi
+      - run: npm install $NPM_FLAGS
+      - run: npm test
+      - name: No v-html in the admin SPA
+        run: '! grep -rn "v-html" admin/web/src'
+      - run: node src/palettes.mjs
+      - run: npm run check:secrets
+        env: { DENYLIST: '${{ secrets.DENYLIST }}' }
+
+  gates:                                   # Playwright + page gates; uploads nothing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0, persist-credentials: false }        # check-all's pixel baseline needs PIXEL_BASE
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: '24' }
+      - run: npm install $NPM_FLAGS                                   # playwright is an exact devDependency
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:admin
+      - run: npm run check:all
+      - run: npm run check:stress
+      - run: npm run test:e2e
+
+  release:                                 # clean workspace: install, build the SPA, prune, pack
+    needs: [test, gates]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: '24' }
+      - run: npm install $NPM_FLAGS
+      - run: npm run build:admin
+      - run: npm prune --omit=dev $NPM_FLAGS
+      - name: Assemble release (no deploy/ - root never evaluates a file from the artifact)
+        run: |
+          set -euo pipefail
+          rm -rf release && mkdir -p release/admin/web
+          cp -R package.json package-lock.json node_modules src release/
+          cp -R admin/server admin/shared release/admin/
+          cp -R admin/web/dist release/admin/web/
+          printf '%s\n' "${GITHUB_SHA::7}" > release/RELEASE
+          tar -czf release.tgz -C release .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with: { name: release, path: release.tgz, retention-days: 7 }
+
+  deploy:
+    needs: release
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { persist-credentials: false }                          # this job's own deploy/ files
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with: { name: release }
       - name: Deploy
-        if: github.ref == 'refs/heads/main'
         env:
           KEY: ${{ secrets.VPS_SSH_KEY }}
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
-          DEST: ${{ secrets.VPS_PATH }}
-          SITE_USER: ${{ secrets.VPS_SITE_USER }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: |
-          if [ -z "$KEY" ] || [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$DEST" ]; then
-            echo "Deploy secrets are not set — skipping deploy"; exit 0
+          set -euo pipefail
+          if [ -z "$KEY" ] || [ -z "$HOST" ] || [ -z "$USER" ]; then
+            echo "Deploy secrets are not set - skipping deploy"; exit 0
           fi
-          if [ -z "$SITE_USER" ]; then
-            echo "VPS_SITE_USER is not set — refusing to deploy without an owner for the files"; exit 1
-          fi
-          mkdir -p ~/.ssh && printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          rsync -az --delete -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            dist/ "$USER@$HOST:$DEST"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$USER@$HOST" \
-            "chown -R '$SITE_USER:$SITE_USER' '$DEST' && find '$DEST' -type d -exec chmod 755 {} + && find '$DEST' -type f -exec chmod 644 {} +"
+          [ -n "$KNOWN_HOSTS" ] || { echo "VPS_KNOWN_HOSTS is not set" >&2; exit 1; }
+          SHA="${GITHUB_SHA::7}"; APP=/opt/samsiani-admin
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          remote() { ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$USER@$HOST" "$@"; }
+          mkdir release && tar -xzf release.tgz -C release
+          remote "install -d -m 755 '$APP/releases/$SHA'"
+          rsync -az --delete -e "ssh -i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=yes" \
+            release/ "$USER@$HOST:$APP/releases/$SHA/"
+          remote "umask 077; cat > '$APP/shared/.eco.tmp' && mv -f '$APP/shared/.eco.tmp' '$APP/shared/ecosystem.config.cjs'" < deploy/ecosystem.config.cjs
+          remote "bash -s -- '$SHA'" < deploy/remote-deploy.sh
