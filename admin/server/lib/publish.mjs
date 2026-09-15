@@ -143,6 +143,19 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     return items;
   }
 
+  /** Keep brand-cache files referenced by kept builds plus the newest 20. */
+  async function pruneBrandCache() {
+    const dir = join(cfg.dataDir, 'brand-cache');
+    let names = [];
+    try { names = await readdir(dir); } catch { return; }
+    const keep = new Set();
+    for (const b of await listBuilds()) { try { Object.keys((await readManifest(b.buildId)).files).forEach((f) => keep.add(f)); } catch {} }
+    const withTime = [];
+    for (const n of names) { try { withTime.push([n, (await stat(join(dir, n))).mtimeMs]); } catch {} }
+    withTime.sort((a, b) => b[1] - a[1]).slice(0, 20).forEach(([n]) => keep.add(n));
+    for (const [n] of withTime) if (!keep.has(n)) await rm(join(dir, n), { force: true });
+  }
+
   async function clearPending() { await store.writePublishState((s) => ({ ...s, pending: null })); }
 
   async function publishLocked({ source = 'draft', reason = 'admin', ifMatch = null, acknowledgeWarnings = false, note = '', ifChanged = false }) {
@@ -168,15 +181,33 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
       dateChanged = true;
     }
     const rev = source === 'draft' ? draftEnv.rev : live.rev;
-    // 5. brand images
+    // 5. brand images: cache -> the current build (an existing name keeps its bytes) -> render.
+    //    If rendering fails, the current build's images are reused and the publish carries og_stale.
     const warnings = [];
-    let b;
-    try { b = await brand(site); } catch (e) { throw new PublishError('og', `Brand images failed: ${e.message}`); }
-    if (b.warning) warnings.push(b.warning);
+    const state0 = await store.readState();
+    const reuseDir = state0?.current ? dirOf(state0.current) : null;
+    const provider = async (s, pal, meta) => {
+      try { return await brand(s, pal, meta, reuseDir); }
+      catch (e) {
+        if (!reuseDir) throw new PublishError('og', `Brand images failed: ${e.message}`);
+        const m = await readManifest(state0.current);
+        const pick = (re) => Object.keys(m.files).find((f) => re.test(f));
+        const og = { en: pick(/^og-en\./), ka: pick(/^og-ka\./) };
+        const icons = { i32: pick(/^favicon-32\./), i180: pick(/^apple-touch-icon\./), i192: pick(/^icon-192\./), i512: pick(/^icon-512\./) };
+        const files = new Map();
+        for (const n of [...Object.values(og), ...Object.values(icons)]) files.set(n, await readFile(join(reuseDir, n)));
+        return { files, og, icons, palette: pal.id, warning: 'og_stale' };
+      }
+    };
     // 6. render
     let files;
-    try { files = await buildSite(site, { mode: 'publish', base: '/', brand: b, today, palettes }); }
-    catch (e) { if (e instanceof BuildValidationError) throw new AppError(400, 'invalid', 'The draft has errors.', { errors: e.errors }); throw new PublishError('render', `Rendering failed: ${e.message}`); }
+    try { files = await buildSite(site, { mode: 'publish', base: '/', brand: provider, today, palettes }); }
+    catch (e) {
+      if (e instanceof BuildValidationError) throw new AppError(400, 'invalid', 'The draft has errors.', { errors: e.errors });
+      if (e instanceof PublishError) throw e;
+      throw new PublishError('render', `Rendering failed: ${e.message}`);
+    }
+    if (files.warnings.some((w) => w.code === 'og_stale')) warnings.push('og_stale');
     // 7. stage
     const buildId = await newBuildId(rev);
     const manifest = await stageBuild(files, { buildId, rev, reason, site });
@@ -230,9 +261,10 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     const state = await store.readState();
     await pruneBuilds(state);
     await gcWebRoot(webRoot, await keptManifests(state), { now: clock.now() }).catch(() => {});
+    await pruneBrandCache().catch(() => {});
     return {
       publishedRev: rev, buildId, publishedAt, durationMs: Date.now() - t0, changedFiles: swap.changed,
-      og: { en: b.og.en, ka: b.og.ka }, updated: site.settings.updated, draft: draftOut, warnings: [...warnings, ...v.warnings],
+      og: { en: files.brand.og.en, ka: files.brand.og.ka }, updated: site.settings.updated, draft: draftOut, warnings: [...warnings, ...v.warnings],
     };
   }
 

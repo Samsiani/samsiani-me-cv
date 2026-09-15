@@ -12,8 +12,8 @@ const DEFAULT_ASSETS = {
   cssHref: '/styles.css',
   jsHref: '/main.js',
   manifestHref: '/site.webmanifest',
-  icons: { i32: '/favicon-32.png', i180: '/apple-touch-icon.png', i192: '/icon-192.png', i512: '/icon-512.png' },
-  og: { en: '/og-en.png', ka: '/og-ka.png' },
+  icons: { i32: '/unbuilt/icon-32', i180: '/unbuilt/icon-180', i192: '/unbuilt/icon-192', i512: '/unbuilt/icon-512' },
+  og: { en: '/unbuilt/card-en', ka: '/unbuilt/card-ka' }, // real names always come from buildSite()
 };
 
 export function renderSite(site, { layout, palette, assets = {} }) {

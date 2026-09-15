@@ -5,7 +5,7 @@
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { buildSite, BuildValidationError } from './src/build-site.mjs';
-import { committedBrand } from './src/brand/committed.mjs';
+import { renderBrand } from './src/brand/render.mjs';
 
 const SITE_JSON = process.env.SITE_JSON || 'src/content/site.json';
 const OUT = process.env.OUT_DIR || 'dist';
@@ -20,7 +20,7 @@ let files;
 try {
   files = await buildSite(site, {
     mode: 'publish',
-    brand: committedBrand(),
+    brand: (s, pal, layoutMeta) => renderBrand(s, pal, layoutMeta, { cacheDir: '.cache/brand' }),
     today,
     after: { siteUrl: process.env.SITE_URL, updated: process.env.BUILD_DATE },
   });

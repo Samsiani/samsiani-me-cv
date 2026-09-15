@@ -44,7 +44,7 @@ function rebase(html, base) {
 
 /**
  * @param {object} site canonical site.json object
- * @param {{ mode?: 'publish'|'preview', base?: string, brand: object, today?: string, palettes?: object,
+ * @param {{ mode?: 'publish'|'preview', base?: string, brand: object|function, today?: string, palettes?: object,
  *           after?: { siteUrl?: string, updated?: string } }} opts
  *   after: local-preview overrides applied to a copy AFTER validation (CLI only: SITE_URL, BUILD_DATE)
  */
@@ -76,6 +76,8 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
   }
   const gate = checkPalettes(palettes);
   if (gate.failed > 0) throw new Error(`palette contrast gate failed: ${gate.failed} check(s)`);
+  if (typeof brand === 'function') brand = await brand(site, pal, layout.meta);
+  if (brand.warning) warnings.push({ code: brand.warning, path: '$', msg: 'brand images could not be rendered; the current ones are reused' });
   if (brand.palette && brand.palette !== pal.id) {
     warnings.push({ code: 'BRAND_STALE', path: '$.settings.palette', msg: `icons and OG cards stay ${brand.palette} until the brand renderer lands (M7)` });
   }
@@ -112,7 +114,7 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
     put('.htaccess', HTACCESS, false);
     put('_headers', HEADERS, false);
   }
-  return Object.assign(files, { warnings, layoutId: layout.meta.id, paletteId: pal.id, cssName, jsName });
+  return Object.assign(files, { warnings, layoutId: layout.meta.id, paletteId: pal.id, cssName, jsName, brand: { og: brand.og, icons: brand.icons } });
 }
 
 // Kept for parity with other hosts. OpenLiteSpeed reads only rewrite rules from .htaccess;

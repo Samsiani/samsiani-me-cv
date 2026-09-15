@@ -1,12 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSite } from '../../src/build-site.mjs';
-import { committedBrand } from '../../src/brand/committed.mjs';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { renderBrand } from '../../src/brand/render.mjs';
+
+const CACHE = mkdtempSync(join(tmpdir(), 'brand-'));
 import { LAYOUTS } from '../../src/layouts/index.mjs';
 import { seed } from './_helpers.mjs';
 
 const TODAY = '2026-09-14';
-const build = (site, opts = {}) => buildSite(site, { brand: committedBrand(), today: TODAY, ...opts });
+const build = (site, opts = {}) => buildSite(site, { brand: (s, pal, meta) => renderBrand(s, pal, meta, { cacheDir: CACHE }), today: TODAY, ...opts });
 
 test('ships only the active layout\'s fonts', async () => {
   const files = await build(seed());

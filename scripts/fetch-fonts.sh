@@ -16,3 +16,10 @@ fetch https://fonts.gstatic.com/s/ibmplexsans/v23/zYXzKVElMYYaJe8bpLHnCwDKr932-G
 fetch https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n1i8q131nj-o.woff2 ibm-plex-mono-latin-400.woff2 10052
 fetch https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgsAXHNk.woff2 ibm-plex-mono-latin-500.woff2 10060
 curl -sS -o OFL-IBM-Plex.txt https://raw.githubusercontent.com/IBM/plex/master/LICENSE.txt
+# Brand images (M7): static TTF instances for satori (no browser User-Agent, so Google returns TTF, not WOFF2)
+mkdir -p ../brand/fonts && cd ../brand/fonts
+urls() { curl -s "https://fonts.googleapis.com/css2?family=$1" | sed -n 's/.*src: url(\(https:[^)]*\.ttf\)).*/\1/p'; }
+set -- $(urls 'Chivo:wght@400;600');              curl -so Chivo-Regular.ttf "$1";            curl -so Chivo-SemiBold.ttf "$2"
+set -- $(urls 'JetBrains+Mono:wght@400;500');     curl -so JetBrainsMono-Regular.ttf "$1";    curl -so JetBrainsMono-Medium.ttf "$2"
+set -- $(urls 'Noto+Sans+Georgian:wght@400;600'); curl -so NotoSansGeorgian-Regular.ttf "$1"; curl -so NotoSansGeorgian-SemiBold.ttf "$2"
+ls -la *.ttf

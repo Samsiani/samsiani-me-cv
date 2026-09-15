@@ -19,10 +19,14 @@ const CTRL_C = String.fromCharCode(3);
 const BACKSPACE = String.fromCharCode(127);
 
 const [cmd, ...rest] = process.argv.slice(2);
+// --name=value, --name value, or a bare --name (true)
 const flag = (name) => {
-  const a = rest.find((x) => x === `--${name}` || x.startsWith(`--${name}=`));
-  if (a === undefined) return undefined;
-  return a.includes('=') ? a.slice(a.indexOf('=') + 1) : true;
+  const i = rest.findIndex((x) => x === `--${name}` || x.startsWith(`--${name}=`));
+  if (i === -1) return undefined;
+  const a = rest[i];
+  if (a.includes('=')) return a.slice(a.indexOf('=') + 1);
+  const next = rest[i + 1];
+  return next !== undefined && !next.startsWith('--') ? next : true;
 };
 const die = (msg, code = 1) => { console.error(msg); process.exit(code); };
 
@@ -99,6 +103,21 @@ try {
       const site = JSON.parse(await readFile(join(cfg.buildsDir, id, '.site.json'), 'utf8'));
       const out = await store.importDraft(site, { actor: 'cli' });
       console.log(`draft replaced with the content of ${id} (r${out.rev}); publish to put it live`);
+      break;
+    }
+    case 'brand': {
+      const out = typeof flag('out') === 'string' ? flag('out') : null;
+      if (!out) die('brand needs --out=<dir>');
+      const { renderBrand } = await import('../../src/brand/render.mjs');
+      const pals = loadPalettes();
+      const site = structuredClone((await store.getDraft().catch(() => null))?.site ?? JSON.parse(await readFile(cfg.seedFile, 'utf8')));
+      if (typeof flag('palette') === 'string') site.settings.palette = flag('palette');
+      const pal = pals.palettes.find((p) => p.id === site.settings.palette) || pals.palettes.find((p) => p.id === pals.default);
+      const b = await renderBrand(site, pal, (LAYOUTS[site.settings.layout] || LAYOUTS.precision).meta, {});
+      const { mkdir, writeFile } = await import('node:fs/promises');
+      await mkdir(out, { recursive: true });
+      for (const [n, buf] of b.files) await writeFile(join(out, n), buf);
+      console.log(`wrote ${b.files.size} images (${pal.id}) to ${out}`);
       break;
     }
     case 'init': {
