@@ -9,12 +9,13 @@ const LEVELS = ['core', 'strong', 'working'];
 
 // Nav-fit (spec §2.4): estimate the header's natural width from the strings it shows and return the
 // smallest breakpoint at which the inline section nav fits. Constants were measured with IBM Plex / Noto
-// in Chromium and carry ~2 % headroom. The header content is capped at 1440 px, so above that: never.
+// in Chromium on macOS; Georgian carries ~10 % headroom because Linux Chromium draws it up to
+// ~8 % wider (whole-pixel glyph advances). The header content is capped at 1440 px, so above that: never.
 const FIT = {
   en: { nav: 5.9, gap: 20 },   // IBM Plex Sans 12.5 px: 5.81 px per character
-  ka: { nav: 7.8, gap: 14 },   // Noto Sans Georgian 12 px: 7.69 px per character
+  ka: { nav: 8.5, gap: 14 },   // Noto Sans Georgian 12 px: 7.69 px per character on macOS
 };
-const CH = { mono14: 9.3, mono12: 7.3, mono12_5: 7.6, btn: 7.4, geo12_5: 8.2 };
+const CH = { mono14: 9.3, mono12: 7.3, mono12_5: 7.6, btn: 7.4, geo12_5: 8.8 };
 export function navFit(c, ctx) {
   const k = FIT[c.lang] || FIT.en;
   const labels = orderedSections(c).map((s) => s.navLabel);

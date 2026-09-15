@@ -340,7 +340,10 @@ html[lang="ka"] .st-nav, html[lang="ka"] .st-menu-list a { letter-spacing: 0; }
   .st-ctl-primary { padding: 0 14px; }
 }
 @media (min-width: 600px) {
-  .st-brand-name { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+  /* the name may shorten with an ellipsis, never push the controls past the edge (fonts differ per OS) */
+  .st-brand { flex: 0 1 auto; min-width: 0; }
+  .st-mark { flex: none; }
+  .st-brand-name { position: static; width: auto; height: auto; margin: 0; overflow: hidden; clip: auto; min-width: 0; text-overflow: ellipsis; }
 }
 @media (min-width: 768px) {
   :root { --st-pad: 32px; --st-h2: 36px; }

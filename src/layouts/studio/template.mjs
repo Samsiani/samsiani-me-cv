@@ -6,14 +6,15 @@ import { copyButton, themeToggle, printButton, langSwitchLink, orderedSections, 
 
 const GEORGIAN = /[\u10A0-\u10FF\u1C90-\u1CBF\u2D00-\u2D2F]/;
 const chars = (s) => [...String(s)];
-// Estimated rendered width in px, conservative per-glyph averages measured in Archivo / Noto Sans Georgian.
+// Estimated rendered width in px, per-glyph averages measured in Archivo / Noto Sans Georgian on macOS.
+// Georgian carries ~10 % headroom: Linux Chromium draws it up to ~8 % wider (whole-pixel glyph advances).
 const est = (s, latin, georgian) => chars(s).reduce((n, ch) => n + (GEORGIAN.test(ch) ? georgian : latin), 0);
 
 // Smallest viewport width at which the header nav bar fits on one line (plan §2.3); 'menu' = never.
 function navTier(c, order) {
-  const nav = order.reduce((n, sec) => n + est(sec.navLabel, 6.3, 8.7), 0) + 20 * (order.length - 1); // 13px links, 20px gaps
-  const brand = 40 + est(c.hero.name, 6.6, 8.2); // 30px mark + 10px gap + 13px/500 name
-  const controls = 86 + 34 + 28 + est(c.ui.print, 7.0, 8.4) + 24; // lang switch, theme, print (label + padding), 2 gaps
+  const nav = order.reduce((n, sec) => n + est(sec.navLabel, 6.3, 9.2), 0) + 20 * (order.length - 1); // 13px links, 20px gaps
+  const brand = 40 + est(c.hero.name, 6.6, 8.9); // 30px mark + 10px gap + 13px/500 name
+  const controls = 86 + 34 + 28 + est(c.ui.print, 7.0, 9.1) + 24; // lang switch, theme, print (label + padding), 2 gaps
   const need = nav + brand + controls + 64 + 80; // two 32px header gaps + two 40px gutters
   return [1280, 1440, 1600].find((bp) => need <= bp) ?? 'menu';
 }

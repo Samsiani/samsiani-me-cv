@@ -362,9 +362,12 @@ html[lang="ka"] .foot { font-family: var(--sans); letter-spacing: 0.01em; }
   .big-mail { font-size: 14pt; margin-top: 10px; }
   .foot { margin-top: 20px; padding-top: 8px; font-size: 7.5pt; }
   a { color: inherit; }
-  /* Georgian runs 20-30% longer: a wider title column and tighter rhythm keep KA within 6 A4 pages */
+  /* Georgian runs 20-30% longer: a wider title column, tighter rhythm and half a point less body text
+     keep KA within 6 A4 pages, with room for Linux and Windows drawing Georgian up to ~8% wider */
   html[lang="ka"] .item { grid-template-columns: 200px 1fr; padding: 6px 0 7px; }
   html[lang="ka"] .sec { margin-top: 16px; }
+  html[lang="ka"] .prose { font-size: 9.5pt; }
+  html[lang="ka"] .item p, html[lang="ka"] .plain, html[lang="ka"] .lang-level, html[lang="ka"] .row-name { font-size: 9pt; }
 }
 
 /* M2: layout robustness (docs/plans/admin-layouts-palettes.md §6, deliberate differences) */
