@@ -13,6 +13,16 @@ const scrypt = promisify(scryptCb);
 export const SCRYPT = { N: 65536, r: 8, p: 2, keylen: 64, maxmem: 134217728 };
 export const IDLE_S = 12 * 3600, ABSOLUTE_S = 7 * 24 * 3600, SLIDE_S = 300, MAX_SESSIONS = 10;
 export const DEVICE_MAX_AGE = 34_560_000;
+
+/**
+ * Test-only: SESSION_IDLE_S (seconds) shortens the 12 h idle window so the e2e suite can let a session expire.
+ * Ignored whenever NODE_ENV=production, so a stray variable can never weaken a production session.
+ */
+export function idleWindowS(env = process.env) {
+  if (env.NODE_ENV === 'production') return IDLE_S;
+  const n = Number(env.SESSION_IDLE_S);
+  return Number.isInteger(n) && n > 0 && n < IDLE_S ? n : IDLE_S;
+}
 const b64u = (buf) => Buffer.from(buf).toString('base64url');
 const sha = (v) => createHash('sha256').update(String(v)).digest();
 const eq = (a, b) => a.length === b.length && timingSafeEqual(a, b);
@@ -99,8 +109,10 @@ export function readDevice(value, secrets) {
 }
 
 // ---------------------------------------------------------------- the auth + session files
-export function createAuth({ dataDir, secrets, clock = { now: () => Date.now() }, audit }) {
+export function createAuth({ dataDir, secrets, clock = { now: () => Date.now() }, audit, env = process.env }) {
   const F = { auth: join(dataDir, 'auth.json'), sessions: join(dataDir, 'sessions.json'), locks: join(dataDir, 'locks') };
+  const idleS = idleWindowS(env);
+  const slideS = Math.min(SLIDE_S, Math.max(1, Math.floor(idleS / 2))); // = SLIDE_S unless the test override is set
   const cache = new Map(); // path -> { mtimeMs, ino, doc }  (a cache, invalidated by stat on every read)
   const nowS = () => Math.floor(clock.now() / 1000);
   let dummyHash = null;
@@ -168,7 +180,7 @@ export function createAuth({ dataDir, secrets, clock = { now: () => Date.now() }
         const auth = await readAuth();
         const reg = await readSessions();
         const t = new Date(clock.now()).toISOString();
-        reg.sessions = reg.sessions.filter((s) => nowS() - Date.parse(s.lastSeenAt) / 1000 <= IDLE_S);
+        reg.sessions = reg.sessions.filter((s) => nowS() - Date.parse(s.lastSeenAt) / 1000 <= idleS);
         reg.sessions.push({ sid, createdAt: t, lastSeenAt: t, ip: ip || '', ua: String(ua || '').slice(0, 160) });
         reg.sessions.sort((a, b) => Date.parse(b.lastSeenAt) - Date.parse(a.lastSeenAt));
         reg.sessions = reg.sessions.slice(0, MAX_SESSIONS);
@@ -186,13 +198,13 @@ export function createAuth({ dataDir, secrets, clock = { now: () => Date.now() }
       const p = unsign(value, secrets);
       if (!p || typeof p.sid !== 'string' || !Number.isInteger(p.iat) || !Number.isInteger(p.lat) || !Number.isInteger(p.ep)) return null;
       const now = nowS();
-      if (now - p.lat > IDLE_S || now - p.iat > ABSOLUTE_S || p.lat > now + 60 || p.iat > now + 60) return null;
+      if (now - p.lat > idleS || now - p.iat > ABSOLUTE_S || p.lat > now + 60 || p.iat > now + 60) return null;
       const auth = await readAuth();
       if (!auth || p.ep !== auth.epoch) return null;
       const reg = await readSessions();
       if (!reg.sessions.some((s) => s.sid === p.sid)) return null;
       const out = { sid: p.sid, iat: p.iat, lat: p.lat, auth };
-      if (now - p.lat > SLIDE_S) {
+      if (now - p.lat > slideS) {
         const updated = await lock(async () => {
           const r2 = await readSessions();
           const a2 = await readAuth();
@@ -234,13 +246,13 @@ export function createAuth({ dataDir, secrets, clock = { now: () => Date.now() }
       return lock(async () => {
         const r = await readSessions();
         const before = r.sessions.length;
-        r.sessions = r.sessions.filter((s) => nowS() - Date.parse(s.lastSeenAt) / 1000 <= IDLE_S && nowS() - Date.parse(s.createdAt) / 1000 <= ABSOLUTE_S);
+        r.sessions = r.sessions.filter((s) => nowS() - Date.parse(s.lastSeenAt) / 1000 <= idleS && nowS() - Date.parse(s.createdAt) / 1000 <= ABSOLUTE_S);
         if (r.sessions.length !== before) await writeSessions(r);
       });
     },
 
     expiry(sess) {
-      return { idleExpiresAt: new Date((sess.lat + IDLE_S) * 1000).toISOString(), absoluteExpiresAt: new Date((sess.iat + ABSOLUTE_S) * 1000).toISOString() };
+      return { idleExpiresAt: new Date((sess.lat + idleS) * 1000).toISOString(), absoluteExpiresAt: new Date((sess.iat + ABSOLUTE_S) * 1000).toISOString() };
     },
   };
   return api;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { hashPassword, verifyPassword, sign, unsign, parseHash, SCRYPT } from '../server/lib/auth.mjs';
+import { hashPassword, verifyPassword, sign, unsign, parseHash, SCRYPT, IDLE_S, idleWindowS, createAuth } from '../server/lib/auth.mjs';
 import { setup, makeClock, req, login, B64_32 } from './_helpers.mjs';
 
 test('hash/verify round trip; wrong password fails', async () => {
@@ -122,4 +122,28 @@ test('auth.json is not re-created from ADMIN_INITIAL_PASSWORD once publish-state
     encoding: 'utf8', timeout: 10_000,
   });
   assert.equal(existsSync(ctx.deps.auth.files.auth), false, r.stdout + r.stderr);
+});
+
+test('SESSION_IDLE_S (test-only) shortens the idle window in development and is ignored when NODE_ENV=production', async () => {
+  assert.equal(idleWindowS({ NODE_ENV: 'production', SESSION_IDLE_S: '5' }), IDLE_S);
+  assert.equal(idleWindowS({ NODE_ENV: 'development', SESSION_IDLE_S: '5' }), 5);
+  assert.equal(idleWindowS({ SESSION_IDLE_S: 'soon' }), IDLE_S);
+  assert.equal(idleWindowS({}), IDLE_S);
+  // the default reads the process environment: a production process ignores a stray variable
+  const saved = { NODE_ENV: process.env.NODE_ENV, SESSION_IDLE_S: process.env.SESSION_IDLE_S };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'production', SESSION_IDLE_S: '5' });
+    assert.equal(idleWindowS(), IDLE_S);
+  } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+  // end to end on the session files: 2 minutes of idleness with SESSION_IDLE_S=60
+  for (const [NODE_ENV, alive] of [['production', true], ['development', false]]) {
+    const clock = makeClock();
+    const ctx = await setup({ clock });
+    const auth = createAuth({ dataDir: ctx.cfg.dataDir, secrets: ctx.cfg.sessionSecrets, clock, env: { NODE_ENV, SESSION_IDLE_S: '60' } });
+    const s = await auth.createSession({ ip: '203.0.113.9', ua: 'test' });
+    clock.advance(120_000);
+    assert.equal(!!(await auth.verifySession(s.value)), alive, NODE_ENV);
+  }
 });

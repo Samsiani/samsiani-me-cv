@@ -6,6 +6,7 @@ export default {
   id: 'ledger',
   label: 'C · Ledger',
   description: 'Pure white, IBM Plex, numbered index column, skills as a table.',
+  thumbnail: 'admin-thumbs/ledger.svg',
   // concatenated in this order (joined with "\n") into dist/styles.<hash>.css, then the palette block
   css: ['fonts.css', 'styles.css'],
   // woff2 basenames under src/fonts/; the build copies only these

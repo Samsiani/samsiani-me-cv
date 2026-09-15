@@ -3,6 +3,7 @@ export default {
   id: 'precision',
   label: 'A · Precision',
   description: 'The current design: identity rail on the left, content on the right, skills as a ledger table.',
+  thumbnail: 'admin-thumbs/precision.svg',
   // concatenated in this order (joined with "\n") into dist/styles.<hash>.css, then the palette block
   css: ['fonts.css', 'styles.css'],
   // woff2 basenames under src/fonts/ that this layout uses; the build copies only these
