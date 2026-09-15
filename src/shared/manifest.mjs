@@ -1,7 +1,7 @@
-// site.webmanifest (moved from build.mjs). Colours come from the layout + palette manifests.
+// site.<hash>.webmanifest. Icons come from the (hashed) brand assets, colours from layout + palette.
 import { displayName } from './localize.mjs';
 
-export function webmanifest(site, layout, palette) {
+export function webmanifest(site, layout, palette, assets) {
   return JSON.stringify(
     {
       name: `${displayName(site.person, 'en')} — ${site.hero.role.en}`,
@@ -11,8 +11,8 @@ export function webmanifest(site, layout, palette) {
       background_color: layout.manifestBackground,
       theme_color: palette.manifestTheme,
       icons: [
-        { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: assets.icons.i192, sizes: '192x192', type: 'image/png' },
+        { src: assets.icons.i512, sizes: '512x512', type: 'image/png' },
       ],
     },
     null,

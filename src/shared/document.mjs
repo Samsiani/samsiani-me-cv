@@ -15,8 +15,7 @@ export function renderHead(c, ctx) {
 <meta name="description" content="${esc(c.meta.description)}">
 <meta name="author" content="${esc(ctx.authorName)}">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="${layout.themeColor.light}" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="${layout.themeColor.dark}" media="(prefers-color-scheme: dark)">
+${themeColorMeta(layout, ctx.defaultTheme)}
 <link rel="canonical" href="${url}">
 <link rel="alternate" hreflang="${c.lang}" href="${url}">
 <link rel="alternate" hreflang="${alt.lang}" href="${altUrl}">
@@ -39,19 +38,28 @@ export function renderHead(c, ctx) {
 <meta name="twitter:title" content="${esc(c.meta.title)}">
 <meta name="twitter:description" content="${esc(c.meta.description)}">
 <meta name="twitter:image" content="${ogImage}">
-<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
-<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-${layout.preload[c.lang].map((f) => `<link rel="preload" href="/fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')}
-<link rel="stylesheet" href="${assets.cssHref}">
+<link rel="icon" href="${assets.icons.i32}" type="image/png" sizes="32x32">
+<link rel="icon" href="${assets.icons.i192}" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="${assets.icons.i180}">
+<link rel="manifest" href="${assets.manifestHref}">
+${layout.preload[c.lang].map((f) => `<link rel="preload" href="${assets.base}fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')}
+${layout.headExtra ? layout.headExtra(c, ctx) : ''}<link rel="stylesheet" href="${assets.cssHref}">
 ${themeInitScript(ctx.defaultTheme)}
 <script type="application/ld+json">${jsonForScript(personJsonLd(c, ctx))}</script>`;
 }
 
+// One meta pair following the OS for "system"; one fixed meta when the effective theme is explicit,
+// so a first-time visitor on a light-OS phone gets a browser bar that matches a dark-first page.
+function themeColorMeta(layout, theme) {
+  if (theme === 'light' || theme === 'dark') return `<meta name="theme-color" content="${layout.themeColor[theme]}">`;
+  return `<meta name="theme-color" content="${layout.themeColor.light}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="${layout.themeColor.dark}" media="(prefers-color-scheme: dark)">`;
+}
+
 export function renderDocument(c, ctx, body) {
+  const theme = ctx.defaultTheme === 'light' || ctx.defaultTheme === 'dark' ? ` data-theme="${ctx.defaultTheme}"` : '';
   return `<!doctype html>
-<html lang="${c.lang}" dir="${c.dir}">
+<html lang="${c.lang}" dir="${c.dir}" data-layout="${esc(ctx.layout.id)}" data-palette="${esc(ctx.paletteId)}"${theme}>
 <head>
 ${renderHead(c, ctx)}
 </head>

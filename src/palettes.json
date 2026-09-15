@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "_doc": "Colour palettes for samsiani.me. Orthogonal to layouts: a palette owns ONLY the six accent tokens below; layouts own every neutral. Contract, usage rules and runtime wiring: docs/plans/palettes.md. Gate: node docs/plans/check-palettes.mjs (must exit 0).",
+  "tokens": [
+    "--accent",
+    "--on-accent",
+    "--accent-ink",
+    "--accent-soft",
+    "--accent-line",
+    "--focus"
+  ],
+  "default": "cobalt",
+  "thresholds": {
+    "text": 4.5,
+    "ui": 3.0,
+    "line": 1.8
+  },
+  "hoverBrightness": 1.08,
+  "layouts": {
+    "precision": {
+      "_source": "live src/styles.css: bg = --bg, surface = --hover-bg, ink = --ink",
+      "light": {
+        "bg": "oklch(98.5% 0.003 258)",
+        "surface": "oklch(94.5% 0.005 258)",
+        "ink": "oklch(20% 0.012 258)"
+      },
+      "dark": {
+        "bg": "oklch(18.5% 0.012 258)",
+        "surface": "oklch(24% 0.012 258)",
+        "ink": "oklch(96% 0.004 250)"
+      }
+    },
+    "studio": {
+      "_source": "layout-studio.md §0.3(c)",
+      "light": {
+        "bg": "oklch(97.5% 0.003 258)",
+        "surface": "oklch(94% 0.005 258)",
+        "ink": "oklch(19% 0.012 258)"
+      },
+      "dark": {
+        "bg": "oklch(19% 0.012 258)",
+        "surface": "oklch(23.5% 0.012 258)",
+        "ink": "oklch(96% 0.004 250)"
+      }
+    },
+    "ledger": {
+      "_source": "layout-ledger.md §1.2",
+      "light": {
+        "bg": "#fff",
+        "surface": "oklch(96.5% 0.003 250)",
+        "ink": "oklch(17% 0.008 250)"
+      },
+      "dark": {
+        "bg": "oklch(17% 0.008 250)",
+        "surface": "oklch(21.5% 0.008 250)",
+        "ink": "oklch(96% 0.003 250)"
+      }
+    }
+  },
+  "envelope": {
+    "_doc": "Worst-case neutral any layout may use under accent text. Light themes: every surface carrying accent text stays at L >= 93%. Dark themes: L <= 27%. Chroma <= 0.012. Palettes are checked against this too, so layout plans can move their neutrals inside the envelope without re-tuning palettes.",
+    "light": {
+      "bg": "oklch(93% 0.012 258)",
+      "surface": "oklch(93% 0.012 258)",
+      "ink": "oklch(20% 0.012 258)"
+    },
+    "dark": {
+      "bg": "oklch(27% 0.012 258)",
+      "surface": "oklch(27% 0.012 258)",
+      "ink": "oklch(95% 0.004 250)"
+    }
+  },
+  "palettes": [
+    {
+      "id": "cobalt",
+      "label": {
+        "en": "Cobalt",
+        "ka": "კობალტი"
+      },
+      "_note": "The live accent, unchanged. accent-ink and focus equal accent, so Precision + cobalt renders exactly as today.",
+      "light": {
+        "--accent": "oklch(47% 0.18 255)",
+        "--on-accent": "#fff",
+        "--accent-ink": "oklch(47% 0.18 255)",
+        "--accent-soft": "oklch(47% 0.15 255 / 0.09)",
+        "--accent-line": "oklch(72% 0.1 255)",
+        "--focus": "oklch(47% 0.18 255)"
+      },
+      "dark": {
+        "--accent": "oklch(80% 0.15 255)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(80% 0.15 255)",
+        "--accent-soft": "oklch(80% 0.1 255 / 0.14)",
+        "--accent-line": "oklch(48% 0.12 255)",
+        "--focus": "oklch(80% 0.15 255)"
+      }
+    },
+    {
+      "id": "lime",
+      "label": {
+        "en": "Lime",
+        "ka": "ლაიმი"
+      },
+      "_note": "Studio signature oklch(.86 .20 124). Light colour: fills keep the signature with dark text; text and thin marks use a deep leaf green.",
+      "light": {
+        "--accent": "oklch(86% 0.2 124)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(48% 0.13 132)",
+        "--accent-soft": "oklch(86% 0.2 124 / 0.24)",
+        "--accent-line": "oklch(72% 0.17 128)",
+        "--focus": "oklch(48% 0.13 132)"
+      },
+      "dark": {
+        "--accent": "oklch(86% 0.2 124)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(86% 0.2 124)",
+        "--accent-soft": "oklch(86% 0.2 124 / 0.12)",
+        "--accent-line": "oklch(45% 0.09 124)",
+        "--focus": "oklch(86% 0.2 124)"
+      }
+    },
+    {
+      "id": "emerald",
+      "label": {
+        "en": "Emerald",
+        "ka": "ზურმუხტი"
+      },
+      "light": {
+        "--accent": "oklch(48% 0.1 163)",
+        "--on-accent": "#fff",
+        "--accent-ink": "oklch(48% 0.1 163)",
+        "--accent-soft": "oklch(48% 0.1 163 / 0.06)",
+        "--accent-line": "oklch(72% 0.09 163)",
+        "--focus": "oklch(48% 0.1 163)"
+      },
+      "dark": {
+        "--accent": "oklch(80% 0.13 163)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(80% 0.13 163)",
+        "--accent-soft": "oklch(80% 0.13 163 / 0.14)",
+        "--accent-line": "oklch(48% 0.08 163)",
+        "--focus": "oklch(80% 0.13 163)"
+      }
+    },
+    {
+      "id": "amber",
+      "label": {
+        "en": "Amber",
+        "ka": "ქარვა"
+      },
+      "_note": "Light colour: bright amber fills with dark text; text and thin marks use a deep amber. Fill = canonical amber #ffbf00 (hue 84); ink hue 76. Kept clear of the rejected terracotta (hue 35-55).",
+      "light": {
+        "--accent": "oklch(84% 0.17 84)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(49% 0.1 76)",
+        "--accent-soft": "oklch(84% 0.17 84 / 0.22)",
+        "--accent-line": "oklch(72% 0.14 80)",
+        "--focus": "oklch(49% 0.1 76)"
+      },
+      "dark": {
+        "--accent": "oklch(84% 0.17 84)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(84% 0.17 84)",
+        "--accent-soft": "oklch(84% 0.17 84 / 0.12)",
+        "--accent-line": "oklch(48% 0.09 80)",
+        "--focus": "oklch(84% 0.17 84)"
+      }
+    },
+    {
+      "id": "crimson",
+      "label": {
+        "en": "Crimson",
+        "ka": "ჟოლოსფერი"
+      },
+      "_note": "Hue 20 (crimson #dc143c is oklch(57% .22 20)), chroma >= .17, far from the rejected terracotta (hue 33-38, chroma ~.14). Dark theme is the one exception to light-fill-dark-text: a light red fill reads as salmon, so dark fills stay mid-crimson with white text while text on the page uses a lighter rose.",
+      "light": {
+        "--accent": "oklch(51% 0.19 20)",
+        "--on-accent": "#fff",
+        "--accent-ink": "oklch(51% 0.19 20)",
+        "--accent-soft": "oklch(51% 0.19 20 / 0.07)",
+        "--accent-line": "oklch(72% 0.11 20)",
+        "--focus": "oklch(51% 0.19 20)"
+      },
+      "dark": {
+        "--accent": "oklch(55% 0.2 20)",
+        "--on-accent": "#fff",
+        "--accent-ink": "oklch(70% 0.17 16)",
+        "--accent-soft": "oklch(70% 0.17 16 / 0.1)",
+        "--accent-line": "oklch(48% 0.12 18)",
+        "--focus": "oklch(70% 0.17 16)"
+      }
+    },
+    {
+      "id": "graphite",
+      "label": {
+        "en": "Graphite",
+        "ka": "გრაფიტი"
+      },
+      "_note": "Near-monochrome: a faint steel-blue slate. Links stay identifiable by their underline, never by colour alone.",
+      "light": {
+        "--accent": "oklch(34% 0.03 258)",
+        "--on-accent": "#fff",
+        "--accent-ink": "oklch(34% 0.03 258)",
+        "--accent-soft": "oklch(34% 0.03 258 / 0.07)",
+        "--accent-line": "oklch(66% 0.02 258)",
+        "--focus": "oklch(34% 0.03 258)"
+      },
+      "dark": {
+        "--accent": "oklch(90% 0.012 258)",
+        "--on-accent": "oklch(18.5% 0.012 258)",
+        "--accent-ink": "oklch(90% 0.012 258)",
+        "--accent-soft": "oklch(90% 0.012 258 / 0.09)",
+        "--accent-line": "oklch(50% 0.015 258)",
+        "--focus": "oklch(90% 0.012 258)"
+      }
+    }
+  ]
+}
