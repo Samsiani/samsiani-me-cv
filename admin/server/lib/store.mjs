@@ -235,6 +235,38 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
       }, { op: 'commitPublished' });
     },
 
+    /** Re-render or rollback commit: site.json (no new publish revision) + publish-state current/history, pending cleared. */
+    async commitSite({ rev, site, buildId, publishedAt = iso() }) {
+      return lock('write', async () => {
+        const canonical = canonicalize(site);
+        const etag = sha256(canonical);
+        await writeJsonAtomic(F.site, envelope({ kind: 'published', rev, etag, publishedAt, buildId }, site));
+        const prev = (await readState()) || { history: [] };
+        const state = { current: buildId, history: [buildId, ...(prev.history || []).filter((b) => b !== buildId)].slice(0, 10), publishedRev: rev, publishedEtag: etag, publishedAt, pending: null };
+        await writeJsonAtomic(F.state, state);
+        return { etag, state };
+      }, { op: 'commitSite' });
+    },
+
+    /**
+     * After a publish that changed settings.updated: if the draft is still the one published, it becomes the
+     * published document; if an autosave landed meanwhile, only settings.updated is copied onto it.
+     */
+    async adoptPublishedDate({ ifMatch, site }) {
+      return lock('write', async () => {
+        const cur = await draftUnlocked();
+        const updated = site.settings.updated;
+        if (cur.etag === ifMatch) {
+          if (sha256(canonicalize(site)) === cur.etag) return cur;
+          return writeDraftUnlocked(cur, site, validate(site, vopts()));
+        }
+        if (cur.site?.settings?.updated === updated) return cur;
+        const s = structuredClone(cur.site);
+        s.settings.updated = updated;
+        return writeDraftUnlocked(cur, s, validate(s, vopts()));
+      }, { op: 'adoptPublishedDate' });
+    },
+
     async writePublishState(mutator) {
       return lock('write', async () => {
         const cur = (await readState()) || { current: null, history: [], publishedRev: null, publishedEtag: null, publishedAt: null, pending: null };

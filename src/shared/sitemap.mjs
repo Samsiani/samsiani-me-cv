@@ -21,4 +21,4 @@ ${alts}
 `;
 }
 
-export const robotsTxt = (site) => `User-agent: *\nAllow: /\n\nSitemap: ${site.settings.siteUrl}/sitemap.xml\n`;
+export const robotsTxt = (site) => `User-agent: *\nAllow: /\nDisallow: /admin/\n\nSitemap: ${site.settings.siteUrl}/sitemap.xml\n`;

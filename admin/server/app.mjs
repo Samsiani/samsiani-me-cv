@@ -14,6 +14,7 @@ import { accountRoutes } from './routes/account.mjs';
 import { registryRoute } from './routes/registry.mjs';
 import { draftRoutes } from './routes/draft.mjs';
 import { ioRoutes } from './routes/io.mjs';
+import { publishRoutes, previewFiles } from './routes/publish.mjs';
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -85,7 +86,9 @@ export function createApp(cfg, deps) {
   app.route('/admin/api', draftRoutes(cfg, deps));
   app.route('/admin/api', ioRoutes(cfg, deps));
   app.route('/admin/api/account', accountRoutes(cfg, deps));
-  if (deps.extraRoutes) deps.extraRoutes(app); // preview, publish, builds (M6)
+  app.route('/admin/api', publishRoutes(cfg, deps));
+  app.get('/admin/preview/:token/*', previewFiles(deps));
+  app.get('/admin/preview/:token', (c) => c.redirect(`/admin/preview/${c.req.param('token')}/`, 302));
 
   // SPA
   app.use('/admin/assets/*', serveStatic({ root: cfg.webDist, rewriteRequestPath: (p) => p.replace(/^\/admin/, '') }));

@@ -39,7 +39,7 @@ function neutraliseHrefs(site) {
 function rebase(html, base) {
   if (base === '/') return html;
   return html.replace(/(\s(?:href|src)=")\/(?!\/)([^"]*)"/g, (m, attr, rest) =>
-    rest === '' || rest === 'ka/' ? m : `${attr}${base}${rest}"`);
+    rest === '' || rest === 'ka/' || ('/' + rest).startsWith(base) ? m : `${attr}${base}${rest}"`);
 }
 
 /**

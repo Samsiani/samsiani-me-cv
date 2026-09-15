@@ -67,8 +67,40 @@ async function readSecret(prompt) {
   return s;
 }
 
+const WRITING = new Set(['publish', 'rollback', 'restore-build', 'set-password', 'import', 'restore-backup', 'migrate']);
+if (WRITING.has(cmd) && existsSync(join(cfg.dataDir, 'publish-state.json'))) {
+  const r = await deps.publisher.reconcile();
+  if (r.action !== 'none') console.log(`reconcile: ${r.action} ${r.buildId}`);
+}
+
 try {
   switch (cmd) {
+    case 'publish': {
+      const source = flag('source') === 'published' ? 'published' : 'draft';
+      const reason = typeof flag('reason') === 'string' ? flag('reason') : 'cli';
+      const opts = { source, reason, ifChanged: !!flag('if-changed'), acknowledgeWarnings: true, lockTimeoutMs: 120_000 };
+      if (source === 'draft') opts.ifMatch = (await store.getDraft()).etag;
+      const out = await deps.publisher.publish(opts);
+      console.log(out.unchanged ? 'publish: web root already matches; nothing changed' : `published r${out.publishedRev} as ${out.buildId}: ${out.changedFiles} file(s) changed in ${out.durationMs} ms`);
+      break;
+    }
+    case 'rollback': {
+      const out = await deps.publisher.rollback({ buildId: typeof flag('to') === 'string' ? flag('to') : undefined, lockTimeoutMs: 120_000 });
+      console.log(`rolled back to ${out.current} (r${out.rev})`);
+      break;
+    }
+    case 'builds': {
+      for (const b of await deps.publisher.listBuilds()) console.log(`${b.current ? '*' : ' '} ${b.buildId}  r${b.rev}  ${b.layout}/${b.palette}  ${b.files} files  ${b.bytes} B`);
+      break;
+    }
+    case 'restore-build': {
+      const id = flag('from');
+      if (typeof id !== 'string' || !BUILD_ID_RE.test(id)) die('restore-build needs --from=<buildId>');
+      const site = JSON.parse(await readFile(join(cfg.buildsDir, id, '.site.json'), 'utf8'));
+      const out = await store.importDraft(site, { actor: 'cli' });
+      console.log(`draft replaced with the content of ${id} (r${out.rev}); publish to put it live`);
+      break;
+    }
     case 'init': {
       if (existsSync(join(cfg.dataDir, 'site.json')) && existsSync(join(cfg.dataDir, 'draft.json'))) {
         console.log(`data already initialised in ${cfg.dataDir}; nothing changed`);
@@ -113,6 +145,10 @@ try {
         const [a, b] = await Promise.all([stat(cfg.buildsDir), stat(cfg.webRoot)]);
         if (a.dev !== b.dev) problems.push('builds and the web root are on different filesystems (the hard-link swap needs one)');
       }
+      if (flag('web-root')) {
+        const w = await deps.publisher.verifyWebRoot();
+        if (w.differ.length) problems.push(`web root differs from ${w.current} in ${w.differ.length} file(s): ${w.differ.slice(0, 8).join(', ')}`);
+      }
       if (problems.length) die(`verify: ${problems.join('; ')}`);
       console.log('verify: ok');
       break;
@@ -156,7 +192,7 @@ try {
       break;
     }
     default:
-      die('usage: cli.mjs <init|migrate [--dry-run]|verify|set-password [--username=]|backup [--name=]|restore-backup (--date=|--file=) --part=|export [--source=]|import --file=>', 2);
+      die('usage: cli.mjs <init|migrate [--dry-run]|verify [--web-root]|set-password [--username=]|backup [--name=]|restore-backup (--date=|--file=) --part=|export [--source=]|import --file=|publish [--source=draft|published] [--reason=] [--if-changed]|rollback [--to=]|builds|restore-build --from=>', 2);
   }
 } catch (e) {
   if (e instanceof AppError) die(`${cmd}: ${e.message}${e.details?.errors ? ' ' + JSON.stringify(e.details.errors.slice(0, 5)) : ''}`);

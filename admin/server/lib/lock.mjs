@@ -1,7 +1,8 @@
 // Serialising writes (admin-ops.md §3.6): an in-process mutex AND a cross-process lockfile,
 // because the service and the CLI can both write. Lock order is always publish -> write.
-import { open, readFile, unlink, mkdir } from 'node:fs/promises';
+import { writeFile, readFile, unlink, mkdir, link, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
 
 export class LockTimeoutError extends Error {
   constructor(name, holder) { super(`lock "${name}" is held${holder ? ` by pid ${holder.pid} (${holder.op})` : ''}`); this.name = 'LockTimeoutError'; this.lock = name; this.holder = holder; }
@@ -39,28 +40,44 @@ const alive = (pid) => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Create the lockfile atomically WITH its content: write a private temp file, then link(2) it to the lock
+ * name. link fails with EEXIST when the lock exists, and a visible lockfile is never half-written, so
+ * another process can never mistake a lock being created for an empty, stale one.
+ */
+async function tryCreate(lockDir, file, content) {
+  const tmp = join(lockDir, `.${file.split('/').pop()}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`);
+  await writeFile(tmp, content, { mode: 0o600 });
+  try { await link(tmp, file); return true; }
+  catch (e) { if (e.code === 'EEXIST') return false; throw e; }
+  finally { await unlink(tmp).catch(() => {}); }
+}
+
 /** Cross-process lockfile data/locks/<name>.lock; stale when the holder is dead or older than staleMs. */
 export async function withFileLock(lockDir, name, fn, { timeoutMs = LOCKS[name]?.timeoutMs ?? 5000, staleMs = LOCKS[name]?.staleMs ?? 30_000, op = '' } = {}) {
   await mkdir(lockDir, { recursive: true, mode: 0o700 });
   const file = join(lockDir, `${name}.lock`);
   const start = Date.now();
   for (;;) {
-    let fh;
-    try {
-      fh = await open(file, 'wx', 0o600);
-      await fh.writeFile(JSON.stringify({ pid: process.pid, since: new Date().toISOString(), op }));
-      await fh.close();
-      break;
-    } catch (e) {
-      await fh?.close().catch(() => {});
-      if (e.code !== 'EEXIST') throw e;
-      let holder = null;
-      try { holder = JSON.parse(await readFile(file, 'utf8')); } catch {}
-      const stale = !holder || Date.now() - Date.parse(holder.since) > staleMs || !alive(holder.pid);
-      if (stale) { await unlink(file).catch(() => {}); continue; }
-      if (Date.now() - start >= timeoutMs) throw new LockTimeoutError(name, holder);
-      await sleep(100);
+    const content = JSON.stringify({ pid: process.pid, since: new Date().toISOString(), op });
+    if (await tryCreate(lockDir, file, content)) break;
+    let raw = null, holder = null;
+    try { raw = await readFile(file, 'utf8'); holder = JSON.parse(raw); } catch {}
+    let stale;
+    if (holder && typeof holder.pid === 'number') stale = Date.now() - Date.parse(holder.since) > staleMs || !alive(holder.pid);
+    else if (raw === null) stale = false; // vanished between link and read: just retry
+    else { // unreadable content (written by an older version): stale only once it is old
+      try { stale = Date.now() - (await stat(file)).mtimeMs > staleMs; } catch { stale = false; }
     }
+    if (stale) {
+      // take over only if the file still holds the stale content we judged (narrows the takeover race)
+      let again = null;
+      try { again = await readFile(file, 'utf8'); } catch {}
+      if (again === raw) await unlink(file).catch(() => {});
+      continue;
+    }
+    if (Date.now() - start >= timeoutMs) throw new LockTimeoutError(name, holder);
+    await sleep(25 + Math.floor(Math.random() * 50));
   }
   try { return await fn(); } finally { await unlink(file).catch(() => {}); }
 }

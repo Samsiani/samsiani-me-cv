@@ -138,3 +138,45 @@ test('export envelope and 413 above the import limit', async () => {
   const big = JSON.stringify({ site: seed(), pad: 'x'.repeat(330 * 1024) });
   assert.equal((await req(ctx, 'POST', '/admin/api/import', { cookie, body: big })).status, 413);
 });
+
+test('publish: 409 without acknowledging warnings, 400 with errors, 200 then 0 changed files', async () => {
+  const ctx = await setup();
+  const { cookie } = await login(ctx);
+  let g = await (await req(ctx, 'GET', '/admin/api/draft', { cookie })).json();
+  const s = structuredClone(g.site);
+  s.meta.title.en = 'Giorgi Samsiani — Full-Stack Web Developer · WordPress, WooCommerce, Next.js, Laravel';
+  let put = await (await req(ctx, 'PUT', '/admin/api/draft', { cookie, body: { site: s }, headers: { 'If-Match': `"${g.etag}"` } })).json();
+  assert.ok(put.validation.warnings.some((w) => w.code === 'LONG'));
+  const noAck = await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: false }, headers: { 'If-Match': `"${put.etag}"` } });
+  assert.equal(noAck.status, 409);
+  const e = structuredClone(s); e.hero.tagline.ka = '';
+  put = await (await req(ctx, 'PUT', '/admin/api/draft', { cookie, body: { site: e }, headers: { 'If-Match': `"${put.etag}"` } })).json();
+  const withErr = await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: true }, headers: { 'If-Match': `"${put.etag}"` } });
+  assert.equal(withErr.status, 400);
+  assert.equal((await withErr.json()).error, 'invalid');
+  put = await (await req(ctx, 'PUT', '/admin/api/draft', { cookie, body: { site: s }, headers: { 'If-Match': `"${put.etag}"` } })).json();
+  const ok = await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: true }, headers: { 'If-Match': `"${put.etag}"` } });
+  assert.equal(ok.status, 200);
+  const j = await ok.json();
+  assert.ok(j.changedFiles > 0);
+  assert.match(j.buildId, /^\d{8}T\d{6}Z-r\d+$/);
+  g = await (await req(ctx, 'GET', '/admin/api/draft', { cookie })).json();
+  const again = await (await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: true }, headers: { 'If-Match': `"${g.etag}"` } })).json();
+  assert.equal(again.changedFiles, 0);
+  const builds = await (await req(ctx, 'GET', '/admin/api/builds', { cookie })).json();
+  assert.equal(builds.items.filter((b) => b.current).length, 1);
+});
+
+test('publish with a stale If-Match is 412; rollback via the API', async () => {
+  const ctx = await setup();
+  const { cookie } = await login(ctx);
+  let g = await (await req(ctx, 'GET', '/admin/api/draft', { cookie })).json();
+  assert.equal((await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: true }, headers: { 'If-Match': '"stale"' } })).status, 412);
+  await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: true }, headers: { 'If-Match': `"${g.etag}"` } });
+  const s = structuredClone(g.site); s.settings.palette = 'lime';
+  const put = await (await req(ctx, 'PUT', '/admin/api/draft', { cookie, body: { site: s }, headers: { 'If-Match': `"${g.etag}"` } })).json();
+  await req(ctx, 'POST', '/admin/api/publish', { cookie, body: { acknowledgeWarnings: true }, headers: { 'If-Match': `"${put.etag}"` } });
+  const rb = await req(ctx, 'POST', '/admin/api/builds/rollback', { cookie, body: {} });
+  assert.equal(rb.status, 200);
+  assert.equal((await ctx.deps.store.getPublished()).site.settings.palette, 'cobalt');
+});

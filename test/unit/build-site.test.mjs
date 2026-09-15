@@ -22,6 +22,8 @@ test('a preview base prefixes every root-relative href/src except the language l
     const refs = [...html.matchAll(/\s(?:href|src)="(\/[^"]*)"/g)].map((m) => m[1]);
     const bad = refs.filter((r) => r !== '/' && r !== '/ka/' && !r.startsWith(base));
     assert.deepEqual(bad, [], `${page}: ${bad.join(', ')}`);
+    const doubled = refs.filter((r) => r.indexOf(base, 1) > 0);
+    assert.deepEqual(doubled, [], `${page}: base applied twice: ${doubled.join(', ')}`);
   }
 });
 
@@ -59,4 +61,9 @@ test('preview mode tolerates content errors and neutralises bad links', async ()
   const html = String(files.get('index.html').body);
   assert.ok(!html.includes('javascript:'));
   assert.ok(html.includes('#invalid-link'));
+});
+
+test('robots.txt disallows the admin', async () => {
+  const files = await build(seed());
+  assert.match(String(files.get('robots.txt').body), /Disallow: \/admin\//);
 });
