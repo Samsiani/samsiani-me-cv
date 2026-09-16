@@ -15,6 +15,8 @@ export const registry = shallowReactive({
   schema: null, // buildSchema() as JSON (patterns do not survive JSON; the validator keeps them)
   layoutIds: [],
   paletteIds: [],
+  fontRoles: {}, // <layoutId>: { text: { label, help, defaultFamily, weights }, label, georgian }
+  fontLimits: null, // { file, family, faces, store, displayName, formats }
 });
 
 const limitByPath = new Map();
@@ -31,6 +33,8 @@ export function loadRegistry() {
       paletteChecks: markRaw(r.paletteChecks),
       limits: markRaw(r.limits),
       schema: markRaw(r.schema),
+      fontRoles: markRaw(r.fontRoles || {}),
+      fontLimits: markRaw(r.fontLimits || null),
       layoutIds: r.layouts.map((l) => l.id),
       paletteIds: r.palettes.palettes.map((p) => p.id),
       loaded: true,

@@ -1,8 +1,9 @@
-// Admin end-to-end flows E1–E11 (docs/plans/admin-layouts-palettes.md, M8 acceptance), node:test + Playwright.
+// Admin end-to-end flows E1–E17 (docs/plans/admin-layouts-palettes.md M8, content-editing.md, fonts.md §7.5),
+// node:test + Playwright.
 // Run: npm run test:e2e   (E2E_SHOTS=<dir> also writes review screenshots)
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { buildSpa, createHarness, waitFor, sleep, INITIAL_PASSWORD, PASSWORD, USERNAME, ROOT } from './_harness.mjs';
 import { overflowProbe, contrastProbe, focusProbe } from '../../scripts/lib/dom-checks.mjs';
@@ -74,14 +75,22 @@ test('review screenshots (E2E_SHOTS=<dir>)', { ...T, skip: !process.env.E2E_SHOT
     ['dashboard-1440-dark', 1440, 'dark', '/'],
     ['content-skills-1440-light', 1440, 'light', '/content/skills'],
     ['dashboard-390-light', 390, 'light', '/'],
+    ['font-dialog-google-1440-light', 1440, 'light', '/', 'fonts'],
+    ['font-dialog-google-1440-dark', 1440, 'dark', '/', 'fonts'],
+    ['font-dialog-google-390-light', 390, 'light', '/', 'fonts'],
   ];
-  for (const [name, width, colorScheme, route] of shots) {
+  for (const [name, width, colorScheme, route, open] of shots) {
     const x = await h.open({ width, height: 900, colorScheme });
     try {
       await h.login(x.page);
       await go(x.page, route);
       await x.page.locator('main h1').first().waitFor();
       if (route === '/') await h.inPreview(x.page, () => document.readyState === 'complete');
+      if (open === 'fonts') {
+        await x.page.getByRole('button', { name: 'Change the text font of A · Precision' }).click();
+        await x.page.locator('#font-search').waitFor({ timeout: 15_000 });
+        await waitFor(async () => (await x.page.locator('.fp-row').count()) > 0, { message: 'the catalogue rows' });
+      }
       await x.page.waitForLoadState('networkidle').catch(() => {});
       // a viewport as tall as the page (a full-page capture leaves the sandboxed frame unpainted)
       const height = await x.page.evaluate(() => document.documentElement.scrollHeight);
@@ -455,6 +464,21 @@ test('E10: dom-checks on every screen at 1280 and 390 px, light and dark', { tim
           summary.push(`${at} publish dialog: ${d.stops} tab stops`);
           await x.page.getByRole('button', { name: 'Cancel', exact: true }).click();
         }
+        // the font chooser, one audit per tab (fonts plan §7.5)
+        await x.page.goto('about:blank');
+        await x.page.goto(`${h.origin}/admin/#/`);
+        await x.page.locator('main h1', { hasText: 'Dashboard' }).waitFor();
+        await x.page.getByRole('button', { name: /^Change the text font/ }).click();
+        await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+        for (const name of ['Google Fonts', 'Upload a file', 'Already added']) {
+          await x.page.getByRole('tab', { name }).click();
+          await x.page.waitForLoadState('networkidle').catch(() => {});
+          await sleep(150);
+          const f = await auditScreen(x.page, cdp, `${at} font dialog (${name})`);
+          fails.push(...f.fails);
+          summary.push(`${at} font dialog (${name}): ${f.stops} tab stops`);
+        }
+        await x.page.getByRole('button', { name: 'Close', exact: true }).click();
       } finally {
         await x.context.close();
       }
@@ -651,5 +675,136 @@ test('E14: the facts strip goes to zero and one Undo brings a fact back', T, asy
     await h.waitSaved(x.page);
   } finally {
     await x.context.close();
+  }
+});
+
+// ------------------------------------------------------------------ fonts (fonts plan §7.5)
+// The harness runs the server with GOOGLE_FONTS_FIXTURE, so the picker reads the catalogue and the font
+// files from test/fixtures/google-fonts/ and nothing in this suite reaches the network.
+const facesOf = (family) => [...document.fonts].filter((f) => f.family === family).map((f) => f.status);
+
+test('E15: choose a Google family for Precision text; the preview draws it and Reset puts the layout face back', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.getByRole('button', { name: 'Change the text font of A · Precision' }).click();
+    await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+    assert.match((await x.page.locator('#font-dlg-title').innerText()).trim(), /^Choose the text font for A · Precision$/);
+    await x.page.locator('#font-search').fill('Chivo');
+    const row = x.page.getByRole('button', { name: /^Chivo/ });
+    await waitFor(async () => (await row.count()) === 1, { message: 'the Chivo row' });
+    await row.click();
+    // the specimen is drawn in the fetched face, inside the admin page itself
+    const chosen = x.page.locator('#font-chosen-title');
+    await chosen.waitFor({ timeout: 20_000 });
+    const alias = await waitFor(
+      () => x.page.evaluate(() => document.querySelector('.fp-chosen .fp-spec')?.style.getPropertyValue('--fp-face')),
+      { message: 'the specimen face' },
+    );
+    assert.match(alias, /^"sm-spec-[0-9a-f]{16}"/, 'the specimen uses a generated alias, never the font’s own name');
+    const specAlias = alias.slice(1, alias.indexOf('"', 1));
+    assert.deepEqual(await x.page.evaluate(facesOf, specAlias), ['loaded'], 'the specimen face is loaded in the admin');
+    await x.page.getByRole('button', { name: 'Use this font' }).click();
+    await h.waitSaved(x.page);
+    const id = (await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision.text;
+    assert.match(String(id), /^[0-9a-f]{16}$/, 'the draft names the stored font');
+    // the preview renders with the chosen face on both pages
+    for (const lang of ['EN', 'KA']) {
+      await x.page.getByRole('button', { name: lang, exact: true }).click();
+      await h.inPreview(x.page, async () => {
+        await document.fonts.ready;
+        return [...document.fonts].some((f) => f.family === 'sm-text' && f.status === 'loaded');
+      }, undefined, { timeout: 20_000 });
+    }
+    // the report line and the specimen row follow the choice
+    await waitFor(async () => /^Fonts on \/ka\/: \d+ KB/.test((await x.page.getByTestId('fonts-report').innerText()).trim()), { message: 'the report line' });
+    assert.match(await x.page.locator('.fp-item[data-role="text"] .fp-source').innerText(), /^Google · Chivo$/);
+    // Reset: the role is null again (never removed) and the preview is back on the layout's own face
+    await x.page.getByRole('button', { name: 'Reset the text font of A · Precision' }).click();
+    await h.waitSaved(x.page);
+    const after = (await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision;
+    assert.deepEqual(after, { text: null, label: null, georgian: null }, 'a reset writes null and keeps the keys');
+    await x.page.getByRole('button', { name: 'EN', exact: true }).click();
+    await h.inPreview(x.page, async () => {
+      await document.fonts.ready;
+      return ![...document.fonts].some((f) => f.family === 'sm-text');
+    }, undefined, { timeout: 20_000 });
+    assert.match(await x.page.locator('.fp-item[data-role="text"] .fp-source').innerText(), /^Layout default · Chivo$/);
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E16: upload a TTF for the Georgian role, publish it, then roll back', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    const prevKa = h.webFile('ka/index.html');
+    await x.page.getByRole('button', { name: 'Change the georgian font of A · Precision' }).click();
+    await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+    await x.page.getByRole('tab', { name: 'Upload a file' }).click();
+    await x.page.locator('#font-file').setInputFiles(join(ROOT, 'src/brand/fonts/NotoSansGeorgian-SemiBold.ttf'));
+    // the licence attestation is the only way the upload is accepted (the server refuses it otherwise)
+    const upload = x.page.getByRole('button', { name: 'Upload', exact: true });
+    assert.equal(await upload.getAttribute('aria-disabled'), 'true', 'no upload without the licence checkbox');
+    await x.page.locator('#font-licence').check();
+    await upload.click();
+    await x.page.locator('#font-chosen-title').waitFor({ timeout: 30_000 });
+    assert.match(await x.page.locator('#font-chosen-title').innerText(), /Noto Sans Georgian/);
+    await x.page.getByRole('button', { name: 'Use this font' }).click();
+    await h.waitSaved(x.page);
+    assert.match((await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision.georgian, /^[0-9a-f]{16}$/);
+    // publish: the web root carries the converted WOFF2 and /ka/ preloads it first
+    await x.page.getByTestId('publish').click();
+    assert.match(await x.page.getByTestId('publish-fonts').innerText(), /Noto Sans Georgian/);
+    await publishFromDialog(x.page);
+    // the layout's own faces keep their fixed names; the chosen one is a hashed file beside them
+    const shipped = readdirSync(join(h.dirs.WEB_ROOT, 'fonts')).filter((f) => /^noto-sans-georgian-.*\.[0-9a-f]{8}\.woff2$/.test(f));
+    assert.equal(shipped.length, 1, `one converted face is shipped (${readdirSync(join(h.dirs.WEB_ROOT, 'fonts')).join(', ')})`);
+    const ka = h.webFile('ka/index.html').toString('utf8');
+    const preloads = [...ka.matchAll(/<link rel="preload" href="\/([^"]+)" as="font"/g)].map((m) => m[1]);
+    assert.equal(preloads[0], `fonts/${shipped[0]}`, 'the Georgian face is preloaded first on /ka/');
+    const css = h.webFile(/styles\.[0-9a-f]{8}\.css/.exec(ka)[0]).toString('utf8');
+    assert.match(css, /@font-face \{\n {2}font-family: "sm-georgian";/, 'the generated block names the role alias, not the font');
+    // Revisions and Live builds name the fonts of each entry
+    await x.page.getByRole('link', { name: 'Revisions' }).first().click();
+    await waitFor(async () => (await x.page.locator('[data-testid="builds"] tbody tr').count()) >= 2, { message: 'the builds table' });
+    assert.match(await x.page.locator('[data-testid="builds"] tbody tr').first().locator('.fonts-cell').innerText(), /Noto Sans Georgian/);
+    assert.match(await x.page.locator('[data-testid="revisions"] tbody tr').first().locator('.fonts-cell').innerText(), /Noto Sans Georgian/);
+    // roll back: the previous build's bytes are live again
+    await x.page.locator('[data-testid="builds"] tbody tr').nth(1).getByRole('button', { name: /^Roll back to this build/ }).click();
+    await x.page.getByRole('button', { name: 'Roll back', exact: true }).click();
+    await x.page.getByText(/^Rolled back: the live site is r\d+ again\.$/).waitFor({ timeout: 15_000 });
+    assert.ok(h.webFile('ka/index.html').equals(prevKa), 'ka/index.html has the bytes of the previous build');
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E17: with Google unreachable the picker says so and uploads still work', T, async () => {
+  // a machine that has never reached Google: no cached catalogue, and every request to it fails
+  await h.stop();
+  rmSync(join(h.dirs.DATA_DIR, 'fonts', 'catalogue.json'), { force: true });
+  await h.start({ GOOGLE_FONTS_FIXTURE_OFFLINE: '1' });
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.getByRole('button', { name: 'Change the labels font of A · Precision' }).click();
+    await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+    await x.page.getByText(/Google Fonts is unreachable from the server/).waitFor({ timeout: 15_000 });
+    assert.equal(await x.page.locator('#font-search').count(), 0, 'no search box without a catalogue');
+    // the upload tab is unaffected
+    await x.page.getByRole('tab', { name: 'Upload a file' }).click();
+    await x.page.locator('#font-file').setInputFiles(join(ROOT, 'src/fonts/ibm-plex-mono-latin-400.woff2'));
+    await x.page.locator('#font-licence').check();
+    await x.page.getByRole('button', { name: 'Upload', exact: true }).click();
+    await x.page.locator('#font-chosen-title').waitFor({ timeout: 30_000 });
+    await x.page.getByRole('button', { name: 'Use this font' }).click();
+    await h.waitSaved(x.page);
+    assert.match((await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision.label, /^[0-9a-f]{16}$/);
+  } finally {
+    await x.context.close();
+    await h.stop();
+    await h.start();
   }
 });

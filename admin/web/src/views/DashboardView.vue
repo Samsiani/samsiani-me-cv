@@ -1,6 +1,7 @@
 <script setup>
 // #/ Dashboard (admin-ops.md §6.5): status strip, layout, palette, default theme, last updated, live preview.
 import { computed, ref, watch } from 'vue';
+import FontPicker from '../components/FontPicker.vue';
 import Icon from '../components/Icon.vue';
 import IssueList from '../components/IssueList.vue';
 import LayoutPicker from '../components/LayoutPicker.vue';
@@ -83,6 +84,7 @@ async function askDiscard() {
     <div class="dash-controls">
       <LayoutPicker :settings="s" />
       <PalettePicker :settings="s" />
+      <FontPicker :settings="s" />
 
       <fieldset>
         <legend class="sec-title">Default theme</legend>
