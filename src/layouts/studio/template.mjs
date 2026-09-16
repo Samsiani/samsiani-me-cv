@@ -11,10 +11,14 @@ const chars = (s) => [...String(s)];
 const est = (s, latin, georgian) => chars(s).reduce((n, ch) => n + (GEORGIAN.test(ch) ? georgian : latin), 0);
 
 // Smallest viewport width at which the header nav bar fits on one line (plan §2.3); 'menu' = never.
-function navTier(c, order) {
-  const nav = order.reduce((n, sec) => n + est(sec.navLabel, 6.3, 9.2), 0) + 20 * (order.length - 1); // 13px links, 20px gaps
-  const brand = 40 + est(c.hero.name, 6.6, 8.9); // 30px mark + 10px gap + 13px/500 name
-  const controls = 86 + 34 + 28 + est(c.ui.print, 7.0, 9.1) + 24; // lang switch, theme, print (label + padding), 2 gaps
+// With the layout's own fonts the per-glyph constants above decide. With the owner's fonts (fonts plan
+// §5.4) the same sums are measured from the chosen files instead; gaps and fixed widths are unchanged.
+function navTier(c, ctx, order) {
+  const w = ctx.fonts.overridden ? ctx.fonts.width : null;
+  const nav = order.reduce((n, sec) => n + (w ? w('text', sec.navLabel, 13) : est(sec.navLabel, 6.3, 9.2)), 0) + 20 * (order.length - 1); // 13px links, 20px gaps
+  const brand = 40 + (w ? w('text', c.hero.name, 13, { weight: 500 }) : est(c.hero.name, 6.6, 8.9)); // 30px mark + 10px gap + 13px/500 name
+  const print = w ? w('text', c.ui.print, 12.5, { weight: 600 }) : est(c.ui.print, 7.0, 9.1);
+  const controls = 86 + 34 + 28 + print + 24; // lang switch, theme, print (label + padding), 2 gaps
   const need = nav + brand + controls + 64 + 80; // two 32px header gaps + two 40px gutters
   return [1280, 1440, 1600].find((bp) => need <= bp) ?? 'menu';
 }
@@ -157,7 +161,7 @@ export function renderBody(c, ctx) {
     </div>
   </section>`;
 
-  return `<header class="st-top" data-nav="${navTier(c, order)}">
+  return `<header class="st-top" data-nav="${navTier(c, ctx, order)}">
   <div class="st-top-in">
     <a class="st-brand" href="${c.path}"><span class="st-mark" aria-hidden="true">${esc(ctx.person.monogram)}</span><span class="st-brand-name">${esc(c.hero.name)}</span></a>
     <nav class="st-nav" aria-label="${esc(c.ui.nav)}">${navLinks(false)}</nav>

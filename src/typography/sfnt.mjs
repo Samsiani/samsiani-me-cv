@@ -13,6 +13,7 @@
 // back with no padding, and a file whose blocks — the last one included — end on a four-byte boundary).
 
 import { brotliCompressSync, brotliDecompressSync, constants as ZLIB, inflateSync } from 'node:zlib';
+import { GEORGIAN_RANGE, isGeorgianCodePoint } from './roles.mjs';
 
 // ---------------------------------------------------------------- limits and errors
 const MAX_TABLES = 64; // a font with more tables than this is refused, not walked
@@ -427,9 +428,9 @@ const LATIN_LETTERS = [...range(0x41, 0x5a), ...range(0x61, 0x7a)];
 const DIGITS = range(0x30, 0x39);
 const ASCII = range(0x20, 0x7e); // the 95 printable ASCII characters
 const GEORGIAN_CHARS = [...MKHEDRULI, 0x0589];
-/** The css2 georgian subset range, the same one every layout's fonts.css declares. */
-export const GEORGIAN_RANGE = [[0x0589, 0x0589], [0x10a0, 0x10ff], [0x1c90, 0x1cba], [0x1cbd, 0x1cbf], [0x205a, 0x205a], [0x2d00, 0x2d2f], [0x2e31, 0x2e31]];
-const isGeorgian = (cp) => GEORGIAN_RANGE.some(([a, b]) => cp >= a && cp <= b);
+const isGeorgian = isGeorgianCodePoint;
+/** The css2 georgian subset range, the same one every layout's fonts.css declares (defined in roles.mjs). */
+export { GEORGIAN_RANGE };
 
 /** `latin` = every a-z A-Z 0-9; `georgian` = all 33 Mkhedruli letters. `counts` is what the admin shows. */
 export function coverageOf(font) {

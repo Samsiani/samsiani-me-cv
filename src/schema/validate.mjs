@@ -2,6 +2,7 @@
 // admin API (errors block Save/Publish, warnings are shown but do not block).
 // Target location after the refactor: src/schema/validate.mjs
 import { LANGS, LEVELS, SECTIONS } from '../shared/localize.mjs';
+import { FONT_ID_RE, FONT_ROLES } from '../typography/roles.mjs';
 
 export const LAYOUT_IDS = ['precision', 'studio', 'ledger'];
 export const THEMES = ['system', 'light', 'dark'];
@@ -37,6 +38,14 @@ const ID = { t: 'id' };
 const REF = { t: 'ref' };
 const OPT = { optional: true };
 const TEXT = { text: true }; // long prose: translation lints apply
+// settings.fonts: role -> font id | null (null = the layout's own face). Absent means "every layout uses
+// its defaults", so no migration and no change to any stored document (fonts plan D10). Whether an id
+// exists in the server's font store is a server check, never this walker's.
+const FONT_ID = { t: 'str', max: 16, pattern: FONT_ID_RE, nullable: true, counter: false };
+const fontsSpec = (layoutIds) => ({
+  t: 'obj', optional: true,
+  shape: Object.fromEntries(layoutIds.map((id) => [id, { t: 'obj', optional: true, shape: Object.fromEntries(FONT_ROLES.map((r) => [r, FONT_ID])) }])),
+});
 
 const NAV = LS(28, OPT); // short label for top/side navs; null => title is used
 // `hidden: true` keeps the section's content and validation but renders nothing (no markup, no nav link).
@@ -57,6 +66,7 @@ export function buildSchema({ paletteIds = DEFAULT_PALETTE_IDS, layoutIds = LAYO
       updated: S(10, { pattern: DATE_RE, date: true }),
       autoUpdateDateOnPublish: B(),
       siteUrl: S(100, { pattern: ORIGIN_RE }),
+      fonts: fontsSpec(layoutIds),
     }),
     person: O({
       givenName: LS(10), // Precision rail: 45px/38px display name, 263px box (measured)
@@ -308,7 +318,7 @@ export function limitsTable(schema = buildSchema()) {
   const walk = (spec, path) => {
     if (spec.t === 'obj') for (const [k, sub] of Object.entries(spec.shape)) walk(sub, path ? `${path}.${k}` : k);
     else if (spec.t === 'arr') walk(spec.item, `${path}[]`);
-    else if ((spec.t === 'lstr' || spec.t === 'str') && spec.max) rows.push({ path, max: spec.max, localized: spec.t === 'lstr' });
+    else if ((spec.t === 'lstr' || spec.t === 'str') && spec.max && spec.counter !== false) rows.push({ path, max: spec.max, localized: spec.t === 'lstr' });
   };
   walk(schema, '');
   return rows;

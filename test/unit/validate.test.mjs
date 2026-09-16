@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validate, canonicalize } from '../../src/schema/validate.mjs';
+import { validate, canonicalize, limitsTable } from '../../src/schema/validate.mjs';
 import { seed, seedText, stress } from './_helpers.mjs';
 
 const TODAY = '2026-09-14';
@@ -115,4 +115,44 @@ test('canonicalize() restores key order and drops junk keys', () => {
   s.hero.junk = { a: 1 };
   s.sections.skills.groups[0].junk = 'x';
   assert.equal(canonicalize(s), seedText());
+});
+
+// ---------------- settings.fonts (docs/plans/fonts.md §3.1) ----------------
+// An optional key: absent means every layout keeps its own faces, so no stored document changes and
+// canonicalize() still reproduces the seed byte for byte (the test above).
+const withFonts = (fonts) => { const s = seed(); s.settings.fonts = fonts; return validate(s, { today: TODAY }); };
+
+test('settings.fonts: absent, empty and well-formed ids all validate', () => {
+  assert.deepEqual(validate(seed(), { today: TODAY }).errors, []);
+  assert.deepEqual(withFonts({}).errors, []);
+  assert.deepEqual(withFonts({ precision: { text: '3f2a1b9c0d4e5f60', label: null, georgian: null } }).errors, []);
+  assert.deepEqual(withFonts({ studio: {}, ledger: { georgian: '0123456789abcdef' } }).errors, []);
+});
+
+for (const [name, fonts, code, path] of [
+  ['an unknown layout', { nope: { text: null } }, 'UNKNOWN_KEY', '$.settings.fonts.nope'],
+  ['an unknown role', { precision: { display: null } }, 'UNKNOWN_KEY', '$.settings.fonts.precision.display'],
+  ['a path instead of an id', { precision: { text: '../../etc/pas' } }, 'PATTERN', '$.settings.fonts.precision.text'],
+  ['uppercase hex', { precision: { text: '3F2A1B9C0D4E5F60' } }, 'PATTERN', '$.settings.fonts.precision.text'],
+  ['a short id', { precision: { text: 'abc' } }, 'PATTERN', '$.settings.fonts.precision.text'],
+  ['a number', { precision: { text: 7 } }, 'TYPE', '$.settings.fonts.precision.text'],
+]) {
+  test(`settings.fonts rejects ${name}`, () => {
+    const r = withFonts(fonts);
+    assert.ok(r.errors.some((e) => e.code === code && e.path === path), `expected ${code} at ${path}, got ${JSON.stringify(r.errors)}`);
+  });
+}
+
+test('canonicalize() keeps a present fonts key and omits an absent one', () => {
+  const s = seed();
+  s.settings.fonts = { ledger: { georgian: '0123456789abcdef' }, precision: { text: null } };
+  const out = JSON.parse(canonicalize(s));
+  assert.deepEqual(Object.keys(out.settings.fonts), ['precision', 'ledger']); // schema order, not insertion order
+  assert.deepEqual(out.settings.fonts.precision, { text: null });
+  assert.equal(JSON.parse(canonicalize(seed())).settings.fonts, undefined);
+});
+
+test('the limits table has no settings.fonts row (the ids are not text fields)', () => {
+  assert.deepEqual(limitsTable().filter((r) => r.path.startsWith('settings.fonts')), []);
+  assert.ok(limitsTable().some((r) => r.path === 'settings.siteUrl'), 'the other settings rows are still there');
 });

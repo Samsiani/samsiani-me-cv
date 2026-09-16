@@ -6,6 +6,7 @@ import { validate, hrefError } from './schema/validate.mjs';
 import { renderSite } from './render.mjs';
 import { LAYOUTS } from './layouts/index.mjs';
 import { loadPalettes, checkPalettes, paletteCss, parseColor } from './palettes.mjs';
+import { resolveFonts } from './typography/resolve.mjs';
 
 const SRC = new URL('./', import.meta.url);
 const md5 = (b) => createHash('md5').update(b).digest('hex').slice(0, 8);
@@ -45,10 +46,11 @@ function rebase(html, base) {
 /**
  * @param {object} site canonical site.json object
  * @param {{ mode?: 'publish'|'preview', base?: string, brand: object|function, today?: string, palettes?: object,
- *           after?: { siteUrl?: string, updated?: string } }} opts
+ *           fonts?: object|null, after?: { siteUrl?: string, updated?: string } }} opts
  *   after: local-preview overrides applied to a copy AFTER validation (CLI only: SITE_URL, BUILD_DATE)
+ *   fonts: a font-store loader ({ get, readFace }); without one every layout keeps its committed faces
  */
-export async function buildSite(site, { mode = 'publish', base = '/', brand, today, palettes = loadPalettes(), after } = {}) {
+export async function buildSite(site, { mode = 'publish', base = '/', brand, today, palettes = loadPalettes(), fonts: fontLoader = null, after } = {}) {
   if (!brand) throw new Error('buildSite: opts.brand is required');
   const warnings = [];
   const paletteIds = palettes.palettes.map((p) => p.id);
@@ -85,15 +87,21 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
   const files = new Map();
   const put = (path, body, immutable) => files.set(path, { body, type: typeOf(path), immutable });
 
-  // 3. CSS (layout files + the one active palette), script, fonts
+  // 3. CSS (layout files + the chosen fonts + the one active palette), script, fonts. Without an override
+  //    `fonts.css` is empty and every byte below is the byte it was before the fonts feature (plan §7.1).
+  const fonts = await resolveFonts(site, layout.meta, fontLoader);
+  warnings.push(...fonts.warnings);
   const cssParts = layout.meta.css.map((f) => readFileSync(new URL(`layouts/${layout.meta.id}/${f}`, SRC), 'utf8'));
-  const css = cssParts.join('\n') + '\n' + paletteCss(pal, ':root', palettes.tokens) + '\n';
+  const css = cssParts.join('\n') + (fonts.css ? '\n' + fonts.css : '') + '\n' + paletteCss(pal, ':root', palettes.tokens) + '\n';
   const js = readFileSync(new URL('main.js', SRC), 'utf8');
   const cssName = `styles.${md5(css)}.css`;
   const jsName = `main.${md5(js)}.js`;
   put(cssName, css, true);
   put(jsName, js, true);
+  // The layout's own faces always ship: its fonts.css still declares them, and a role kept at its default
+  // still uses them. Custom faces are added under their hashed names.
   for (const f of layout.meta.fonts) put(`fonts/${f}.woff2`, readFileSync(new URL(`fonts/${f}.woff2`, SRC)), true);
+  for (const [name, bytes] of fonts.files) put(name, bytes, true);
 
   // 4. brand files (already hash-named by the provider) and the manifest
   for (const [name, bytes] of brand.files) put(name, bytes, true);
@@ -102,10 +110,10 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
   const assets0 = { base, cssHref: base + cssName, jsHref: base + jsName, icons, og: { en: '/' + brand.og.en, ka: '/' + brand.og.ka } };
 
   // 5. pages. The manifest is rendered first so its hashed name can go into every <head>.
-  const probe = renderSite(site, { layout, palette, assets: { ...assets0, manifestHref: '' } });
+  const probe = renderSite(site, { layout, palette, assets: { ...assets0, manifestHref: '' }, fonts });
   const manifestName = `site.${md5(probe['site.webmanifest'])}.webmanifest`;
   const assets = { ...assets0, manifestHref: base + manifestName };
-  const out = renderSite(site, { layout, palette, assets });
+  const out = renderSite(site, { layout, palette, assets, fonts });
   put(manifestName, out['site.webmanifest'], true);
   for (const page of ['index.html', 'ka/index.html', '404.html']) put(page, rebase(out[page], base), false);
   if (mode === 'publish') {
@@ -114,7 +122,8 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
     put('.htaccess', HTACCESS, false);
     put('_headers', HEADERS, false);
   }
-  return Object.assign(files, { warnings, layoutId: layout.meta.id, paletteId: pal.id, cssName, jsName, brand: { og: brand.og, icons: brand.icons } });
+  const fontIds = Object.fromEntries(Object.entries(fonts.roles || {}).map(([role, r]) => [role, r ? r.id : 'default']));
+  return Object.assign(files, { warnings, layoutId: layout.meta.id, paletteId: pal.id, cssName, jsName, fonts: fonts.overridden ? fontIds : null, brand: { og: brand.og, icons: brand.icons } });
 }
 
 // Kept for parity with other hosts. OpenLiteSpeed reads only rewrite rules from .htaccess;

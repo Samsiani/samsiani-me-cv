@@ -16,16 +16,26 @@ const FIT = {
   ka: { nav: 8.5, gap: 14 },   // Noto Sans Georgian 12 px: 7.69 px per character on macOS
 };
 const CH = { mono14: 9.3, mono12: 7.3, mono12_5: 7.6, btn: 7.4, geo12_5: 8.8 };
+const GEO = /[Ⴀ-ჿ]/;
+// With the owner's fonts the same sums are measured from the chosen files at the sizes the header really
+// uses (fonts plan §5.4); the gaps and fixed paddings below are CSS and never change.
 export function navFit(c, ctx) {
+  const w = ctx.fonts?.overridden ? ctx.fonts.width : null;
   const k = FIT[c.lang] || FIT.en;
   const labels = orderedSections(c).map((s) => s.navLabel);
-  const nav = labels.join('').length * k.nav + (labels.length - 1) * k.gap;
-  const brand = ctx.person.monogram.length * CH.mono14 + 25 + ctx.host.length * CH.mono12_5;
-  const perLabel = (s) => [...s].reduce((w, ch) => w + (/[Ⴀ-ჿ]/.test(ch) ? CH.geo12_5 : CH.mono12), 0);
+  const nav = (w ? labels.reduce((n, l) => n + w('text', l, c.lang === 'ka' ? 12 : 12.5), 0) : labels.join('').length * k.nav) + (labels.length - 1) * k.gap;
+  const brand = w
+    ? w('label', ctx.person.monogram, 14, { weight: 500 }) + 25 + w('label', ctx.host, 12.5)
+    : ctx.person.monogram.length * CH.mono14 + 25 + ctx.host.length * CH.mono12_5;
+  const perLabel = (s) => (w
+    ? (GEO.test(s) ? w('georgian', s, 12.5) : w('label', s, 12))
+    : [...s].reduce((n, ch) => n + (GEO.test(ch) ? CH.geo12_5 : CH.mono12), 0));
   const lang = perLabel(c.selfLabel) + perLabel(c.altLabel) + 7.3 + 12;
   const theme = 18 + perLabel(c.ui.themeShort);
-  const print = 26 + [...c.ui.print].length * (c.lang === 'ka' ? CH.geo12_5 : CH.btn);
-  const need = brand + lang + theme + print + 2 * 16 + nav + 2 * 32 + 2 * 44;
+  const printLabel = w
+    ? (c.lang === 'ka' ? w('georgian', c.ui.print, 12.5) : w('label', c.ui.print, 11.5, { weight: 500 }))
+    : [...c.ui.print].length * (c.lang === 'ka' ? CH.geo12_5 : CH.btn);
+  const need = brand + lang + theme + 26 + printLabel + 2 * 16 + nav + 2 * 32 + 2 * 44;
   return 'nav-' + ([1280, 1360, 1440].find((bp) => bp >= need) || 'never');
 }
 

@@ -7,6 +7,21 @@ import { copyButton, themeToggle, printButton, langSwitchLink, orderedSections, 
 // label + muted detail (replaces splitName(): localize() already split "Name · detail")
 const skillName = (i) => (i.detail ? `${esc(i.label)} <span class="row-sub">· ${esc(i.detail)}</span>` : esc(i.label));
 
+// Nav fit. With the layout's own fonts the inline nav is a pure CSS decision (styles.css: EN from 1440 px,
+// both from 1680 px) and nothing is stamped. With the owner's fonts (fonts plan §5.4) the header's natural
+// width is measured from the chosen files and the tier goes on .topbar; layout.mjs supplies the rules that
+// read it. The controls are a block of fixed widths — the language switch, the theme toggle and the print
+// button, the menu being hidden at every tier — read once in Chromium from the seed build at 1920 px.
+const CONTROLS = { en: 249, ka: 276 };
+function navFit(c, ctx, order) {
+  if (!ctx.fonts?.overridden) return '';
+  const w = ctx.fonts.width;
+  const nav = order.reduce((n, sec) => n + w('text', sec.navLabel, 13), 0) + 22 * (order.length - 1);
+  const brand = 31 + 11 + w('text', c.hero.name, 13, { weight: 500 }); // 31px mark + gap + 13px/500 name
+  const need = nav + brand + (CONTROLS[c.lang] ?? CONTROLS.en) + 2 * 40 + 2 * 36; // two gutters, two header gaps
+  return ` data-navfit="${[1280, 1440, 1680].find((bp) => need <= bp) ?? 'never'}"`;
+}
+
 export function renderBody(c, ctx) {
   const { alt } = ctx;
   const s = c.sections;
@@ -125,7 +140,7 @@ export function renderBody(c, ctx) {
       ${secEnd}
     </section>`;
 
-  return `<header class="topbar">
+  return `<header class="topbar"${navFit(c, ctx, order)}>
   <div class="topbar-inner">
     <a class="brand" href="${c.path}"><span class="mark" aria-hidden="true">${esc(ctx.person.monogram)}</span><span class="brand-name">${esc(c.hero.name)}</span></a>
     <nav class="topnav" aria-label="${esc(c.ui.nav)}">${navLinks(false)}</nav>
