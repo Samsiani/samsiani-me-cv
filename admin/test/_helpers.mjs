@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { loadConfig } from '../server/config.mjs';
 import { createDeps } from '../server/deps.mjs';
 import { createApp } from '../server/app.mjs';
+import { fixtureFetch } from '../server/lib/fonts/fixture.mjs';
 
 export const SEED = JSON.parse(readFileSync(new URL('../../src/content/site.json', import.meta.url), 'utf8'));
 export const seed = () => structuredClone(SEED);
@@ -22,20 +23,28 @@ export function makeClock(start = Date.parse('2026-09-15T10:00:00Z')) {
   return { now: () => t, advance: (ms) => { t += ms; }, set: (ms) => { t = ms; } };
 }
 
-/** cfg + deps + app on a fresh temp home. production: true switches on the edge secret and Secure cookies. */
-export async function setup({ production = false, clock = makeClock(), init = true, password = 'correct-horse-battery', mustChange = false, env = {} } = {}) {
+/**
+ * cfg + deps + app on a fresh temp home. production: true switches on the edge secret and Secure cookies.
+ * `google` swaps the Google Fonts fetch for the frozen fixture; `ctx.seen` then lists every URL the server
+ * asked for, so a test can prove nothing reached the network.
+ */
+export async function setup({ production = false, clock = makeClock(), init = true, password = 'correct-horse-battery', mustChange = false, env = {}, google = false, offline = false } = {}) {
   const home = tempHome();
+  const seen = [];
   const cfg = loadConfig({
     NODE_ENV: production ? 'production' : 'development',
     DATA_DIR: join(home, 'data'), WEB_ROOT: join(home, 'web'), BUILDS_DIR: join(home, 'builds'),
     SESSION_SECRET: B64_32, ...(production ? { EDGE_SECRET: EDGE, PUBLIC_ORIGIN: 'https://samsiani.me', __UID: 1000 } : {}),
     SITE_URL: 'https://samsiani.me', ...env,
   });
-  const deps = createDeps(cfg, { clock });
+  const fetchImpl = google
+    ? fixtureFetch(new URL('../../test/fixtures/google-fonts/', import.meta.url).pathname, { offline, seen })
+    : () => { throw new Error('a test must never reach the network'); };
+  const deps = createDeps(cfg, { clock, fetchImpl });
   if (init) await deps.store.init(seed());
   if (password) await deps.auth.setPassword(password, { username: 'admin', mustChangePassword: mustChange });
   const app = createApp(cfg, deps);
-  return { home, cfg, deps, app, clock };
+  return { home, cfg, deps, app, clock, seen };
 }
 
 const ORIGIN = (cfg) => cfg.publicOrigin;

@@ -1,0 +1,555 @@
+{
+  "_": "Google Fonts, frozen (fonts plan §7.3). Font bytes are files already in this repository; no test ever reaches the network.",
+  "prefix": ")]}'\n",
+  "metadata": {
+    "axisRegistry": [],
+    "promotedScript": "latin",
+    "familyMetadataList": [
+      {
+        "family": "Chivo",
+        "displayName": "Chivo",
+        "category": "Sans Serif",
+        "subsets": [
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "100": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "200": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "300": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "600": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "700": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "800": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "900": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [
+          {
+            "tag": "wght",
+            "min": 100,
+            "max": 900,
+            "defaultValue": 400
+          }
+        ],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": false,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "JetBrains Mono",
+        "displayName": "JetBrains Mono",
+        "category": "Monospace",
+        "subsets": [
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "600": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "700": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "800": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [
+          {
+            "tag": "wght",
+            "min": 400,
+            "max": 800,
+            "defaultValue": 400
+          }
+        ],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": false,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "Noto Sans Georgian",
+        "displayName": "Noto Sans Georgian",
+        "category": "Sans Serif",
+        "subsets": [
+          "georgian",
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "100": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "200": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "300": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "600": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "700": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "800": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "900": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [
+          {
+            "tag": "wght",
+            "min": 100,
+            "max": 900,
+            "defaultValue": 400
+          }
+        ],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": true,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "Noto Serif Georgian",
+        "displayName": "Noto Serif Georgian",
+        "category": "Serif",
+        "subsets": [
+          "georgian",
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "100": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "200": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "300": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "600": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "700": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "800": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "900": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [
+          {
+            "tag": "wght",
+            "min": 100,
+            "max": 900,
+            "defaultValue": 400
+          }
+        ],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": true,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "IBM Plex Sans",
+        "displayName": "IBM Plex Sans",
+        "category": "Sans Serif",
+        "subsets": [
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "100": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "200": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "300": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "600": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "700": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [
+          {
+            "tag": "wght",
+            "min": 100,
+            "max": 700,
+            "defaultValue": 400
+          }
+        ],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": false,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "IBM Plex Mono",
+        "displayName": "IBM Plex Mono",
+        "category": "Monospace",
+        "subsets": [
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": false,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "Archivo",
+        "displayName": "Archivo",
+        "category": "Sans Serif",
+        "subsets": [
+          "latin",
+          "latin-ext"
+        ],
+        "fonts": {
+          "100": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "200": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "300": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "500": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "600": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "700": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "800": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          },
+          "900": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [
+          {
+            "tag": "wght",
+            "min": 100,
+            "max": 900,
+            "defaultValue": 400
+          }
+        ],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": false,
+        "isBrandFont": false,
+        "isOpenSource": true,
+        "languages": [
+          "en_Latn"
+        ]
+      },
+      {
+        "family": "Closed Source Sans",
+        "displayName": "Closed Source Sans",
+        "category": "Display",
+        "subsets": [
+          "latin"
+        ],
+        "fonts": {
+          "400": {
+            "thickness": 5,
+            "slant": 0,
+            "width": 5,
+            "lineHeight": 1.2
+          }
+        },
+        "axes": [],
+        "popularity": 100,
+        "trending": 500,
+        "lastModified": "2026-08-01",
+        "dateAdded": "2016-01-01",
+        "isNoto": false,
+        "isBrandFont": false,
+        "isOpenSource": false,
+        "languages": [
+          "en_Latn"
+        ]
+      }
+    ]
+  },
+  "css2": {
+    "https://fonts.googleapis.com/css2?family=Chivo:wght@100..900&display=swap": "/* latin */\n@font-face {\n  font-family: 'Chivo';\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/chivo/v20/va9I4kzIxd1KFoBvS-J3kbDPWQ.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n",
+    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400..800&display=swap": "/* latin */\n@font-face {\n  font-family: 'JetBrains Mono';\n  font-style: normal;\n  font-weight: 400 800;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxTOlOV.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n",
+    "https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@100..900&display=swap": "/* georgian */\n@font-face {\n  font-family: 'Noto Sans Georgian';\n  font-style: normal;\n  font-weight: 100 900;\n  font-stretch: 62.5% 100%;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/notosansgeorgian/v50/PlIVFke5O6RzLfvNNVSitxkp76Kdw4gaTJjkLrRZgdw.woff2) format('woff2');\n  unicode-range: U+0589, U+10A0-10FF, U+1C90-1CBA, U+1CBD-1CBF, U+205A, U+2D00-2D2F, U+2E31;\n}\n",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap": "/* latin */\n@font-face {\n  font-family: 'IBM Plex Mono';\n  font-style: normal;\n  font-weight: 400;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/ibmplexmono/v22/-F63fjptAgt5VM-kVkqdyU8n1iIq131nj-otFQ.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n/* latin */\n@font-face {\n  font-family: 'IBM Plex Mono';\n  font-style: normal;\n  font-weight: 500;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/ibmplexmono/v22/-F6qfjptAgt5VM-kVkqdyU8n3twq1WRRQ2Jm4A.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n",
+    "https://fonts.googleapis.com/css2?family=Noto+Serif+Georgian:wght@100..900&display=swap": "/* georgian */\n@font-face {\n  font-family: 'Noto Serif Georgian';\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/notoserifgeorgian/v29/not-a-font-at-all-0000000000000000000.woff2) format('woff2');\n  unicode-range: U+0589, U+10A0-10FF, U+1C90-1CBA, U+1CBD-1CBF, U+205A, U+2D00-2D2F, U+2E31;\n}\n",
+    "https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&display=swap": "/* latin */\n@font-face {\n  font-family: 'Archivo';\n  font-style: normal;\n  font-weight: 100 900;\n  font-stretch: 62.5% 125%;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/archivo/v25/k3kQo8UDI-1M0wlSfdnoLmvDIaIoversized00000.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n",
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100..700&display=swap": "/* latin */\n@font-face {\n  font-family: 'IBM Plex Sans';\n  font-style: normal;\n  font-weight: 100 700;\n  font-display: swap;\n  src: url(https://fonts.example.invalid/s/ibmplexsans/v20/hijacked.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n"
+  },
+  "files": {
+    "https://fonts.gstatic.com/s/chivo/v20/va9I4kzIxd1KFoBvS-J3kbDPWQ.woff2": "src/fonts/chivo-latin-normal-400-700.woff2",
+    "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxTOlOV.woff2": "src/fonts/jetbrains-mono-latin-normal-400-500.woff2",
+    "https://fonts.gstatic.com/s/notosansgeorgian/v50/PlIVFke5O6RzLfvNNVSitxkp76Kdw4gaTJjkLrRZgdw.woff2": "src/fonts/noto-sans-georgian-georgian-normal-400-700.woff2",
+    "https://fonts.gstatic.com/s/ibmplexmono/v22/-F63fjptAgt5VM-kVkqdyU8n1iIq131nj-otFQ.woff2": "src/fonts/ibm-plex-mono-latin-400.woff2",
+    "https://fonts.gstatic.com/s/ibmplexmono/v22/-F6qfjptAgt5VM-kVkqdyU8n3twq1WRRQ2Jm4A.woff2": "src/fonts/ibm-plex-mono-latin-500.woff2",
+    "https://fonts.gstatic.com/s/notoserifgeorgian/v29/not-a-font-at-all-0000000000000000000.woff2": "src/admin-thumbs/precision.svg",
+    "https://fonts.gstatic.com/s/archivo/v25/k3kQo8UDI-1M0wlSfdnoLmvDIaIoversized00000.woff2": {
+      "bytes": 2100000
+    }
+  }
+}

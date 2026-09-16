@@ -237,3 +237,140 @@ test('sweep removes a file no record points at and keeps the rest', async () => 
   assert.deepEqual(await ctx.deps.fonts.sweep(), [orphan]);
   assert.deepEqual(files(ctx).sort(), [...new Set(rec.faces.map((f) => f.file))].sort());
 });
+
+// ---------------------------------------------------------------- Google (F4)
+// Every request below goes through the frozen fixture in test/fixtures/google-fonts. `ctx.seen` records what
+// the server asked for, and a setup() without `google: true` throws on any fetch at all: no test can reach
+// the network, and one that tried would fail rather than quietly pass on someone's laptop.
+const FIXTURE_HOSTS = /^https:\/\/fonts\.(google\.com|googleapis\.com|gstatic\.com)\//;
+const googleIn = async (opts = {}) => { const ctx = await setup({ google: true, ...opts }); return { ctx, cookie: (await login(ctx)).cookie }; };
+const catalogue = (ctx, cookie, q = '') => req(ctx, 'GET', `/admin/api/fonts/catalogue${q}`, { cookie });
+const addFamily = (ctx, cookie, family) => req(ctx, 'POST', '/admin/api/fonts/google', { cookie, body: { family } });
+const offFixture = (ctx) => assert.deepEqual(ctx.seen.filter((u) => !FIXTURE_HOSTS.test(u)), [], 'a request went somewhere other than Google');
+
+test('the catalogue is fetched once, trimmed, cached for a day and refreshed on demand', async () => {
+  const { ctx, cookie } = await googleIn();
+  const first = await catalogue(ctx, cookie);
+  assert.equal(first.status, 200);
+  const body = await first.json();
+  assert.equal(body.stale, false);
+  // the ")]}'" anti-JSON prefix is stripped, closed-source families are dropped, the rest is trimmed
+  assert.equal(body.families.length, 7);
+  assert.equal(body.families.some((f) => f.family === 'Closed Source Sans'), false);
+  const geo = body.families.filter((f) => f.georgian).map((f) => f.family);
+  assert.deepEqual(geo.sort(), ['Noto Sans Georgian', 'Noto Serif Georgian']);
+  assert.deepEqual(body.families.find((f) => f.family === 'IBM Plex Mono'), {
+    family: 'IBM Plex Mono', category: 'Monospace', weights: [400, 500], italic: false, axes: [], wght: null,
+    latin: true, georgian: false, popularity: 100, lastModified: '2026-08-01',
+  });
+
+  assert.equal(ctx.seen.length, 1);
+  await catalogue(ctx, cookie);
+  assert.equal(ctx.seen.length, 1, 'the cached copy answered the second call');
+  ctx.clock.advance(25 * 60 * 60 * 1000); // a day on, the session is gone too
+  const later = (await login(ctx)).cookie;
+  await catalogue(ctx, later);
+  assert.equal(ctx.seen.length, 2, 'a day later it is fetched again');
+  assert.equal((await catalogue(ctx, later, '?refresh=1')).status, 200);
+  assert.equal((await catalogue(ctx, later, '?refresh=1')).status, 429, 'a forced refresh is once per ten minutes');
+  offFixture(ctx);
+});
+
+test('a Google outage answers 503 with no cache and the stale copy with one', async () => {
+  const off = await googleIn({ offline: true });
+  assert.equal((await catalogue(off.ctx, off.cookie)).status, 503);
+  assert.equal((await (await catalogue(off.ctx, off.cookie)).json()).error, 'google_unavailable');
+  assert.equal((await addFamily(off.ctx, off.cookie, 'Chivo')).status, 503);
+  assert.equal(existsSync(join(off.ctx.cfg.dataDir, 'fonts', 'catalogue.json')), false);
+
+  // the same outage on a server that has fetched the catalogue before: the stale copy still answers
+  const good = await googleIn();
+  await catalogue(good.ctx, good.cookie);
+  const broken = await setup({ google: true, offline: true });
+  const cookie = (await login(broken)).cookie;
+  const { copyFileSync, mkdirSync } = await import('node:fs');
+  mkdirSync(join(broken.cfg.dataDir, 'fonts'), { recursive: true });
+  copyFileSync(join(good.ctx.cfg.dataDir, 'fonts', 'catalogue.json'), join(broken.cfg.dataDir, 'fonts', 'catalogue.json'));
+  broken.clock.advance(25 * 60 * 60 * 1000);
+  const stale = await catalogue(broken, (await login(broken)).cookie);
+  assert.equal(stale.status, 200);
+  const body = await stale.json();
+  assert.equal(body.stale, true);
+  assert.equal(body.families.length, 7);
+  assert.equal(cookie.length > 0, true);
+});
+
+test('a variable family is downloaded once and is idempotent', async () => {
+  const { ctx, cookie } = await googleIn();
+  const res = await addFamily(ctx, cookie, 'Chivo');
+  assert.equal(res.status, 201);
+  const rec = await res.json();
+  assert.equal(rec.source, 'google');
+  assert.equal(rec.family, 'Chivo');
+  assert.equal(rec.displayName, 'Chivo', 'the subset file calls itself "Chivo Medium"; the catalogue name wins');
+  assert.equal(rec.version, 'v20');
+  assert.equal(rec.licence.url, 'https://fonts.google.com/specimen/Chivo/license');
+  assert.deepEqual(rec.coverage, { latin: true, georgian: false });
+  assert.deepEqual(rec.faces.map((f) => [f.kind, f.subset, f.weight]), [['web', 'latin', [100, 900]]]);
+  assert.doesNotMatch(rec.faces[0].unicodeRange, /U\+10[A-F0-9]{2}/);
+  assert.equal(files(ctx).length, 1);
+
+  const before = ctx.seen.length;
+  const again = await addFamily(ctx, cookie, 'Chivo');
+  assert.equal(again.status, 200);
+  assert.equal((await again.json()).id, rec.id);
+  assert.equal(ctx.seen.length, before + 1, 'only css2 is asked again; the font file is not downloaded twice');
+  assert.equal(files(ctx).length, 1);
+  offFixture(ctx);
+});
+
+test('a static family brings one file per weight', async () => {
+  const { ctx, cookie } = await googleIn();
+  const rec = await (await addFamily(ctx, cookie, 'IBM Plex Mono')).json();
+  assert.equal(rec.variable, false);
+  assert.deepEqual(rec.weights, [400, 500]);
+  assert.deepEqual(rec.faces.map((f) => f.weight), [[400, 400], [500, 500]]);
+  assert.equal(new Set(rec.faces.map((f) => f.file)).size, 2);
+  assert.ok(ctx.seen.some((u) => u.includes('wght@400;500')), ctx.seen.join(' '));
+  offFixture(ctx);
+});
+
+test('the Georgian family arrives with Georgian coverage and the Georgian fence', async () => {
+  const { ctx, cookie } = await googleIn();
+  const rec = await (await addFamily(ctx, cookie, 'Noto Sans Georgian')).json();
+  assert.equal(rec.coverage.georgian, true);
+  assert.equal(rec.faces[0].subset, 'georgian');
+  assert.equal(rec.faces[0].unicodeRange, 'U+0589, U+10A0-10FF, U+1C90-1CBA, U+1CBD-1CBF, U+205A, U+2D00-2D2F, U+2E31');
+  assert.equal(rec.faces[0].stretch, '62.5% 100%');
+  assert.equal(rec.metrics.georgian.mean, 0.659);
+  offFixture(ctx);
+});
+
+for (const [name, family, status, error] of [
+  ['a family the catalogue does not list', 'Comic Sans MS', 404, 'unknown_family'],
+  ['a file that is not a font', 'Noto Serif Georgian', 502, 'google_unexpected'],
+  ['a file over the 2 MB cap', 'Archivo', 413, 'too_large'],
+  ['a file served from another host', 'IBM Plex Sans', 502, 'google_unexpected'],
+]) {
+  test(`Google refuses ${name} and writes nothing`, async () => {
+    const { ctx, cookie } = await googleIn();
+    const res = await addFamily(ctx, cookie, family);
+    assert.equal(res.status, status);
+    assert.equal((await res.json()).error, error);
+    assert.equal(existsSync(join(ctx.cfg.dataDir, 'fonts', 'files')), false, 'nothing was written under data/fonts/files');
+    offFixture(ctx);
+  });
+}
+
+test('a downloaded family renders like an upload and can be deleted again', async () => {
+  const { ctx, cookie } = await googleIn();
+  const rec = await (await addFamily(ctx, cookie, 'Noto Sans Georgian')).json();
+  const site = structuredClone((await (await req(ctx, 'GET', '/admin/api/draft', { cookie })).json()).site);
+  site.settings.fonts = { precision: { georgian: rec.id } };
+  const report = await (await req(ctx, 'POST', '/admin/api/fonts/report', { cookie, body: { site } })).json();
+  assert.deepEqual(report.roles.georgian, { id: rec.id, family: 'Noto Sans Georgian', source: 'google', default: false });
+  assert.deepEqual(report.issues.errors, []);
+  assert.equal((await req(ctx, 'DELETE', `/admin/api/fonts/${rec.id}`, { cookie })).status, 204);
+  assert.equal(files(ctx).length, 0);
+  offFixture(ctx);
+});

@@ -19,7 +19,7 @@ const mean = (m) => (m ? { mean: m.mean } : null);
 
 export function fontRoutes(cfg, deps) {
   const r = new Hono();
-  const { fonts, limiter, store } = deps;
+  const { fonts, google, limiter, store } = deps;
   const idParam = (c) => {
     const id = c.req.param('id');
     if (!FONT_ID_RE.test(String(id))) fail(404, 'not_found', 'Unknown font.');
@@ -32,6 +32,28 @@ export function fontRoutes(cfg, deps) {
     bytes: await fonts.bytes(),
     limit: LIMITS.store,
   }));
+
+  // The catalogue the picker filters. Cached on the server for a day; the SPA never talks to Google.
+  r.get('/fonts/catalogue', async (c) => {
+    if (!google) fail(503, 'google_unavailable', 'Google Fonts is not configured on this server. Uploads still work.');
+    const refresh = c.req.query('refresh') === '1';
+    const out = await google.catalogue({ refresh });
+    return c.json({ fetchedAt: out.fetchedAt, stale: Boolean(out.stale), families: out.families });
+  });
+
+  // Download one family's web faces, server-side, on the owner's action.
+  r.post('/fonts/google', async (c) => {
+    if (!google) fail(503, 'google_unavailable', 'Google Fonts is not configured on this server. Uploads still work.');
+    const lim = limiter.hit('fonts:' + c.get('session').sid, 10, 60_000);
+    if (!lim.ok) { c.header('Retry-After', String(lim.retryAfterS)); fail(429, 'rate_limited', 'Too many fonts in a minute.', { retryAfterS: lim.retryAfterS }); }
+    const body = await jsonBody(c);
+    const family = typeof body.family === 'string' ? body.family.trim() : '';
+    if (!family || family.length > 80) fail(400, 'bad_request', 'family must be a name of at most 80 characters.');
+    const { record, files, existing } = await google.fetchFamily(family, { lookup: (id) => fonts.get(id) });
+    if (existing) return c.json(slim(record), 200);
+    const { record: stored, created } = await fonts.add(record, files);
+    return c.json(slim(stored), created ? 201 : 200);
+  });
 
   // The body is the font file itself: the only octet-stream route in the API (app.mjs exempts this path).
   r.post('/fonts/upload', async (c) => {

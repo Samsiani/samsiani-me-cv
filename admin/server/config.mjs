@@ -36,6 +36,10 @@ export function loadConfig(env = process.env, { cli = false } = {}) {
     cfApiToken: val(env, 'CF_API_TOKEN'),
     cfZoneId: val(env, 'CF_ZONE_ID'),
     allowRoot: val(env, 'ALLOW_ROOT') === '1',
+    // Development and CI only: answer Google Fonts from test/fixtures/google-fonts instead of the network,
+    // so the e2e harness and `npm run dev:server` never leave the machine. Ignored in production.
+    googleFixture: production ? null : val(env, 'GOOGLE_FONTS_FIXTURE') || null,
+    googleFixtureOffline: !production && val(env, 'GOOGLE_FONTS_FIXTURE_OFFLINE') === '1',
     root: ROOT,
   };
   cfg.cookieName = cfg.cookieSecure ? '__Secure-sm_admin' : 'sm_admin';

@@ -6,6 +6,8 @@ import { createAudit } from './lib/audit.mjs';
 import { createPreviewStore } from './lib/preview.mjs';
 import { createPublisher } from './lib/publish.mjs';
 import { createFontStore } from './lib/fonts/store.mjs';
+import { createGoogle } from './lib/fonts/google.mjs';
+import { fixtureFetch, fixtureFrom } from './lib/fonts/fixture.mjs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { FONT_ID_RE } from '../../src/typography/roles.mjs';
@@ -14,7 +16,7 @@ import { brandNames } from '../../src/shared/brand.mjs';
 import { LAYOUTS } from '../../src/layouts/index.mjs';
 import { loadPalettes } from '../../src/palettes.mjs';
 
-export function createDeps(cfg, { clock = { now: () => Date.now() }, log, countRejected } = {}) {
+export function createDeps(cfg, { clock = { now: () => Date.now() }, log, countRejected, fetchImpl } = {}) {
   const paletteIds = loadPalettes().palettes.map((p) => p.id);
   const layoutIds = Object.keys(LAYOUTS);
   const audit = createAudit(cfg.dataDir, { clock });
@@ -47,8 +49,12 @@ export function createDeps(cfg, { clock = { now: () => Date.now() }, log, countR
     return out;
   };
   const fonts = createFontStore({ dataDir: cfg.dataDir, audit, lock: store.lock, references });
+  // Google is reached only through this fetch: the tests inject a fixture, and outside production
+  // GOOGLE_FONTS_FIXTURE does the same for the e2e harness and local development.
+  const fx = fetchImpl ? null : fixtureFrom(cfg);
+  const google = createGoogle({ dataDir: cfg.dataDir, clock, fetchImpl: fetchImpl || (fx ? fixtureFetch(fx.dir, { offline: fx.offline }) : fetch) });
   return {
-    cfg, clock, audit, store, auth, limiter, previews, publisher, previewBrand, fonts, paletteIds, layoutIds,
+    cfg, clock, audit, store, auth, limiter, previews, publisher, previewBrand, fonts, google, paletteIds, layoutIds,
     reconcile: () => publisher.reconcile(),
     startedAt: new Date(clock.now()).toISOString(), log, countRejected,
   };
