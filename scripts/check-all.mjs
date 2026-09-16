@@ -8,8 +8,10 @@ import { upgrade } from '../src/schema/migrate.mjs';
 import { canonicalize } from '../src/schema/validate.mjs';
 
 const PIXEL_BASE = '96e784e'; // the last commit before the refactor; Precision must render identically to it
+// minimal: also build and gate test/fixtures/site.minimal.json (hidden sections, no facts, removed lines);
+// the layouts' own scripts assert the seed's geometry, so they are not run on it.
 const TABLE = {
-  precision: { nav: '.topnav', design: 'cobalt', script: null },
+  precision: { nav: '.topnav', design: 'cobalt', script: null, minimal: true },
   studio: { nav: '.st-nav', design: 'lime', script: 'scripts/checks/studio.mjs' },
   ledger: { nav: '.lg-nav', design: 'cobalt', script: 'scripts/checks/ledger.mjs', palettes: ['cobalt', 'lime', 'crimson'] },
 };
@@ -61,6 +63,7 @@ const builds = [];
 for (const id of layouts) {
   for (const pal of palettes) builds.push(node(`build ${id}-${pal}`, ['build.mjs'], { LAYOUT: id, PALETTE: pal, OUT_DIR: dir(id, pal) }));
   builds.push(node(`build ${id}-stress`, ['build.mjs'], { LAYOUT: id, SITE_JSON: 'test/fixtures/site.stress.json', OUT_DIR: dir(id, 'stress') }));
+  if (TABLE[id].minimal) builds.push(node(`build ${id}-minimal`, ['build.mjs'], { LAYOUT: id, SITE_JSON: 'test/fixtures/site.minimal.json', OUT_DIR: dir(id, 'minimal') }));
 }
 await pool(builds);
 if (failures.some((f) => f.startsWith('build '))) { console.log(`\n${failures.length} FAILED (builds broken; later gates skipped)`); process.exit(1); }
@@ -73,6 +76,10 @@ for (const id of layouts) {
   jobs.push(node(`${id}: page gate (stress, no print)`, ['scripts/check-pages.mjs', '--dist', dir(id, 'stress'), '--only', 'overflow,casing,focus,names,motion']));
   jobs.push(node(`${id}: stress gate (seed)`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, t.design), '--topnav', t.nav]));
   jobs.push(node(`${id}: stress gate (stress fixture)`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, 'stress'), '--topnav', t.nav]));
+  if (t.minimal) {
+    jobs.push(node(`${id}: page gate (minimal)`, ['scripts/check-pages.mjs', '--dist', dir(id, 'minimal')]));
+    jobs.push(node(`${id}: stress gate (minimal)`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, 'minimal'), '--topnav', t.nav]));
+  }
   for (const pal of palettes) jobs.push(node(`${id}: contrast with ${pal}`, ['scripts/check-pages.mjs', '--dist', dir(id, pal), '--only', 'contrast']));
   if (t.script) {
     for (const pal of t.palettes || [t.design]) jobs.push(node(`${id}: own checks (${pal})`, [t.script, dir(id, pal)]));

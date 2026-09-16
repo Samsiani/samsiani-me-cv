@@ -46,7 +46,7 @@ export function renderBody(c, ctx) {
       const items = g.items.map((i) => `<li class="row"><span class="row-name">${skillName(i)}</span><span class="lvl" data-level="${i.level}">${esc(c.ui.levels[i.level])}</span></li>`);
       return `
       <div class="group">
-        <div class="group-head"><h3>${esc(g.title)}</h3><p>${esc(g.lead)}</p></div>
+        <div class="group-head"><h3>${esc(g.title)}</h3>${g.lead ? `<p>${esc(g.lead)}</p>` : ''}</div>
         <ul class="rows">${items.join('')}</ul>
       </div>`;
     })
@@ -59,6 +59,71 @@ export function renderBody(c, ctx) {
     isExternal(i.href)
       ? `<a class="btn ghost" href="${esc(i.href)}" rel="me noopener">${esc(i.label)}</a>`
       : `<a class="btn ghost" href="${esc(i.href)}">${esc(i.value)}</a>`;
+
+  // the rail: a removed line leaves no element and no blank line behind it
+  const rail = [
+    c.hero.eyebrow ? `<p class="eyebrow">${esc(c.hero.eyebrow)}</p>` : '',
+    `<h1 class="name">${nameHtml}</h1>`,
+    `<p class="role">${esc(c.hero.role)}</p>`,
+    c.hero.subrole ? `<p class="subrole">${esc(c.hero.subrole)}</p>` : '',
+    `<div class="rail-block" aria-label="${esc(c.contact.heading)}">${contactList}</div>`,
+    `<nav class="railnav rail-block" aria-label="${esc(c.ui.nav)}">${navLinks(true)}</nav>`,
+  ].filter(Boolean).join('\n    ');
+
+  // the introduction: the strip is drawn for 1–4 facts (--n only when it is not the default 4) and the
+  // whole block disappears once the tagline, the location line and the facts are all gone
+  const facts = c.hero.facts;
+  const meta = [c.hero.location, c.hero.availability].filter(Boolean).join(' · ');
+  const introParts = [
+    c.hero.tagline ? `<p class="tagline">${esc(c.hero.tagline)}</p>` : '',
+    meta ? `<p class="loc"><span class="dot" aria-hidden="true"></span>${esc(meta)}</p>` : '',
+    facts.length ? `<ul class="facts"${facts.length === 4 ? '' : ` style="--n:${facts.length}"`}>
+        ${facts.map((f) => `<li><span class="fact-value">${esc(f.value)}</span><span class="fact-label">${esc(f.label)}</span></li>`).join('')}
+      </ul>` : '',
+  ].filter(Boolean);
+  const intro = introParts.length ? `<section class="intro" aria-label="${esc(c.ui.atAGlance)}">
+      ${introParts.join('\n      ')}
+    </section>` : '';
+
+  // one body per section (keyed by its anchor); the wrapper, the number and the head are shared
+  const BODY = {
+    profile: (sec) => `<div class="prose">${sec.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`,
+    skills: () => `<div class="ledger">${skillGroups}</div>`,
+    abilities: (sec) => `<ol class="list">
+        ${sec.items.map((a, i) => `<li class="item"><div class="item-head"><span class="item-idx" aria-hidden="true">${pad(i + 1)}</span><h3>${esc(a.title)}</h3></div><p>${esc(a.text)}</p></li>`).join('')}
+      </ol>`,
+    'work-style': (sec) => `<ul class="list">
+        ${sec.items.map((w) => `<li class="item"><div class="item-head"><h3>${esc(w.title)}</h3></div><p>${esc(w.text)}</p></li>`).join('')}
+      </ul>`,
+    principles: (sec) => `<ol class="list">
+        ${sec.items.map((p, i) => `<li class="item"><div class="item-head"><span class="item-idx" aria-hidden="true">${pad(i + 1)}</span><h3>${esc(p.title)}</h3></div><p>${esc(p.text)}</p></li>`).join('')}
+      </ol>`,
+    experience: (sec) => `<ol class="list">
+        ${sec.items
+          .map(
+            (e) => `<li class="item"><div class="item-head"><span class="item-label">${esc(e.period)}</span></div><div><h3>${esc(e.role)} <span class="org">· ${e.orgHref ? `<a href="${esc(e.orgHref)}" rel="noopener">${esc(e.org)}</a>` : esc(e.org)}</span></h3><p>${esc(e.text)}</p></div></li>`
+          )
+          .join('')}
+      </ol>`,
+    languages: (sec) => `<ul class="list">
+        ${sec.langs.map((l) => `<li class="item"><div class="item-head"><span class="item-label">${esc(l.name)}</span></div><div><p class="lang-level">${esc(l.level)}</p></div></li>`).join('')}
+      </ul>`,
+    contact: (sec) => {
+      if (!primary) return '';
+      const row = [sec.cta ? `<a class="btn" href="${esc(primary.href)}">${esc(sec.cta)}</a>` : '', ...sec.buttons.map(ghost)].filter(Boolean);
+      return `<a class="big-mail" href="${esc(primary.href)}">${esc(primary.value)} ${UI_ICONS.arrow}</a>${row.length ? `
+      <div class="cta-row">
+        ${row.join('\n        ')}
+      </div>` : ''}`;
+    },
+  };
+  const EXTRA = { skills: legend };
+  const CLASS = { contact: ' sec-contact' };
+  const section = (sec, n) => `<section class="sec${CLASS[sec.id] || ''}" id="${sec.id}" aria-labelledby="${sec.id}-title">
+      ${secHead(sec, n, EXTRA[sec.id] || '')}
+      ${BODY[sec.id](sec)}
+      ${secEnd}
+    </section>`;
 
   return `<header class="topbar">
   <div class="topbar-inner">
@@ -81,91 +146,14 @@ export function renderBody(c, ctx) {
 
 <div class="shell">
   <aside class="rail">
-    <p class="eyebrow">${esc(c.hero.eyebrow)}</p>
-    <h1 class="name">${nameHtml}</h1>
-    <p class="role">${esc(c.hero.role)}</p>
-    <p class="subrole">${esc(c.hero.subrole)}</p>
-    <div class="rail-block" aria-label="${esc(c.contact.heading)}">${contactList}</div>
-    <nav class="railnav rail-block" aria-label="${esc(c.ui.nav)}">${navLinks(true)}</nav>
+    ${rail}
   </aside>
 
   <main id="main" class="content">
-    <section class="intro" aria-label="${esc(c.ui.atAGlance)}">
-      <p class="tagline">${esc(c.hero.tagline)}</p>
-      <p class="loc"><span class="dot" aria-hidden="true"></span>${esc(c.hero.location)} · ${esc(c.hero.availability)}</p>
-      <ul class="facts">
-        ${c.hero.facts.map((f) => `<li><span class="fact-value">${esc(f.value)}</span><span class="fact-label">${esc(f.label)}</span></li>`).join('')}
-      </ul>
-    </section>
-
-    <section class="sec" id="${s.profile.id}" aria-labelledby="${s.profile.id}-title">
-      ${secHead(s.profile, 1)}
-      <div class="prose">${s.profile.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</div>
-      ${secEnd}
-    </section>
-
-    <section class="sec" id="${s.skills.id}" aria-labelledby="${s.skills.id}-title">
-      ${secHead(s.skills, 2, legend)}
-      <div class="ledger">${skillGroups}</div>
-      ${secEnd}
-    </section>
-
-    <section class="sec" id="${s.abilities.id}" aria-labelledby="${s.abilities.id}-title">
-      ${secHead(s.abilities, 3)}
-      <ol class="list">
-        ${s.abilities.items.map((a, i) => `<li class="item"><div class="item-head"><span class="item-idx" aria-hidden="true">${pad(i + 1)}</span><h3>${esc(a.title)}</h3></div><p>${esc(a.text)}</p></li>`).join('')}
-      </ol>
-      ${secEnd}
-    </section>
-
-    <section class="sec" id="${s.workstyle.id}" aria-labelledby="${s.workstyle.id}-title">
-      ${secHead(s.workstyle, 4)}
-      <ul class="list">
-        ${s.workstyle.items.map((w) => `<li class="item"><div class="item-head"><h3>${esc(w.title)}</h3></div><p>${esc(w.text)}</p></li>`).join('')}
-      </ul>
-      ${secEnd}
-    </section>
-
-    <section class="sec" id="${s.principles.id}" aria-labelledby="${s.principles.id}-title">
-      ${secHead(s.principles, 5)}
-      <ol class="list">
-        ${s.principles.items.map((p, i) => `<li class="item"><div class="item-head"><span class="item-idx" aria-hidden="true">${pad(i + 1)}</span><h3>${esc(p.title)}</h3></div><p>${esc(p.text)}</p></li>`).join('')}
-      </ol>
-      ${secEnd}
-    </section>
-
-    <section class="sec" id="${s.experience.id}" aria-labelledby="${s.experience.id}-title">
-      ${secHead(s.experience, 6)}
-      <ol class="list">
-        ${s.experience.items
-          .map(
-            (e) => `<li class="item"><div class="item-head"><span class="item-label">${esc(e.period)}</span></div><div><h3>${esc(e.role)} <span class="org">· ${e.orgHref ? `<a href="${esc(e.orgHref)}" rel="noopener">${esc(e.org)}</a>` : esc(e.org)}</span></h3><p>${esc(e.text)}</p></div></li>`
-          )
-          .join('')}
-      </ol>
-      ${secEnd}
-    </section>
-
-    <section class="sec" id="${s.education.id}" aria-labelledby="${s.education.id}-title">
-      ${secHead(s.education, 7)}
-      <ul class="list">
-        ${s.education.langs.map((l) => `<li class="item"><div class="item-head"><span class="item-label">${esc(l.name)}</span></div><div><p class="lang-level">${esc(l.level)}</p></div></li>`).join('')}
-      </ul>
-      ${secEnd}
-    </section>
-
-    <section class="sec sec-contact" id="${s.contact.id}" aria-labelledby="${s.contact.id}-title">
-      ${secHead(s.contact, 8)}
-      ${primary ? `<a class="big-mail" href="${esc(primary.href)}">${esc(primary.value)} ${UI_ICONS.arrow}</a>
-      <div class="cta-row">
-        <a class="btn" href="${esc(primary.href)}">${esc(s.contact.cta)}</a>
-        ${s.contact.buttons.map(ghost).join('\n        ')}
-      </div>` : ''}
-      ${secEnd}
-    </section>
+    ${[intro, ...order.map((sec, i) => section(sec, i + 1))].filter(Boolean).join('\n\n    ')}
 
     <footer class="foot">
-      <span>© ${esc(ctx.updated.slice(0, 4))} ${esc(c.hero.name)} · ${esc(c.ui.updated)} <time datetime="${esc(ctx.updated)}">${esc(ctx.updated)}</time> · ${esc(c.ui.builtWith)}</span>
+      <span>© ${esc(ctx.updated.slice(0, 4))} ${esc(c.hero.name)} · ${esc(c.ui.updated)} <time datetime="${esc(ctx.updated)}">${esc(ctx.updated)}</time>${c.ui.builtWith ? ` · ${esc(c.ui.builtWith)}` : ''}</span>
       <span class="foot-links">${langSwitchLink(c, alt, c.altTitle)}<a href="#main">${esc(c.ui.top)} ↑</a></span>
     </footer>
   </main>
