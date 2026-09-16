@@ -95,6 +95,7 @@
 .badge-muted { color: var(--adm-muted); border: 1px solid var(--adm-line); border-radius: 2px; padding: 2px 6px; }
 .sec-num { font: 400 11.5px/1 var(--adm-mono); color: var(--adm-muted); }
 .sec-row { padding-block: 10px; }
+.sec-row [data-act="toggle"] { min-width: 64px; } /* Hide and Show are the same width, so the rows line up */
 .sec-row .list-item-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 
 .fld { display: grid; gap: 6px; min-width: 0; padding-block: 12px; border-top: 1px solid var(--adm-line); }

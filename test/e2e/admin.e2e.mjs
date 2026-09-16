@@ -579,7 +579,8 @@ test('E13: hide and reorder sections with the keyboard; the published page loses
     await hide.focus();
     await x.page.keyboard.press('Enter');
     await x.page.getByRole('button', { name: 'Show ‘Experience’', exact: true }).waitFor();
-    assert.equal(await x.page.evaluate(() => document.activeElement?.textContent?.trim()), 'Show ‘Experience’', 'focus stays on the toggle');
+    assert.equal(await x.page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Show ‘Experience’', 'focus stays on the toggle');
+    assert.equal(await x.page.evaluate(() => document.activeElement?.textContent?.trim()), 'Show', 'the visible label stays short so the rows line up');
     const move = x.page.getByRole('button', { name: 'Move ‘Languages’ up', exact: true });
     await move.focus();
     await x.page.keyboard.press('Enter');

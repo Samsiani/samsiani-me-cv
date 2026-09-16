@@ -57,8 +57,9 @@ function toggle(key) {
               type="button" class="btn" data-act="toggle"
               :aria-disabled="!sec(key).hidden && onlyOneShown ? 'true' : undefined"
               :aria-describedby="!sec(key).hidden && onlyOneShown ? 'sections-last' : undefined"
+              :aria-label="sec(key).hidden ? `Show ‘${titleEn(key)}’` : `Hide ‘${titleEn(key)}’`"
               @click="toggle(key)"
-            >{{ sec(key).hidden ? `Show ‘${titleEn(key)}’` : `Hide ‘${titleEn(key)}’` }}</button>
+            >{{ sec(key).hidden ? 'Show' : 'Hide' }}</button>
             <a class="btn btn-quiet" :href="`#/content/${TAB_OF[key]}`">Edit</a>
           </div>
         </div>
