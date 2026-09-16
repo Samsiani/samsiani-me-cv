@@ -26,8 +26,8 @@ export function createDeps(cfg, { clock = { now: () => Date.now() }, log, countR
   const previews = createPreviewStore({ clock, origin: cfg.publicOrigin });
   // Brand images: rendered from content at publish (cache in data/brand-cache, existing names reused from the
   // current build so a name always keeps its bytes); the preview only computes the names the publish will produce.
-  const brand = (site, pal, layoutMeta, reuseDir) => renderBrand(site, pal, layoutMeta, { cacheDir: join(cfg.dataDir, 'brand-cache'), reuseDirs: reuseDir ? [reuseDir] : [] });
-  const previewBrand = () => (site, pal, layoutMeta) => brandNames(site, pal, layoutMeta, RENDERER_ID);
+  const brand = (site, pal, layoutMeta, fonts, reuseDir) => renderBrand(site, pal, layoutMeta, { cacheDir: join(cfg.dataDir, 'brand-cache'), reuseDirs: reuseDir ? [reuseDir] : [], fonts });
+  const previewBrand = () => (site, pal, layoutMeta, fonts) => brandNames(site, pal, layoutMeta, RENDERER_ID, fonts);
   // The publisher renders with the chosen faces and the font store asks the publisher which builds still
   // reference them, so the publisher reaches the store through this late-bound handle.
   let fontStore = null;

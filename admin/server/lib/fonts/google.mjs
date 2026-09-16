@@ -9,9 +9,10 @@ import { mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { GEORGIAN_RANGE_CSS, subtractGeorgian } from '../../../../src/typography/roles.mjs';
-import { FontParseError, coverageOf, metricsOf, parseFont } from '../../../../src/typography/sfnt.mjs';
+import { FontParseError, coverageOf, metricsOf, parseFont, sniff } from '../../../../src/typography/sfnt.mjs';
 import { writeJsonAtomic, readJson } from '../fsx.mjs';
 import { AppError } from '../errors.mjs';
+import { LIMITS } from './store.mjs';
 
 const METADATA_URL = 'https://fonts.google.com/metadata/fonts';
 const CSS2 = 'https://fonts.googleapis.com/css2';
@@ -27,6 +28,8 @@ const BUDGET_MS = 90_000; // one family, downloads included
 const MAX_FILES = 8;
 const RETRIES = [1000, 3000];
 const STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+// The weights the social card draws: 400 and 600 for the text and Georgian roles, 500 for the labels.
+const CARD_WEIGHTS = [400, 500, 600];
 
 const unavailable = (detail) => new AppError(502, 'google_unavailable', `Google Fonts could not be reached: ${detail}`);
 const unexpected = (detail) => new AppError(502, 'google_unexpected', `Google Fonts answered something this release cannot read: ${detail}`);
@@ -152,6 +155,54 @@ export function createGoogle({ dataDir, fetchImpl = fetch, clock = { now: () => 
   // https://fonts.gstatic.com/s/inter/v20/<hash>.woff2 -> "v20"
   const versionOf = (url) => (/\/s\/[^/]+\/(v\d+)\//.exec(url) || [])[1] || 'v0';
 
+  // css2 answers a request without a User-Agent with unhinted *static* TTFs — the only thing satori can read
+  // (fonts plan §4.3 step 5, D8). No subset comments and no woff2 here, so the blocks are read on their own.
+  const TTF_BLOCK = /@font-face\s*\{([^}]*)\}/g;
+  function parseCss2Static(css) {
+    const out = [];
+    for (const m of css.matchAll(TTF_BLOCK)) {
+      const body = m[1];
+      const src = /url\((https:\/\/[^)\s]+)\)/.exec(body);
+      if (!src || !src[1].startsWith(GSTATIC) || /font-style:\s*italic/.test(body)) continue;
+      out.push({ url: src[1], weight: Math.round(Number(decl(body, 'font-weight')) || 400) });
+    }
+    return out;
+  }
+
+  /**
+   * The card faces for one family. Best effort by design: the web faces are what the site needs, so a family
+   * whose statics cannot be had keeps the card's built-in face and says so with FONT_OG_DEFAULT.
+   */
+  async function cardFaces(family, meta, deadline, used) {
+    const near = (w, list) => list.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a));
+    const want = [...new Set(CARD_WEIGHTS.map((w) => (meta.wght
+      ? Math.min(meta.wght[1], Math.max(meta.wght[0], w))
+      : near(w, meta.weights?.length ? meta.weights : [400]))))].sort((a, b) => a - b);
+    const url = `${CSS2}?family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@${want.join(';')}&display=swap`;
+    const css = (await get(url, { timeout: TIMEOUT.css, max: CAP.css, what: 'the css2 answer for the card faces', familyRequest: true })).toString('utf8');
+    const out = { files: new Map(), faces: [] };
+    const budget = LIMITS.family - used;
+    let taken = 0;
+    for (const block of parseCss2Static(css).slice(0, 4)) {
+      if (clock.now() > deadline) break;
+      let bytes, flavor;
+      try {
+        bytes = await download(block.url, deadline);
+        flavor = sniff(bytes);
+        if (flavor === 'woff2' || !flavor) continue; // satori cannot read it; the card would fall back anyway
+        parseFont(bytes); // a file this release's own reader cannot follow is never stored
+      } catch { continue; }
+      const name = `${createHash('sha256').update(bytes).digest('hex')}.${flavor}`;
+      if (!out.files.has(name)) {
+        if (taken + bytes.length > budget) break;
+        taken += bytes.length;
+        out.files.set(name, bytes);
+      }
+      out.faces.push({ kind: 'satori', weight: block.weight, style: 'normal', file: name, bytes: bytes.length });
+    }
+    return out;
+  }
+
   async function download(url, deadline) {
     for (let attempt = 0; ; attempt++) {
       if (clock.now() > deadline) throw unavailable('the download took too long');
@@ -209,6 +260,14 @@ export function createGoogle({ dataDir, fetchImpl = fetch, clock = { now: () => 
         unicodeRange: (b.subset === 'georgian' ? GEORGIAN_RANGE_CSS : subtractGeorgian(b.unicodeRange).join(', ')) || b.unicodeRange,
       });
     }
+    // The social cards need a static TTF; best effort, because a card without one falls back to the built-in
+    // face (FONT_OG_DEFAULT) while the site itself has everything it needs.
+    try {
+      const card = await cardFaces(family, meta, deadline, [...files.values()].reduce((n, b) => n + b.length, 0));
+      for (const [name, bytes] of card.files) files.set(name, bytes);
+      faces.push(...card.faces);
+    } catch { /* the web faces are the point; the card faces are a bonus */ }
+
     const face = latin || georgian;
     const metrics = { ...metricsOf(face), ...(georgian ? { georgian: metricsOf(georgian).georgian } : {}) };
     return {

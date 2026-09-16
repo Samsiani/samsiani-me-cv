@@ -550,6 +550,16 @@
     "https://fonts.gstatic.com/s/notoserifgeorgian/v29/not-a-font-at-all-0000000000000000000.woff2": "src/admin-thumbs/precision.svg",
     "https://fonts.gstatic.com/s/archivo/v25/k3kQo8UDI-1M0wlSfdnoLmvDIaIoversized00000.woff2": {
       "bytes": 2100000
-    }
+    },
+    "https://fonts.gstatic.com/s/chivo/v20/ttf-400.ttf": "src/brand/fonts/Chivo-Regular.ttf",
+    "https://fonts.gstatic.com/s/chivo/v20/ttf-500.ttf": "src/brand/fonts/Chivo-Regular.ttf",
+    "https://fonts.gstatic.com/s/chivo/v20/ttf-600.ttf": "src/brand/fonts/Chivo-SemiBold.ttf",
+    "https://fonts.gstatic.com/s/notosansgeorgian/v50/ttf-400.ttf": "src/brand/fonts/NotoSansGeorgian-Regular.ttf",
+    "https://fonts.gstatic.com/s/notosansgeorgian/v50/ttf-500.ttf": "src/brand/fonts/NotoSansGeorgian-Regular.ttf",
+    "https://fonts.gstatic.com/s/notosansgeorgian/v50/ttf-600.ttf": "src/brand/fonts/NotoSansGeorgian-SemiBold.ttf"
+  },
+  "css2Static": {
+    "https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600&display=swap": "@font-face {\n  font-family: 'Chivo';\n  font-style: normal;\n  font-weight: 400;\n  src: url(https://fonts.gstatic.com/s/chivo/v20/ttf-400.ttf) format('truetype');\n}\n\n@font-face {\n  font-family: 'Chivo';\n  font-style: normal;\n  font-weight: 500;\n  src: url(https://fonts.gstatic.com/s/chivo/v20/ttf-500.ttf) format('truetype');\n}\n\n@font-face {\n  font-family: 'Chivo';\n  font-style: normal;\n  font-weight: 600;\n  src: url(https://fonts.gstatic.com/s/chivo/v20/ttf-600.ttf) format('truetype');\n}\n",
+    "https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600&display=swap": "@font-face {\n  font-family: 'Noto Sans Georgian';\n  font-style: normal;\n  font-weight: 400;\n  src: url(https://fonts.gstatic.com/s/notosansgeorgian/v50/ttf-400.ttf) format('truetype');\n}\n\n@font-face {\n  font-family: 'Noto Sans Georgian';\n  font-style: normal;\n  font-weight: 500;\n  src: url(https://fonts.gstatic.com/s/notosansgeorgian/v50/ttf-500.ttf) format('truetype');\n}\n\n@font-face {\n  font-family: 'Noto Sans Georgian';\n  font-style: normal;\n  font-weight: 600;\n  src: url(https://fonts.gstatic.com/s/notosansgeorgian/v50/ttf-600.ttf) format('truetype');\n}\n"
   }
 }

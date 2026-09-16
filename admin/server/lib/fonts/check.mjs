@@ -87,6 +87,11 @@ export async function fontIssues(site, fontStore, { layoutIds = Object.keys(LAYO
         if (!mine || !theirs || mine < theirs * WIDE) continue;
         warnings.push({ path: path(layout.meta.id, role), code: 'FONT_WIDE', msg: `about ${pct(mine / theirs)} wider than ${layout.meta.fontRoles[role].defaultFamily}: long names and print may need a look` });
       }
+      // satori reads TTF, OTF and WOFF but not WOFF2: a role with no such file keeps the card's built-in face
+      for (const role of FONT_ROLES) {
+        if (!fonts.roles[role] || fonts.og?.[role]) continue;
+        warnings.push({ path: path(layout.meta.id, role), code: 'FONT_OG_DEFAULT', msg: `the social cards keep ${layout.meta.fontRoles[role].defaultFamily} for this role: this font has no TTF, OTF or WOFF file the card renderer can read` });
+      }
       const fit = navFitOf(site, layout, fonts);
       if (fit && fit.en === 'never' && fit.ka === 'never') warnings.push({ path: `$.settings.fonts.${layout.meta.id}`, code: 'FONT_NAV_MENU', msg: 'with these fonts the inline header nav never fits; both pages show the Sections menu instead' });
       else if (fit && (fit.en === 'never' || fit.ka === 'never')) warnings.push({ path: `$.settings.fonts.${layout.meta.id}`, code: 'FONT_NAV_MENU', msg: `with these fonts the inline header nav never fits on ${fit.en === 'never' ? 'the English page' : '/ka/'}; it shows the Sections menu instead` });

@@ -314,16 +314,19 @@ test('a variable family is downloaded once and is idempotent', async () => {
   assert.equal(rec.version, 'v20');
   assert.equal(rec.licence.url, 'https://fonts.google.com/specimen/Chivo/license');
   assert.deepEqual(rec.coverage, { latin: true, georgian: false });
-  assert.deepEqual(rec.faces.map((f) => [f.kind, f.subset, f.weight]), [['web', 'latin', [100, 900]]]);
+  // one web file, plus the static TTFs the social cards need (fonts plan §4.3 step 5, D8)
+  assert.deepEqual(rec.faces.map((f) => [f.kind, f.subset, f.weight]),
+    [['web', 'latin', [100, 900]], ['satori', undefined, 400], ['satori', undefined, 500], ['satori', undefined, 600]]);
   assert.doesNotMatch(rec.faces[0].unicodeRange, /U\+10[A-F0-9]{2}/);
-  assert.equal(files(ctx).length, 1);
+  assert.equal(files(ctx).length, 3, 'the woff2 and the two distinct TTFs');
+  assert.ok(files(ctx).filter((f) => f.endsWith('.ttf')).length === 2);
 
   const before = ctx.seen.length;
   const again = await addFamily(ctx, cookie, 'Chivo');
   assert.equal(again.status, 200);
   assert.equal((await again.json()).id, rec.id);
-  assert.equal(ctx.seen.length, before + 1, 'only css2 is asked again; the font file is not downloaded twice');
-  assert.equal(files(ctx).length, 1);
+  assert.equal(ctx.seen.length, before + 1, 'only css2 is asked again; no file is downloaded twice');
+  assert.equal(files(ctx).length, 3);
   offFixture(ctx);
 });
 
@@ -524,7 +527,7 @@ test('cli fonts ls, rm and refetch', async () => {
   const refetch = cli('fonts', 'refetch');
   assert.equal(refetch.status, 0, refetch.stderr);
   assert.match(refetch.stdout, /refetched Chivo \(v20\)/);
-  assert.equal(files(ctx).length, 1);
+  assert.equal(files(ctx).length, 3, 'the web face and both card faces are back');
 
   assert.equal(cli('fonts', 'rm', rec.id).status, 0);
   assert.equal((await ctx.deps.fonts.get(rec.id)), null);

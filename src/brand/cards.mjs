@@ -10,11 +10,15 @@ const N = {
 };
 // satori requires an explicit display on every element with children; flex is the default here
 const el = (type, style, children) => ({ type, props: { style: { display: 'flex', ...style }, children } });
-const LATIN = 'Chivo', MONO = 'JetBrains Mono', KA = 'Noto Sans Georgian';
+// The icons draw their monogram in the built-in family and never follow a chosen font (their name does
+// not record one). The card names its faces by role, and render.mjs binds each alias to the chosen file
+// or, when satori cannot read it, to the built-in family (fonts plan §5.6, D11).
+const LATIN = 'Chivo';
+const TEXT = 'sm-text', MONO = 'sm-label', KA = 'sm-georgian';
 
 export function ogCard(i) {
   const ka = i.lang === 'ka';
-  const text = ka ? `${KA}, ${LATIN}` : `${LATIN}, ${KA}`;
+  const text = ka ? `${KA}, ${TEXT}` : `${TEXT}, ${KA}`;
   const label = ka
     ? { fontFamily: KA, fontSize: 14, letterSpacing: 0.14, textTransform: 'none' }
     : { fontFamily: `${MONO}, ${KA}`, fontSize: 12, letterSpacing: 0.54, textTransform: 'uppercase' };
@@ -22,7 +26,7 @@ export function ogCard(i) {
     display: 'flex', flexDirection: 'column', flex: 1, paddingRight: 24, marginRight: n < i.facts.length - 1 ? 24 : 0,
     borderRight: n < i.facts.length - 1 ? `1px solid ${N.rule1}` : 'none',
   }, [
-    el('div', { fontFamily: `${LATIN}, ${KA}`, fontSize: 30, fontWeight: 600, lineHeight: 1, letterSpacing: -0.75, color: N.ink }, v),
+    el('div', { fontFamily: `${TEXT}, ${KA}`, fontSize: 30, fontWeight: 600, lineHeight: 1, letterSpacing: -0.75, color: N.ink }, v),
     el('div', { marginTop: 10, lineHeight: 1.4, color: N.muted, ...label }, l),
   ]));
   // A removed line draws no element at all: satori never receives a null child.
@@ -41,7 +45,7 @@ export function ogCard(i) {
   return el('div', { width: 1200, height: 630, display: 'flex', position: 'relative', background: N.bg, color: N.ink, fontFamily: text }, [
     el('div', { position: 'absolute', left: 0, top: 0, width: 6, height: 630, background: i.accent }, []),
     el('div', { width: 86, height: 630, display: 'flex', justifyContent: 'center', paddingTop: 64, borderRight: `1px solid ${N.rule1}` }, [
-      el('div', { width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', background: N.ink, color: N.bg, fontFamily: LATIN, fontSize: i.monogram.length > 2 ? 16 : 20, fontWeight: 600, letterSpacing: 1 }, i.monogram),
+      el('div', { width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', background: N.ink, color: N.bg, fontFamily: TEXT, fontSize: i.monogram.length > 2 ? 16 : 20, fontWeight: 600, letterSpacing: 1 }, i.monogram),
     ]),
     el('div', { display: 'flex', flexDirection: 'column', flex: 1, height: 630, padding: '64px 72px 56px 56px' }, column),
     el('div', { position: 'absolute', right: 72, top: 64, fontFamily: MONO, fontSize: 19, fontWeight: 500, letterSpacing: 0.38, color: i.accentInk }, i.host),

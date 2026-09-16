@@ -78,7 +78,12 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
   }
   const gate = checkPalettes(palettes);
   if (gate.failed > 0) throw new Error(`palette contrast gate failed: ${gate.failed} check(s)`);
-  if (typeof brand === 'function') brand = await brand(site, pal, layout.meta);
+  // The chosen fonts are resolved before the brand images: the social cards are drawn with the same faces,
+  // and their names carry which ones (fonts plan §5.6). With no override `fonts.og` is null and every brand
+  // name and byte is what it was before this feature.
+  const fonts = await resolveFonts(site, layout.meta, fontLoader);
+  warnings.push(...fonts.warnings);
+  if (typeof brand === 'function') brand = await brand(site, pal, layout.meta, fonts.og);
   if (brand.warning) warnings.push({ code: brand.warning, path: '$', msg: 'brand images could not be rendered; the current ones are reused' });
   if (brand.palette && brand.palette !== pal.id) {
     warnings.push({ code: 'BRAND_STALE', path: '$.settings.palette', msg: `icons and OG cards stay ${brand.palette} until the brand renderer lands (M7)` });
@@ -89,8 +94,6 @@ export async function buildSite(site, { mode = 'publish', base = '/', brand, tod
 
   // 3. CSS (layout files + the chosen fonts + the one active palette), script, fonts. Without an override
   //    `fonts.css` is empty and every byte below is the byte it was before the fonts feature (plan §7.1).
-  const fonts = await resolveFonts(site, layout.meta, fontLoader);
-  warnings.push(...fonts.warnings);
   const cssParts = layout.meta.css.map((f) => readFileSync(new URL(`layouts/${layout.meta.id}/${f}`, SRC), 'utf8'));
   const css = cssParts.join('\n') + (fonts.css ? '\n' + fonts.css : '') + '\n' + paletteCss(pal, ':root', palettes.tokens) + '\n';
   const js = readFileSync(new URL('main.js', SRC), 'utf8');

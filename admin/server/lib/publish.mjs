@@ -197,8 +197,8 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     const warnings = [];
     const state0 = await store.readState();
     const reuseDir = state0?.current ? dirOf(state0.current) : null;
-    const provider = async (s, pal, meta) => {
-      try { return await brand(s, pal, meta, reuseDir); }
+    const provider = async (s, pal, meta, ogFonts) => {
+      try { return await brand(s, pal, meta, ogFonts, reuseDir); }
       catch (e) {
         if (!reuseDir) throw new PublishError('og', `Brand images failed: ${e.message}`);
         const m = await readManifest(state0.current);

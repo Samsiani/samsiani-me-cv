@@ -25,10 +25,15 @@ export function fixtureFetch(dir, { offline = false, seen = [] } = {}) {
     if (u === (index.metadataUrl || 'https://fonts.google.com/metadata/fonts')) {
       return ok(Buffer.from((index.prefix ?? '') + JSON.stringify(index.metadata)), 'application/json');
     }
+    // css2 answers a request without a User-Agent with static TTFs instead of subsetted WOFF2 files, and the
+    // font fetcher relies on exactly that for the social cards; the fixture keeps the two answers apart.
+    const ua = init.headers && (init.headers['User-Agent'] ?? init.headers['user-agent']);
+    if (!ua && index.css2Static?.[u] !== undefined) return ok(Buffer.from(index.css2Static[u]), 'text/css');
     if (index.css2[u] !== undefined) return ok(Buffer.from(index.css2[u]), 'text/css');
     if (index.files[u] !== undefined) {
       const f = index.files[u];
-      return ok(typeof f === 'object' ? Buffer.alloc(f.bytes, 0x41) : body(f), 'font/woff2');
+      const type = u.endsWith('.ttf') ? 'font/ttf' : 'font/woff2';
+      return ok(typeof f === 'object' ? Buffer.alloc(f.bytes, 0x41) : body(f), type);
     }
     return new Response('not found', { status: 404 });
   };

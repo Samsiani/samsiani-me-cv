@@ -23,7 +23,7 @@ let files;
 try {
   files = await buildSite(site, {
     mode: 'publish',
-    brand: (s, pal, layoutMeta) => renderBrand(s, pal, layoutMeta, { cacheDir: '.cache/brand' }),
+    brand: (s, pal, layoutMeta, fonts) => renderBrand(s, pal, layoutMeta, { cacheDir: '.cache/brand', fonts }),
     fonts: process.env.FONTS_DIR ? fileLoader(process.env.FONTS_DIR) : null,
     today,
     after: { siteUrl: process.env.SITE_URL, updated: process.env.BUILD_DATE },

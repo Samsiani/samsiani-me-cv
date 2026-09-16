@@ -21,7 +21,7 @@ const FACE_FILE_RE = /^[0-9a-f]{64}\.(?:woff2|woff|ttf|otf)$/;
 export const HEADROOM = { latin: 1.06, georgian: 1.12 };
 
 /** The answer for every build that does not override a font. Frozen: callers may hold on to it. */
-export const NO_FONTS = Object.freeze({ overridden: false, css: '', files: new Map(), warnings: [] });
+export const NO_FONTS = Object.freeze({ overridden: false, css: '', files: new Map(), warnings: [], og: null });
 
 const sha8 = (b) => createHash('sha256').update(b).digest('hex').slice(0, 8);
 const hasGeorgian = (s) => [...String(s)].some((ch) => isGeorgianCodePoint(ch.codePointAt(0)));
@@ -84,6 +84,32 @@ const faceName = (record, face, subsets, bytes) => {
   const [lo, hi] = weightsOf(face);
   return `fonts/${slug(record.family)}-${[...subsets].map(slug).join('-')}-normal-${lo === hi ? lo : `${lo}-${hi}`}.${sha8(bytes)}.woff2`;
 };
+
+// ---------------------------------------------------------------- the social cards
+/**
+ * What each role gives satori for the social cards (fonts plan §5.6, D8). satori reads TTF, OTF and WOFF but
+ * never WOFF2, so a role whose record carries no `satori` face keeps the card's built-in face — reported as
+ * FONT_OG_DEFAULT, never rendered wrong. `key` goes into the card's name, so a card drawn in another face
+ * gets another file name; the bytes are read only when a card is actually rendered.
+ */
+function ogFacesOf(chosen, loader) {
+  const out = {};
+  for (const role of FONT_ROLES) {
+    const record = chosen[role];
+    const list = (record?.faces || []).filter((f) => f.kind === 'satori').slice(0, MAX_FACES_PER_ROLE);
+    if (!list.length) { out[role] = null; continue; }
+    const cache = new Map();
+    out[role] = {
+      key: list.map((f) => String(f.file).slice(0, 8)).join('+'),
+      faces: list.map((f) => ({
+        weight: Number(Array.isArray(f.weight) ? f.weight[0] : f.weight) || 400,
+        style: f.style === 'italic' ? 'italic' : 'normal',
+        read: () => { if (!cache.has(f.file)) cache.set(f.file, Promise.resolve(loader.readFace(record, f))); return cache.get(f.file); },
+      })),
+    };
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------- the CSS block
 // A default family goes into the stack the way the layout writes it; an alias is always quoted.
@@ -189,6 +215,7 @@ export async function resolveFonts(site, layoutMeta, loader) {
   return {
     overridden: true,
     roles: Object.fromEntries(FONT_ROLES.map((r) => [r, chosen[r] ? { id: chosen[r].id, record: chosen[r], alias: ALIASES[r] } : null])),
+    og: ogFacesOf(chosen, loader),
     css,
     files,
     preload: { en: order.en.slice(0, MAX_PRELOAD), ka: order.ka.slice(0, MAX_PRELOAD) },

@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { brandPlan, CARD_TEMPLATE_VERSION, ICON_TEMPLATE_VERSION } from '../shared/brand.mjs';
+import { ALIASES, FONT_ROLES } from '../typography/roles.mjs';
 
 const require = createRequire(import.meta.url);
 const FONT_DIR = new URL('./fonts/', import.meta.url);
@@ -36,11 +37,27 @@ async function load() {
 
 export const stats = { renders: 0 }; // tests: proves a cache hit skips rendering
 
-export async function renderPng(item) {
+// The card names its faces by role (fonts plan D11/§5.6); this is what each role is drawn with. A role with
+// no satori-readable file keeps the built-in family under the same alias, so the card still renders and only
+// the FONT_OG_DEFAULT warning says it is not the chosen face. The icons keep the family names above.
+const ALIAS_FAMILY = { text: 'Chivo', label: 'JetBrains Mono', georgian: 'Noto Sans Georgian' };
+
+async function cardFonts(faces) {
+  const out = [...FONTS];
+  for (const role of FONT_ROLES) {
+    const chosen = faces?.[role];
+    if (chosen) for (const f of chosen.faces) out.push({ name: ALIASES[role], weight: f.weight, style: f.style, data: Buffer.from(await f.read()) });
+    else out.push(...FONTS.filter((f) => f.name === ALIAS_FAMILY[role]).map((f) => ({ ...f, name: ALIASES[role] })));
+  }
+  return out;
+}
+
+/** @param {{ faces?: object|null }} [opts] the card faces; by default the ones brandPlan() put on the item */
+export async function renderPng(item, { faces = item.faces ?? null } = {}) {
   const { satori, Resvg, ogCard, iconCard } = await load();
   const [w, h] = item.kind === 'og' ? [1200, 630] : [item.size, item.size];
   const tree = item.kind === 'og' ? ogCard(item.inputs) : iconCard(item.inputs, item.size);
-  const svg = await satori(tree, { width: w, height: h, fonts: FONTS });
+  const svg = await satori(tree, { width: w, height: h, fonts: item.kind === 'og' ? await cardFonts(faces) : FONTS });
   stats.renders++;
   return Buffer.from(new Resvg(svg, { fitTo: { mode: 'original' } }).render().asPng());
 }
@@ -50,8 +67,8 @@ export async function renderPng(item) {
  * its existing bytes; only missing names are rendered, then written to the cache.
  * @returns {{ files: Map<string, Buffer>, og: { en, ka }, icons: { i32, i180, i192, i512 }, palette: string }}
  */
-export async function renderBrand(site, palette, layoutMeta, { cacheDir, reuseDirs = [] } = {}) {
-  const plan = brandPlan(site, palette, layoutMeta, RENDERER_ID);
+export async function renderBrand(site, palette, layoutMeta, { cacheDir, reuseDirs = [], fonts = null } = {}) {
+  const plan = brandPlan(site, palette, layoutMeta, RENDERER_ID, fonts);
   const files = new Map();
   if (cacheDir) await mkdir(cacheDir, { recursive: true });
   for (const item of plan) {
