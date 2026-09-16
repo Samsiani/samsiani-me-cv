@@ -95,9 +95,9 @@ export function fontRoutes(cfg, deps) {
   // The specimen for a role that is still on the layout's own face: read from src/fonts by the manifest,
   // never from the path, so the route can only ever serve a file this release ships.
   r.get('/fonts/default/:layout/:role', async (c) => {
-    const layout = LAYOUTS[c.req.param('layout')];
-    const role = c.req.param('role');
-    if (!layout || !FONT_ROLES.includes(role)) fail(404, 'not_found', 'Unknown layout or role.');
+    const id = c.req.param('layout'), role = c.req.param('role');
+    if (!Object.hasOwn(LAYOUTS, id) || !FONT_ROLES.includes(role)) fail(404, 'not_found', 'Unknown layout or role.');
+    const layout = LAYOUTS[id];
     const name = layout.meta.fontRoles[role].files[0];
     const bytes = await readFile(join(cfg.root, 'src/fonts', `${name}.woff2`)).catch(() => null);
     if (!bytes) fail(404, 'not_found', 'That face is not in this release.');
