@@ -28,7 +28,11 @@ export function createDeps(cfg, { clock = { now: () => Date.now() }, log, countR
   // current build so a name always keeps its bytes); the preview only computes the names the publish will produce.
   const brand = (site, pal, layoutMeta, reuseDir) => renderBrand(site, pal, layoutMeta, { cacheDir: join(cfg.dataDir, 'brand-cache'), reuseDirs: reuseDir ? [reuseDir] : [] });
   const previewBrand = () => (site, pal, layoutMeta) => brandNames(site, pal, layoutMeta, RENDERER_ID);
-  const publisher = createPublisher({ cfg, store, audit, clock, brand, paletteIds, layoutIds });
+  // The publisher renders with the chosen faces and the font store asks the publisher which builds still
+  // reference them, so the publisher reaches the store through this late-bound handle.
+  let fontStore = null;
+  const fontsFor = { loader: () => fontStore.loader(), get: (id) => fontStore.get(id) };
+  const publisher = createPublisher({ cfg, store, audit, clock, brand, fonts: fontsFor, paletteIds, layoutIds });
   // Which fonts may not be deleted: the draft, the live document and every build still on disk (a rollback
   // target must keep rendering). A build's manifest names them; one staged before this feature does not, so
   // its own copy of the document answers instead.
@@ -48,7 +52,7 @@ export function createDeps(cfg, { clock = { now: () => Date.now() }, log, countR
     }
     return out;
   };
-  const fonts = createFontStore({ dataDir: cfg.dataDir, audit, lock: store.lock, references });
+  const fonts = (fontStore = createFontStore({ dataDir: cfg.dataDir, audit, lock: store.lock, references }));
   // Google is reached only through this fetch: the tests inject a fixture, and outside production
   // GOOGLE_FONTS_FIXTURE does the same for the e2e harness and local development.
   const fx = fetchImpl ? null : fixtureFrom(cfg);

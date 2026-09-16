@@ -3,6 +3,8 @@ import { LAYOUTS } from '../../../src/layouts/index.mjs';
 import { loadPalettes, checkPalettes, parseColor } from '../../../src/palettes.mjs';
 import { buildSchema, limitsTable } from '../../../src/schema/validate.mjs';
 import { SCHEMA_VERSION } from '../../../src/schema/migrate.mjs';
+import { FONT_ROLES } from '../../../src/typography/roles.mjs';
+import { LIMITS } from '../lib/fonts/store.mjs';
 
 export function buildRegistry() {
   const palettes = loadPalettes();
@@ -26,6 +28,14 @@ export function buildRegistry() {
     paletteChecks: checks.rows,
     paletteHex,
     paletteMin,
+    // What the font picker shows per layout, and the sizes the upload form must state before it tries.
+    fontRoles: Object.fromEntries(Object.values(LAYOUTS).map(({ meta }) => [meta.id, Object.fromEntries(
+      FONT_ROLES.map((role) => {
+        const r = meta.fontRoles[role];
+        return [role, { label: r.label, help: r.help, defaultFamily: r.defaultFamily, weights: r.weights }];
+      }),
+    )])),
+    fontLimits: { file: LIMITS.file, family: LIMITS.family, faces: LIMITS.faces, store: LIMITS.store, displayName: LIMITS.displayName, formats: ['woff2', 'woff', 'ttf', 'otf'] },
     limits: limitsTable(buildSchema({ paletteIds, layoutIds: Object.keys(LAYOUTS) })),
     schema: buildSchema({ paletteIds, layoutIds: Object.keys(LAYOUTS) }),
   };

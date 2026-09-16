@@ -204,6 +204,8 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
       const state = await readState();
       return all.map(({ site, ...meta }) => ({
         ...meta, layout: site?.settings?.layout, palette: site?.settings?.palette,
+        // the fonts this revision would render with: role -> id, for its own layout (null = the layout's own)
+        fonts: site?.settings?.fonts?.[site?.settings?.layout] ?? null,
         live: !!state && meta.reason === 'publish' && meta.rev === state.publishedRev,
       }));
     },

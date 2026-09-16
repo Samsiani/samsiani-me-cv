@@ -14,6 +14,7 @@ import { fsyncDir, readJson } from './fsx.mjs';
 import { applyBuild, ImmutableChangedError, sha256File, gcWebRoot, safeJoin } from './swap.mjs';
 import { AppError, PreconditionError, NotFoundError } from './errors.mjs';
 import { BUILD_ID_RE } from './store.mjs';
+import { fontIssues } from './fonts/check.mjs';
 import { purgeFixedUrls } from './cloudflare.mjs';
 
 export const KEEP_BUILDS = 10;
@@ -30,9 +31,10 @@ export class PublishError extends AppError {
 export const hooks = { afterSwap: null }; // test seam: simulate a crash between swap and commit
 
 /**
- * @param {{ cfg, store, audit, clock, brand: (site) => Promise<{files, og, icons}>|object, paletteIds, layoutIds }} opts
+ * @param {{ cfg, store, audit, clock, brand: (site) => Promise<{files, og, icons}>|object, fonts, paletteIds, layoutIds }} opts
+ *   fonts: the font store, or null; without it every layout keeps its committed faces
  */
-export function createPublisher({ cfg, store, audit, clock = { now: () => Date.now() }, brand, paletteIds, layoutIds }) {
+export function createPublisher({ cfg, store, audit, clock = { now: () => Date.now() }, brand, fonts = null, paletteIds, layoutIds }) {
   const locks = join(cfg.dataDir, 'locks');
   const buildsDir = cfg.buildsDir;
   const webRoot = cfg.webRoot;
@@ -49,7 +51,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     await rm(tmp, { recursive: true, force: true });
     const manifest = {
       buildId, rev, createdAt: new Date(clock.now()).toISOString(), reason, release: cfg.release,
-      layout: files.layoutId, palette: files.paletteId, updated: site.settings.updated, files: {},
+      layout: files.layoutId, palette: files.paletteId, fonts: files.fonts ?? null, updated: site.settings.updated, files: {},
     };
     try {
       const dirs = new Set([tmp]);
@@ -141,7 +143,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     for (const n of names) {
       try {
         const m = await readManifest(n);
-        items.push({ buildId: n, rev: m.rev, createdAt: m.createdAt, layout: m.layout, palette: m.palette, current: state?.current === n, files: Object.keys(m.files).length, bytes: Object.values(m.files).reduce((a, f) => a + f.bytes, 0) });
+        items.push({ buildId: n, rev: m.rev, createdAt: m.createdAt, layout: m.layout, palette: m.palette, fonts: m.fonts ?? null, current: state?.current === n, files: Object.keys(m.files).length, bytes: Object.values(m.files).reduce((a, f) => a + f.bytes, 0) });
       } catch {}
     }
     return items;
@@ -174,8 +176,13 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
       site = structuredClone(draftEnv.site);
     } else site = structuredClone(live.site);
     site.settings.siteUrl = cfg.siteUrl;
-    // 3. full validation
+    // 3. full validation, plus the checks that need this machine's font store
     const v = validate(site, { mode: 'save', paletteIds, layoutIds, today });
+    if (fonts) {
+      const fi = await fontIssues(site, fonts);
+      v.errors.push(...fi.errors);
+      v.warnings.push(...fi.warnings);
+    }
     if (v.errors.length) throw new AppError(400, 'invalid', 'The draft has errors; fix them before publishing.', { errors: v.errors });
     if (source === 'draft' && v.warnings.length && acknowledgeWarnings !== true) throw new AppError(409, 'warnings_unacknowledged', 'Review the warnings, then publish again.', { warnings: v.warnings });
     // 4. date rule: content changes set today's date; layout, palette or theme changes alone keep it
@@ -205,7 +212,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     };
     // 6. render
     let files;
-    try { files = await buildSite(site, { mode: 'publish', base: '/', brand: provider, today, palettes }); }
+    try { files = await buildSite(site, { mode: 'publish', base: '/', brand: provider, today, palettes, fonts: fonts?.loader() ?? null }); }
     catch (e) {
       if (e instanceof BuildValidationError) throw new AppError(400, 'invalid', 'The draft has errors.', { errors: e.errors });
       if (e instanceof PublishError) throw e;

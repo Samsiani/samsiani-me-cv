@@ -6,6 +6,7 @@ Bilingual (English `/`, Georgian `/ka/`) CV for Giorgi Samsiani. The public site
 - **URL:** `https://samsiani.me/admin/`, one account, reachable only through Cloudflare.
 - **First login** uses the initial password from the server's `admin.env`; the admin then forces a password change.
 - **What it does:** every text in English and Georgian side by side, three layouts (Precision, Studio, Ledger), six palettes, default theme, last-updated date, live preview of unsaved edits, publish in about a second, 30 revisions and one-click rollback of the live site, export and import. Single lines can be removed and added back, the facts strip holds none to four, and sections can be reordered or hidden (Content → Section order).
+- **Fonts:** each layout has a text, a label and a Georgian face, and each can be replaced per layout — from the Google Fonts catalogue (the server downloads the files once; the visitor's browser never talks to Google) or from an uploaded WOFF2, WOFF, TTF or OTF. The files live in `$SITE_HOME/data/fonts/` and ship with the site under hashed names. Without a choice every layout keeps its own faces and the output is unchanged. `cli fonts ls|rm <id>|refetch` manages the store from the server.
 - **Content lives on the server** (`$SITE_HOME/data/site.json`). `src/content/site.json` in this repository is only the first-boot seed and the local development content; production edits never come back into git unless exported by hand.
 
 ## Local development
@@ -44,5 +45,5 @@ Server details never live in this repository: the host, SSH user, deploy key and
 | R7 | Corrupt data file | `draft.json` recovers from revisions; `cli restore-backup` |
 | R8 | Return to the static pipeline | See the runbook |
 | R9 | Rotate secrets | `SESSION_SECRET_PREV`, then reload; the edge secret with its Cloudflare rule |
-| R10 | New or rebuilt server | Re-create the env files, restore a backup, deploy |
+| R10 | New or rebuilt server | Re-create the env files, restore a backup, deploy, then `cli fonts refetch` and re-upload the fonts it lists |
 | R11 | After any Cloudflare rule change | The two admin cache and edge checks |

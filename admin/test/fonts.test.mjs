@@ -1,6 +1,8 @@
-// Fonts F3 (docs/plans/fonts.md §4.4, §4.7, §7.2): the store, the upload pipeline and the routes.
-// Uploads are untrusted input, so most of this file is about what the server refuses and about nothing
-// being written when it does.
+// Fonts (docs/plans/fonts.md §4, §7.2): the store, the upload pipeline, the Google fetcher, the routes and
+// what a publish, a preview and a rollback do with a chosen face. Uploads and Google answers are untrusted
+// input, so much of this file is about what the server refuses and about nothing being written when it does.
+// Google is served from the frozen fixture and every other setup() throws on fetch: no test reaches the
+// network.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -8,6 +10,7 @@ import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { setup, req, login } from './_helpers.mjs';
 import { createBackup } from '../server/lib/backup.mjs';
+import { gcWebRoot } from '../server/lib/swap.mjs';
 import { parseFont } from '../../src/typography/sfnt.mjs';
 
 const WEB = new URL('../../src/fonts/', import.meta.url);
@@ -373,4 +376,157 @@ test('a downloaded family renders like an upload and can be deleted again', asyn
   assert.equal((await req(ctx, 'DELETE', `/admin/api/fonts/${rec.id}`, { cookie })).status, 204);
   assert.equal(files(ctx).length, 0);
   offFixture(ctx);
+});
+
+// ---------------------------------------------------------------- publish, preview and rollback (F5)
+const draftWith = async (ctx, cookie, fonts) => {
+  const d = await (await req(ctx, 'GET', '/admin/api/draft', { cookie })).json();
+  const site = structuredClone(d.site);
+  site.settings.fonts = fonts;
+  const res = await req(ctx, 'PUT', '/admin/api/draft', { cookie, body: { site }, headers: { 'If-Match': `"${d.etag}"` } });
+  assert.equal(res.status, 200, await res.text());
+  return site;
+};
+const publishNow = async (ctx) => ctx.deps.publisher.publish({ source: 'draft', ifMatch: (await ctx.deps.store.getDraft()).etag, acknowledgeWarnings: true });
+
+test('publishing with a chosen font ships it, links it and records it in the manifest', async () => {
+  const { ctx, cookie } = await signedIn();
+  const rec = await (await upload(ctx, cookie, PLEX_SANS(), { filename: 'plex.woff2' })).json();
+  await draftWith(ctx, cookie, { precision: { text: rec.id } });
+  const out = await publishNow(ctx);
+
+  const web = readdirSync(join(ctx.cfg.webRoot, 'fonts')).sort();
+  const custom = web.find((n) => /^ibm-plex-sans-latin-normal-100-700\.[0-9a-f]{8}\.woff2$/.test(n));
+  assert.ok(custom, web.join(', '));
+  for (const f of ['chivo-latin-normal-400-700.woff2', 'jetbrains-mono-latin-normal-400-500.woff2']) {
+    assert.ok(web.includes(f), `${f} still ships for the layout's own @font-face`);
+  }
+  const html = readFileSync(join(ctx.cfg.webRoot, 'index.html'), 'utf8');
+  assert.ok(html.includes(`<link rel="preload" href="/fonts/${custom}" as="font" type="font/woff2" crossorigin>`));
+  const css = readFileSync(join(ctx.cfg.webRoot, /styles\.[0-9a-f]{8}\.css/.exec(html)[0]), 'utf8');
+  assert.match(css, /font-family: "sm-text"/);
+  assert.doesNotMatch(css, /"IBM Plex Sans"/, 'no font name from a file reaches the stylesheet');
+
+  const manifest = await ctx.deps.publisher.readManifest(out.buildId);
+  assert.deepEqual(manifest.fonts, { text: rec.id, label: 'default', georgian: 'default' });
+  const builds = await (await req(ctx, 'GET', '/admin/api/builds', { cookie })).json();
+  assert.equal(builds.items[0].fontsSummary, 'IBM Plex Sans');
+  const revisions = await (await req(ctx, 'GET', '/admin/api/revisions', { cookie })).json();
+  assert.equal(revisions.items.find((r2) => r2.reason === 'publish').fontsSummary, 'IBM Plex Sans');
+  assert.equal(revisions.items.find((r2) => r2.reason === 'autosave').fontsSummary, null, 'the revision taken before the choice has none');
+  // the font is now in use by the draft, the live document and the build
+  assert.deepEqual((await ctx.deps.fonts.usage())[rec.id].sort(), ['build', 'draft', 'published']);
+  assert.equal((await req(ctx, 'DELETE', `/admin/api/fonts/${rec.id}`, { cookie })).status, 409);
+});
+
+test('a second publish of the same document changes nothing', async () => {
+  const { ctx, cookie } = await signedIn();
+  const rec = await (await upload(ctx, cookie, PLEX_SANS(), { filename: 'plex.woff2' })).json();
+  await draftWith(ctx, cookie, { precision: { text: rec.id } });
+  await publishNow(ctx);
+  const again = await ctx.deps.publisher.publish({ source: 'draft', ifMatch: (await ctx.deps.store.getDraft()).etag, acknowledgeWarnings: true, ifChanged: true });
+  assert.equal(again.unchanged, true);
+  assert.equal(again.changedFiles, 0);
+});
+
+test('resetting the role puts the layout face back and the custom file is collected a day later', async () => {
+  const { ctx, cookie } = await signedIn();
+  const rec = await (await upload(ctx, cookie, PLEX_SANS(), { filename: 'plex.woff2' })).json();
+  await draftWith(ctx, cookie, { precision: { text: rec.id } });
+  await publishNow(ctx);
+  const custom = readdirSync(join(ctx.cfg.webRoot, 'fonts')).find((n) => /\.[0-9a-f]{8}\.woff2$/.test(n));
+  await draftWith(ctx, cookie, { precision: { text: null } });
+  await publishNow(ctx);
+  const html = readFileSync(join(ctx.cfg.webRoot, 'index.html'), 'utf8');
+  assert.ok(html.includes('/fonts/chivo-latin-normal-400-700.woff2'));
+  assert.doesNotMatch(html, /\.[0-9a-f]{8}\.woff2/);
+  // The file stays while the build that used it is still a rollback target, and while it is younger than a
+  // day (a page served from a cache may still ask for it); only then is it collected.
+  const at = join(ctx.cfg.webRoot, 'fonts', custom);
+  const state = await ctx.deps.store.readState();
+  const manifests = [];
+  for (const id of (state.history || []).slice(0, 3)) manifests.push(await ctx.deps.publisher.readManifest(id));
+  const day = Date.now() + 25 * 60 * 60 * 1000;
+  await gcWebRoot(ctx.cfg.webRoot, manifests, { now: day });
+  assert.ok(existsSync(at), 'the previous build can still be rolled back to, so its face stays');
+  const current = manifests.filter((m) => m.buildId === state.current);
+  await gcWebRoot(ctx.cfg.webRoot, current, { now: Date.now() });
+  assert.ok(existsSync(at), 'younger than a day');
+  await gcWebRoot(ctx.cfg.webRoot, current, { now: day });
+  assert.equal(existsSync(at), false);
+  assert.ok(existsSync(join(ctx.cfg.webRoot, 'fonts', 'chivo-latin-normal-400-700.woff2')), 'the layout faces keep fixed names and are never collected');
+});
+
+test('a font the store lost blocks the publish and cli verify names it', async () => {
+  const { ctx, cookie } = await signedIn();
+  const rec = await (await upload(ctx, cookie, PLEX_SANS(), { filename: 'plex.woff2' })).json();
+  await draftWith(ctx, cookie, { precision: { text: rec.id } });
+  await publishNow(ctx);
+  await ctx.deps.fonts.remove(rec.id);
+  await assert.rejects(publishNow(ctx), (e) => e.code === 'invalid' && e.details.errors.some((x) => x.code === 'FONT_UNKNOWN'));
+  const v = await (await req(ctx, 'POST', '/admin/api/validate', { cookie, body: {} })).json();
+  assert.deepEqual(v.errors.map((e) => e.code), ['FONT_UNKNOWN']);
+});
+
+test('the preview serves the chosen face from the token map', async () => {
+  const { ctx, cookie } = await signedIn();
+  const rec = await (await upload(ctx, cookie, PLEX_SANS(), { filename: 'plex.woff2' })).json();
+  await draftWith(ctx, cookie, { precision: { text: rec.id } });
+  const p = await (await req(ctx, 'POST', '/admin/api/preview', { cookie, body: {} })).json();
+  const page = await (await req(ctx, 'GET', p.base, { cookie })).text();
+  const name = /href="[^"]*(fonts\/[a-z0-9-]+\.[0-9a-f]{8}\.woff2)"/.exec(page)[1];
+  const face = await req(ctx, 'GET', p.base + name, { cookie });
+  assert.equal(face.status, 200);
+  assert.equal(face.headers.get('content-type'), 'font/woff2');
+  assert.equal(face.headers.get('access-control-allow-origin'), '*');
+  assert.equal((await face.arrayBuffer()).byteLength, PLEX_SANS().length);
+});
+
+test('rollback brings the previous build\'s font set back', async () => {
+  const { ctx, cookie } = await signedIn();
+  await publishNow(ctx);
+  const before = readdirSync(join(ctx.cfg.webRoot, 'fonts')).sort();
+  const rec = await (await upload(ctx, cookie, PLEX_SANS(), { filename: 'plex.woff2' })).json();
+  await draftWith(ctx, cookie, { precision: { text: rec.id } });
+  await publishNow(ctx);
+  assert.equal(readdirSync(join(ctx.cfg.webRoot, 'fonts')).length, before.length + 1);
+  await ctx.deps.publisher.rollback({});
+  const html = readFileSync(join(ctx.cfg.webRoot, 'index.html'), 'utf8');
+  assert.doesNotMatch(html, /\.[0-9a-f]{8}\.woff2/);
+  assert.ok(html.includes('/fonts/chivo-latin-normal-400-700.woff2'));
+});
+
+test('the registry tells the picker what each layout asks for', async () => {
+  const { ctx, cookie } = await signedIn();
+  const reg = await (await req(ctx, 'GET', '/admin/api/registry', { cookie })).json();
+  assert.deepEqual(Object.keys(reg.fontRoles).sort(), ['ledger', 'precision', 'studio']);
+  assert.deepEqual(reg.fontRoles.precision.text, { label: 'Text', help: 'Headings and body text.', defaultFamily: 'Chivo', weights: [400, 600, 700] });
+  assert.deepEqual(Object.keys(reg.fontRoles.studio), ['text', 'label', 'georgian']);
+  assert.deepEqual(reg.fontLimits.formats, ['woff2', 'woff', 'ttf', 'otf']);
+  assert.equal(reg.fontLimits.file, 2 * 1024 * 1024);
+  assert.equal(reg.limits.some((l) => l.path.startsWith('settings.fonts')), false);
+});
+
+test('cli fonts ls, rm and refetch', async () => {
+  const { ctx, cookie } = await googleIn();
+  const rec = await (await addFamily(ctx, cookie, 'Chivo')).json();
+  const { spawnSync } = await import('node:child_process');
+  const env = { ...process.env, DATA_DIR: ctx.cfg.dataDir, WEB_ROOT: ctx.cfg.webRoot, BUILDS_DIR: ctx.cfg.buildsDir, GOOGLE_FONTS_FIXTURE: 'test/fixtures/google-fonts', NODE_ENV: 'development' };
+  const cli = (...args) => spawnSync(process.execPath, ['admin/server/cli.mjs', ...args], { env, encoding: 'utf8', cwd: new URL('../../', import.meta.url).pathname });
+
+  const ls = cli('fonts', 'ls');
+  assert.equal(ls.status, 0, ls.stderr);
+  assert.match(ls.stdout, new RegExp(`${rec.id}\\s+google\\s+\\d+ KB\\s+latin\\s+unused\\s+Chivo`));
+
+  // the files are gone but the index is not: what a restore leaves behind, and what refetch repairs
+  const { rmSync } = await import('node:fs');
+  rmSync(join(ctx.cfg.dataDir, 'fonts', 'files'), { recursive: true, force: true });
+  const refetch = cli('fonts', 'refetch');
+  assert.equal(refetch.status, 0, refetch.stderr);
+  assert.match(refetch.stdout, /refetched Chivo \(v20\)/);
+  assert.equal(files(ctx).length, 1);
+
+  assert.equal(cli('fonts', 'rm', rec.id).status, 0);
+  assert.equal((await ctx.deps.fonts.get(rec.id)), null);
+  assert.equal(cli('fonts', 'nope').status, 2);
 });

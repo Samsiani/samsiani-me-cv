@@ -1,13 +1,14 @@
 // Admin CLI (admin-ops.md §10.3). Runs as the site user on the server, or locally with ./data.
 //   node admin/server/cli.mjs <init|migrate [--dry-run]|verify|set-password [--username=]|backup [--name=]|
 //                              restore-backup (--date=YYYY-MM-DD|--file=path) --part=draft|published|all|
-//                              export [--source=draft|published]|import --file=path>
+//                              export [--source=draft|published]|import --file=path|fonts <ls|rm|refetch>>
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { loadConfig, ConfigError } from './config.mjs';
 import { createDeps } from './deps.mjs';
 import { createBackup } from './lib/backup.mjs';
+import { fontIssues } from './lib/fonts/check.mjs';
 import { BUILD_ID_RE, sha256 } from './lib/store.mjs';
 import { writeJsonAtomic } from './lib/fsx.mjs';
 import { passwordProblem } from './lib/auth.mjs';
@@ -216,6 +217,9 @@ try {
         if (pub) {
           const v = validate(pub.site, { mode: 'build', paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, today: store.today() });
           if (v.errors.length) problems.push(`the published document has ${v.errors.length} error(s) under this release: ${v.errors.slice(0, 3).map((e) => `${e.code} ${e.path}`).join(', ')}`);
+          // a font this machine no longer has: publishing would render the layout's own face instead
+          const f = await fontIssues(pub.site, deps.fonts);
+          for (const e of f.errors) problems.push(`${e.code} ${e.path}: ${e.msg}`);
         }
         await store.getDraft().catch((e) => problems.push(`draft.json: ${e.message}`));
       }
@@ -252,6 +256,48 @@ try {
       if (r.droppedFonts?.length) console.log(`::warning::${r.droppedFonts.length} font record(s) had no files on this machine and were dropped: ${r.droppedFonts.join(', ')}`);
       break;
     }
+    case 'fonts': {
+      const sub = rest[0];
+      const kb = (n) => `${Math.round(n / 1024)} KB`;
+      if (sub === 'ls') {
+        const [items, usage] = await Promise.all([deps.fonts.list(), deps.fonts.usage()]);
+        for (const f of items) {
+          const size = (f.faces || []).reduce((n, x) => n + (x.bytes || 0), 0);
+          const cov = [f.coverage?.latin && 'latin', f.coverage?.georgian && 'georgian'].filter(Boolean).join('+') || 'none';
+          console.log(`${f.id}  ${f.source.padEnd(6)}  ${kb(size).padStart(7)}  ${cov.padEnd(14)}  ${(usage[f.id] || ['unused']).join(',').padEnd(18)}  ${f.displayName || f.family}`);
+        }
+        console.log(`${items.length} font(s), ${kb(await deps.fonts.bytes())} of ${kb(deps.fonts.limits.store)}`);
+        break;
+      }
+      if (sub === 'rm') {
+        const id = rest[1];
+        const usage = (await deps.fonts.usage())[id];
+        if (usage?.length) die(`fonts rm: ${id} is still used by ${usage.join(', ')}; reset those roles first`);
+        await deps.fonts.remove(id);
+        console.log(`removed ${id}`);
+        break;
+      }
+      if (sub === 'refetch') {
+        // After a restore the index is here and the files are not: every Google record is downloaded again.
+        const google = (await deps.fonts.list()).filter((f) => f.source === 'google');
+        let repaired = 0;
+        for (const f of google) {
+          try {
+            const { record, files } = await deps.google.fetchFamily(f.family, { lookup: async () => null });
+            const out = await deps.fonts.add(record.id === f.id ? f : record, files);
+            repaired += out.repaired || (out.created ? 1 : 0);
+            console.log(`${out.repaired || out.created ? 'refetched' : 'ok       '} ${f.family} (${record.version})`);
+          } catch (e) {
+            console.log(`::warning::${f.family}: ${e.message}`);
+          }
+        }
+        const uploads = (await deps.fonts.list()).filter((f) => f.source === 'upload');
+        console.log(`${repaired} file(s) restored for ${google.length} Google font(s)${uploads.length ? `; upload again: ${uploads.map((f) => f.displayName || f.family).join(', ')}` : ''}`);
+        break;
+      }
+      die('usage: cli.mjs fonts <ls|rm <id>|refetch>', 2);
+      break;
+    }
     case 'export': {
       const source = flag('source') === 'published' ? 'published' : 'draft';
       const doc = source === 'draft' ? await store.getDraft() : await store.getPublished();
@@ -267,7 +313,7 @@ try {
       break;
     }
     default:
-      die('usage: cli.mjs <init|migrate [--dry-run]|verify [--web-root]|set-password [--username=]|backup [--name=]|restore-backup (--date=|--file=) --part=|export [--source=]|import --file=|publish [--source=draft|published] [--reason=] [--if-changed]|rollback [--to=]|builds|restore-build --from=>', 2);
+      die('usage: cli.mjs <init|migrate [--dry-run]|verify [--web-root]|set-password [--username=]|backup [--name=]|restore-backup (--date=|--file=) --part=|export [--source=]|import --file=|publish [--source=draft|published] [--reason=] [--if-changed]|rollback [--to=]|builds|restore-build --from=|fonts <ls|rm <id>|refetch>>', 2);
   }
 } catch (e) {
   if (e instanceof AppError) die(`${cmd}: ${e.message}${e.details?.errors ? ' ' + JSON.stringify(e.details.errors.slice(0, 5)) : ''}`);

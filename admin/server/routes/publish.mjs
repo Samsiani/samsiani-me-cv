@@ -5,6 +5,7 @@ import { buildSite } from '../../../src/build-site.mjs';
 import { LAYOUTS } from '../../../src/layouts/index.mjs';
 import { loadPalettes } from '../../../src/palettes.mjs';
 import { brandPlan } from '../../../src/shared/brand.mjs';
+import { fontNamer } from '../lib/fonts/check.mjs';
 import { renderPng, RENDERER_ID } from '../../../src/brand/render.mjs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -32,7 +33,7 @@ export function publishRoutes(cfg, deps) {
     const token = previews.newToken();
     let files;
     try {
-      files = await buildSite(checked.site, { mode: 'preview', base: `/admin/preview/${token}/`, brand: deps.previewBrand(checked.site), today: store.today() });
+      files = await buildSite(checked.site, { mode: 'preview', base: `/admin/preview/${token}/`, brand: deps.previewBrand(checked.site), today: store.today(), fonts: deps.fonts.loader() });
     } catch (e) {
       fail(422, 'preview_render_failed', `Preview cannot render this draft: ${e.message}`);
     }
@@ -64,7 +65,11 @@ export function publishRoutes(cfg, deps) {
     return c.body(png, 200, { 'Content-Type': 'image/png' });
   });
 
-  r.get('/builds', async (c) => c.json({ items: await publisher.listBuilds() }));
+  r.get('/builds', async (c) => {
+    const items = await publisher.listBuilds();
+    const name = await fontNamer(deps.fonts);
+    return c.json({ items: items.map((b) => ({ ...b, fontsSummary: name(b.fonts) })) });
+  });
 
   r.post('/builds/rollback', async (c) => {
     const lim = limiter.hit('publish:' + c.get('session').sid, 10, 60_000);

@@ -4,7 +4,7 @@
 // was deleted for Studio never stops a Precision publish.
 import { LAYOUTS } from '../../../../src/layouts/index.mjs';
 import { renderSite } from '../../../../src/render.mjs';
-import { FONT_ROLES } from '../../../../src/typography/roles.mjs';
+import { FONT_ID_RE, FONT_ROLES } from '../../../../src/typography/roles.mjs';
 import { defaultFonts, pageBytes, resolveFonts } from '../../../../src/typography/resolve.mjs';
 
 const HEAVY_KA = 400 * 1024; // fonts on /ka/ (today 108-164 KB)
@@ -93,6 +93,19 @@ export async function fontIssues(site, fontStore, { layoutIds = Object.keys(LAYO
     }
   }
   return { errors, warnings };
+}
+
+/**
+ * One display string for a build's or a revision's `{ role: id | "default" }` map, for the tables that list
+ * them: "Inter · Noto Sans Georgian", or null when that document used the layout's own faces.
+ */
+export async function fontNamer(fontStore) {
+  const by = new Map((await fontStore.list()).map((r) => [r.id, r.displayName || r.family]));
+  return (map) => {
+    if (!map || typeof map !== 'object') return null;
+    const names = FONT_ROLES.map((r) => map[r]).filter((id) => typeof id === 'string' && FONT_ID_RE.test(id)).map((id) => by.get(id) || id);
+    return names.length ? [...new Set(names)].join(' · ') : null;
+  };
 }
 
 /** The dashboard panel's figures for the layout this document renders (fonts plan §4.6). */
