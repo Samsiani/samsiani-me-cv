@@ -7,7 +7,7 @@ import { LANGS, SECTIONS } from '../../src/shared/localize.mjs';
 import { seed, renderArgs } from './_helpers.mjs';
 
 // Layouts join this list as their milestone lands (C3 Precision, C4 Studio, C5 Ledger).
-const LAYOUTS_UNDER_TEST = ['precision'];
+const LAYOUTS_UNDER_TEST = ['precision', 'studio'];
 
 const PAGE = { en: 'index.html', ka: 'ka/index.html' };
 const OPTIONAL_LINES = ['eyebrow', 'subrole', 'tagline', 'location', 'availability'];

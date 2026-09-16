@@ -12,7 +12,7 @@ const PIXEL_BASE = '96e784e'; // the last commit before the refactor; Precision 
 // the layouts' own scripts assert the seed's geometry, so they are not run on it.
 const TABLE = {
   precision: { nav: '.topnav', design: 'cobalt', script: null, minimal: true },
-  studio: { nav: '.st-nav', design: 'lime', script: 'scripts/checks/studio.mjs' },
+  studio: { nav: '.st-nav', design: 'lime', script: 'scripts/checks/studio.mjs', minimal: true },
   ledger: { nav: '.lg-nav', design: 'cobalt', script: 'scripts/checks/ledger.mjs', palettes: ['cobalt', 'lime', 'crimson'] },
 };
 const layouts = Object.keys(LAYOUTS).filter((id) => TABLE[id]);
