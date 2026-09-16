@@ -415,9 +415,9 @@ async function auditScreen(page, cdp, label) {
   return { fails, stops };
 }
 
-const SCREENS = ['/', '/content/person', '/content/contact', '/content/profile', '/content/skills', '/content/abilities',
-  '/content/workstyle', '/content/principles', '/content/experience', '/content/languages', '/content/talk', '/content/ui',
-  '/seo', '/revisions', '/account'];
+const SCREENS = ['/', '/content/person', '/content/contact', '/content/sections', '/content/profile', '/content/skills',
+  '/content/abilities', '/content/workstyle', '/content/principles', '/content/experience', '/content/languages',
+  '/content/talk', '/content/ui', '/seo', '/revisions', '/account'];
 
 test('E10: dom-checks on every screen at 1280 and 390 px, light and dark', { timeout: 900_000 }, async () => {
   const fails = [];
@@ -527,6 +527,127 @@ test('autosave on a 5xx or a network error keeps the copy on this device, retrie
     await h.waitSaved(x.page, 30_000);
     assert.ok(h.readData('draft.json').site.hero.availability.en.endsWith('(offline test)'), 'the retry saved it');
     assert.equal(await x.page.evaluate(() => localStorage.getItem('sm-admin:pending')), null, 'the device copy is removed after the save');
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E12: Remove takes a single line off the page, Undo puts it back, Add back leaves an empty pair', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    const before = (await h.api(x.page, 'GET', '/draft')).json.site.hero.subrole;
+    await x.page.getByRole('link', { name: 'Content' }).first().click();
+    await x.page.locator('#f-hero-subrole-en').waitFor();
+    const t0 = Date.now();
+    await x.page.getByRole('button', { name: 'Remove Subrole', exact: true }).click();
+    assert.equal(await x.page.evaluate(() => document.activeElement?.textContent?.trim()), 'Add back', 'focus moves to Add back');
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await h.inPreview(x.page, () => !document.querySelector('.subrole, .st-subrole, .lg-subrole'), undefined, { timeout: 5_000 });
+    const elapsed = Date.now() - t0;
+    assert.ok(elapsed < 1500, `the preview dropped the line after ${elapsed} ms`);
+    // the toast is still open (10 s): Undo restores the pair and focuses its EN input
+    await x.page.getByRole('link', { name: 'Content' }).first().click();
+    await x.page.getByText('Removed ‘Subrole’.').waitFor({ timeout: 5_000 });
+    await x.page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await x.page.locator('#f-hero-subrole-en').waitFor();
+    assert.equal(await x.page.locator('#f-hero-subrole-en').inputValue(), before.en, 'the text is back');
+    assert.equal(await x.page.evaluate(() => document.activeElement?.id), 'f-hero-subrole-en', 'focus is in the EN input');
+    // removed again and saved: the stored draft has null
+    await x.page.getByRole('button', { name: 'Remove Subrole', exact: true }).click();
+    await h.waitSaved(x.page);
+    assert.equal((await h.api(x.page, 'GET', '/draft')).json.site.hero.subrole, null);
+    // Add back gives an empty pair, which the form flags
+    await x.page.getByRole('button', { name: 'Add back Subrole', exact: true }).click();
+    await x.page.locator('#f-hero-subrole-en').waitFor();
+    await waitFor(async () => (await x.page.locator('#f-hero-subrole-en').getAttribute('aria-invalid')) === 'true', { message: 'the EMPTY flag' });
+    await x.page.locator('#f-hero-subrole-en').fill(before.en);
+    await x.page.locator('#f-hero-subrole-ka').fill(before.ka);
+    await h.waitSaved(x.page);
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E13: hide and reorder sections with the keyboard; the published page loses the hidden one', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.goto(`${h.origin}/admin/#/content/sections`);
+    await x.page.locator('main h1').first().waitFor();
+    const hide = x.page.getByRole('button', { name: 'Hide ‘Experience’', exact: true });
+    await hide.focus();
+    await x.page.keyboard.press('Enter');
+    await x.page.getByRole('button', { name: 'Show ‘Experience’', exact: true }).waitFor();
+    assert.equal(await x.page.evaluate(() => document.activeElement?.textContent?.trim()), 'Show ‘Experience’', 'focus stays on the toggle');
+    const move = x.page.getByRole('button', { name: 'Move ‘Languages’ up', exact: true });
+    await move.focus();
+    await x.page.keyboard.press('Enter');
+    await waitFor(async () => (await x.page.evaluate(() => document.activeElement?.closest('[data-key]')?.dataset?.key)) === 'languages', { message: 'the move' });
+    assert.equal(await x.page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Move ‘Languages’ up', 'focus stays on the same button of the moved row');
+    // the tab list follows the order and marks the hidden section
+    assert.deepEqual(
+      await x.page.evaluate(() => [...document.querySelectorAll('.tabs a')].map((a) => a.innerText.trim().replace(/\s+/g, ' '))),
+      ['Person & hero', 'Contact rail', 'Section order', 'Profile', 'Stack & skills', 'Abilities', 'How I work', 'Principles',
+        'Languages', 'Experience · hidden', 'Let’s talk', 'Interface strings'],
+    );
+    await h.waitSaved(x.page);
+    // the preview lists the shown sections only, in the new order, numbered 01…07
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await h.inPreview(x.page, () => new Set([...document.querySelectorAll('a[data-spy]')].map((a) => a.getAttribute('href'))).size === 7, undefined, { timeout: 5_000 });
+    const nav = await h.inPreview(x.page, () => {
+      const first = [...document.querySelectorAll('nav')].find((n) => n.querySelector('a[data-spy]'));
+      const numbered = [...document.querySelectorAll('nav')].find((n) => n.querySelector('a[data-spy] .idx, a[data-spy] .st-menu-idx, a[data-spy] .n'));
+      return {
+        hrefs: [...first.querySelectorAll('a[data-spy]')].map((a) => a.getAttribute('href')),
+        numbers: [...numbered.querySelectorAll('a[data-spy]')].map((a) => a.querySelector('.idx, .st-menu-idx, .n').textContent),
+      };
+    });
+    assert.deepEqual(nav.hrefs, ['#profile', '#skills', '#abilities', '#work-style', '#principles', '#languages', '#contact']);
+    assert.deepEqual(nav.numbers, ['01', '02', '03', '04', '05', '06', '07']);
+    // publish: the live page has no experience section and no worksFor
+    await x.page.getByTestId('publish').click();
+    await publishFromDialog(x.page);
+    const live = h.webFile('index.html').toString('utf8');
+    assert.equal(live.includes('id="experience"'), false, 'the hidden section is not on the page');
+    const ld = JSON.parse(live.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    assert.equal('worksFor' in ld, false, 'the structured data follows what is shown');
+    // show it again and publish (the next flows expect the whole page)
+    await x.page.goto(`${h.origin}/admin/#/content/sections`);
+    await x.page.getByRole('button', { name: 'Show ‘Experience’', exact: true }).click();
+    await h.waitSaved(x.page);
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await x.page.getByTestId('publish').click();
+    await publishFromDialog(x.page);
+    assert.ok(h.webFile('index.html').toString('utf8').includes('id="experience"'), 'the section is back');
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E14: the facts strip goes to zero and one Undo brings a fact back', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.goto(`${h.origin}/admin/#/content/person`);
+    await x.page.locator('#f-hero-facts').waitFor();
+    const remove = x.page.locator('#f-hero-facts [data-act="remove"]');
+    for (let left = 4; left > 0; left--) {
+      assert.equal(await remove.first().getAttribute('aria-disabled'), null, `Remove stays enabled at ${left} facts`);
+      await remove.first().click();
+      await waitFor(async () => (await remove.count()) === left - 1, { message: `${left - 1} facts` });
+    }
+    await h.waitSaved(x.page);
+    assert.deepEqual((await h.api(x.page, 'GET', '/draft')).json.site.hero.facts, []);
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await h.inPreview(x.page, () => !document.querySelector('.facts, .st-facts, .lg-facts'), undefined, { timeout: 5_000 });
+    // the last removal is still undoable
+    await x.page.getByRole('link', { name: 'Content' }).first().click();
+    await x.page.locator('#f-hero-facts').waitFor();
+    await x.page.getByRole('button', { name: 'Undo', exact: true }).last().click();
+    await waitFor(async () => (await x.page.locator('#f-hero-facts [data-act="remove"]').count()) === 1, { message: 'the restored fact' });
+    assert.equal((await x.page.locator('#f-hero-facts-max').innerText()).trim(), '1 of at most 4 facts.');
+    await h.waitSaved(x.page);
   } finally {
     await x.context.close();
   }

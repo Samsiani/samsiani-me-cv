@@ -5,7 +5,7 @@ Bilingual (English `/`, Georgian `/ka/`) CV for Giorgi Samsiani. The public site
 ## Admin
 - **URL:** `https://samsiani.me/admin/`, one account, reachable only through Cloudflare.
 - **First login** uses the initial password from the server's `admin.env`; the admin then forces a password change.
-- **What it does:** every text in English and Georgian side by side, three layouts (Precision, Studio, Ledger), six palettes, default theme, last-updated date, live preview of unsaved edits, publish in about a second, 30 revisions and one-click rollback of the live site, export and import.
+- **What it does:** every text in English and Georgian side by side, three layouts (Precision, Studio, Ledger), six palettes, default theme, last-updated date, live preview of unsaved edits, publish in about a second, 30 revisions and one-click rollback of the live site, export and import. Single lines can be removed and added back, the facts strip holds none to four, and sections can be reordered or hidden (Content → Section order).
 - **Content lives on the server** (`$SITE_HOME/data/site.json`). `src/content/site.json` in this repository is only the first-boot seed and the local development content; production edits never come back into git unless exported by hand.
 
 ## Local development
