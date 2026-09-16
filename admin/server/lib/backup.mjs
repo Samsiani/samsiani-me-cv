@@ -3,6 +3,7 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 import { readdir, readFile, rm, mkdir, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { canonicalize, validate } from '../../../src/schema/validate.mjs';
+import { upgrade } from '../../../src/schema/migrate.mjs';
 import { blockingErrors } from '../../shared/draft-rules.mjs';
 import { writeFileAtomic, writeJsonAtomic, exists } from './fsx.mjs';
 import { REVISION_ID_RE, sha256 } from './store.mjs';
@@ -19,7 +20,9 @@ export function createBackup({ dataDir, store, release = 'dev', clock = { now: (
     return store.lock('write', async () => {
       const read = async (f) => { try { return JSON.parse(await readFile(join(dataDir, f), 'utf8')); } catch { return null; } };
       const revisions = await store.listRevisionsRaw();
-      return { createdAt: new Date(clock.now()).toISOString(), release, published: await read('site.json'), draft: await read('draft.json'), publishState: await read('publish-state.json'), revisions };
+      // The font index travels with the backup, the font files do not: they are big, content-addressed and
+      // re-fetchable (Google) or re-uploadable. A restore keeps the records whose files are still here.
+      return { createdAt: new Date(clock.now()).toISOString(), release, published: await read('site.json'), draft: await read('draft.json'), publishState: await read('publish-state.json'), revisions, fonts: await read('fonts/index.json') };
     }, { op: 'backup' });
   }
 
@@ -56,6 +59,10 @@ export function createBackup({ dataDir, store, release = 'dev', clock = { now: (
       let doc;
       try { doc = JSON.parse(gunzipSync(await readFile(file)).toString('utf8')); }
       catch (e) { throw new AppError(400, 'invalid', `backup is unreadable: ${e.message}`); }
+      // a backup written by an older release: every document is upgraded before it is checked or written
+      for (const d of [doc?.draft, doc?.published, ...(Array.isArray(doc?.revisions) ? doc.revisions : [])]) {
+        if (d && typeof d === 'object' && d.site) d.site = upgrade(d.site);
+      }
       const today = store.today();
       const vo = { mode: 'save', paletteIds, layoutIds, today };
       const problems = [];
@@ -76,6 +83,18 @@ export function createBackup({ dataDir, store, release = 'dev', clock = { now: (
       const stage = join(dataDir, `.restore-${Date.now()}`);
       await mkdir(join(stage, 'revisions'), { recursive: true, mode: 0o700 });
       const restored = [];
+      // Font records whose files are not on this machine are dropped rather than restored: a dangling record
+      // would let the admin pick a font that cannot be shipped. The caller prints what went.
+      const droppedFonts = [];
+      let fonts = null;
+      if (part === 'all' && doc.fonts?.fonts && typeof doc.fonts.fonts === 'object') {
+        fonts = { v: 1, fonts: {} };
+        for (const [id, rec] of Object.entries(doc.fonts.fonts)) {
+          const files = (rec?.faces || []).map((f) => f.file);
+          const here = files.length && (await Promise.all(files.map((f) => exists(join(dataDir, 'fonts', 'files', String(f)))))).every(Boolean);
+          if (here) fonts.fonts[id] = rec; else droppedFonts.push(id);
+        }
+      }
       try {
         if (part !== 'published') { await writeJsonAtomic(join(stage, 'draft.json'), env({ ...doc.draft, kind: 'draft' }, doc.draft.site)); restored.push('draft.json'); }
         if (part !== 'draft') { await writeJsonAtomic(join(stage, 'site.json'), env({ ...doc.published, kind: 'published' }, doc.published.site)); restored.push('site.json'); }
@@ -85,12 +104,17 @@ export function createBackup({ dataDir, store, release = 'dev', clock = { now: (
           if (cur) await store.snapshotUnlocked('pre-restore', cur.site, { actor, rev: cur.rev });
           for (const f of ['draft.json', 'site.json']) if (await exists(join(stage, f))) await rename(join(stage, f), join(dataDir, f));
           if (part === 'all') { await mkdir(join(dataDir, 'revisions'), { recursive: true, mode: 0o700 }); for (const r of revs) await rename(join(stage, 'revisions', r.id + '.json'), join(dataDir, 'revisions', r.id + '.json')); }
+          if (fonts) {
+            await mkdir(join(dataDir, 'fonts'), { recursive: true, mode: 0o700 });
+            await writeJsonAtomic(join(dataDir, 'fonts', 'index.json'), fonts, { mode: 0o600 });
+            restored.push('fonts/index.json');
+          }
         }, { op: 'restore-backup' });
       } finally {
         await rm(stage, { recursive: true, force: true });
       }
       await audit?.log('revision_restored', { detail: `backup ${part}` });
-      return { restored };
+      return { restored, droppedFonts };
     },
   };
   return api;

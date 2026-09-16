@@ -4,7 +4,7 @@
 // Known content errors a draft may hold while the owner is still typing. Anything else is blocking,
 // including codes this file does not know yet (a future validator code fails safe).
 const NON_BLOCKING = new Set([
-  'EMPTY', 'TOO_LONG', 'COUNT', 'NAV_LABEL', 'NAV_BUDGET', 'REF', 'REF_PRIMARY', 'PERIOD_ORDER',
+  'EMPTY', 'TOO_LONG', 'COUNT', 'NAV_LABEL', 'NAV_BUDGET', 'NO_SECTIONS', 'REF', 'REF_PRIMARY', 'PERIOD_ORDER',
   'WHITESPACE', 'CYRILLIC', 'RUSSIAN', 'GEORGIAN_IN_CAPS', 'DATE', 'PATTERN',
 ]);
 

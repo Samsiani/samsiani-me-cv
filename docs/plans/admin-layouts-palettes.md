@@ -848,7 +848,7 @@ Tasks and acceptance (each on production)
 - More than one admin account, roles, two-factor login (Cloudflare Access covers the second factor for now).
 - Rich text, images, a photo, a project list, new sections, an education or certificates section, Russian or any third language (the validator rejects the last three).
 - A CSP for the public site (its inline theme script and JSON-LD would need hashes), analytics.
-- Editing structure from the admin (section order, anchors, levels, languages).
+- Editing anchors, skill levels or the language set from the admin. (The section order, hiding a section and removing single lines are in scope since schema v2: see `content-editing.md`.)
 - Rewriting git history to remove older server details; moving `docs/plans/` reference code out of the repository.
 - Automatic translation, spell-checking beyond the browser's, scheduled publishing.
 

@@ -57,6 +57,50 @@
   .pal-meta { grid-column: 3; }
 }
 
+/* fonts: the dashboard fieldset and the chooser (fonts plan §6) */
+.fp { border: 0; margin: 0; padding: 0; max-width: 560px; }
+.fp > legend { padding: 0; }
+.fp-list { margin-top: 12px; border-block: 1px solid var(--adm-line); }
+.fp-item { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--adm-line); min-width: 0; }
+.fp-item:first-child { border-top: 0; }
+.fp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.fp-role { font: 600 13px/1.3 var(--adm-sans); }
+.fp-source { font: 400 11.5px/1.3 var(--adm-mono); color: var(--adm-muted); }
+.fp-spec { display: grid; gap: 2px; min-width: 0; padding: 8px 10px; border: 1px solid var(--adm-line); border-radius: 2px; }
+.fp-spec .fp-spec-line { font-family: var(--fp-face); font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.fp-spec .fp-spec-ka { font-size: 14px; }
+.fp-report { margin-top: 12px; font: 400 12px/1.5 var(--adm-mono); color: var(--adm-muted); }
+
+.fp-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--adm-line); }
+.fp-tabs [role="tab"] {
+  min-height: 32px; padding: 0 12px; border: 1px solid transparent; border-bottom: 0; border-radius: 4px 4px 0 0;
+  background: transparent; color: var(--adm-ink); font: 500 13px/1.2 var(--adm-sans); cursor: pointer;
+}
+.fp-tabs [role="tab"]:hover { background: var(--adm-hover); }
+.fp-tabs [role="tab"][aria-selected="true"] { border-color: var(--adm-line); background: var(--adm-hover); font-weight: 600; box-shadow: inset 0 -2px 0 var(--adm-ink); }
+.fp-panel { padding-top: 12px; }
+.fp-pane { display: grid; gap: 12px; min-width: 0; }
+.fp-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.fp-filters > .grow { flex: 1 1 200px; min-width: 0; }
+.fp-rows { max-height: 220px; margin: 0; padding: 0; overflow-y: auto; list-style: none; border: 1px solid var(--adm-line); border-radius: 2px; }
+.fp-rows > li + li { border-top: 1px solid var(--adm-line); }
+.fp-rows :focus-visible { outline-offset: -2px; }  /* the list scrolls: rings are drawn inside the row */
+.fp-row {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; width: 100%; min-height: 40px;
+  padding: 8px 10px; border: 0; background: transparent; color: var(--adm-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.fp-row:hover { background: var(--adm-hover); }
+.fp-row[aria-pressed="true"] { background: var(--adm-hover); box-shadow: inset 3px 0 0 var(--adm-ink); }
+.fp-row-name { font: 500 14px/1.3 var(--adm-sans); }
+.fp-row-meta { font: 400 11.5px/1.4 var(--adm-mono); color: var(--adm-muted); }
+.fp-more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.fp-stored { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 8px 10px; }
+.fp-stored-main { display: grid; gap: 2px; min-width: 0; flex: 1 1 200px; }
+.fp-stored-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fp-stored-acts .inp { width: auto; flex: 1 1 140px; }
+.fp-chosen { display: grid; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--adm-line); }
+.tbl .fonts-cell { color: var(--adm-muted); }
+
 /* ------------------------------------------------------------------ preview frame */
 .pv { display: grid; gap: 8px; min-width: 0; }
 .pv-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -91,9 +135,16 @@
 .badge-warn { color: var(--adm-warn); }
 .form-head { display: grid; gap: 4px; margin-bottom: 8px; }
 .form-head p { color: var(--adm-muted); }
+.form-head-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.badge-muted { color: var(--adm-muted); border: 1px solid var(--adm-line); border-radius: 2px; padding: 2px 6px; }
+.sec-num { font: 400 11.5px/1 var(--adm-mono); color: var(--adm-muted); }
+.sec-row { padding-block: 10px; }
+.sec-row [data-act="toggle"] { min-width: 64px; } /* Hide and Show are the same width, so the rows line up */
+.sec-row .list-item-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 
 .fld { display: grid; gap: 6px; min-width: 0; padding-block: 12px; border-top: 1px solid var(--adm-line); }
 .fld-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.fld-head-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .fld-pair { display: grid; gap: 10px 16px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1100px) { .fld-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .fld-lang { display: grid; gap: 4px; min-width: 0; align-content: start; }

@@ -46,7 +46,13 @@ export async function createHarness() {
   const port = await freePort();
   const origin = `http://127.0.0.1:${port}`;
   // a clean environment: nothing from the developer's shell (.env.development is not read either)
-  const baseEnv = { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR || tmpdir(), NODE_ENV: 'development', SITE_URL: 'https://samsiani.me', ...dirs };
+  // GOOGLE_FONTS_FIXTURE: the font picker reads the catalogue from test/fixtures/google-fonts/ instead of
+  // the network (dev only, dropped in production), so the suite never leaves the machine.
+  const baseEnv = {
+    PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR || tmpdir(),
+    NODE_ENV: 'development', SITE_URL: 'https://samsiani.me',
+    GOOGLE_FONTS_FIXTURE: 'test/fixtures/google-fonts', ...dirs,
+  };
   const init = spawnSync(process.execPath, ['admin/server/cli.mjs', 'init'], { cwd: ROOT, env: baseEnv, encoding: 'utf8' });
   if (init.status !== 0) throw new Error(`cli init failed:\n${init.stdout}\n${init.stderr}`);
   const secret = randomBytes(48).toString('base64'); // the same across restarts, so open sessions survive them

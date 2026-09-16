@@ -4,12 +4,17 @@ import { spawn, execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { LAYOUTS } from '../src/layouts/index.mjs';
 import { loadPalettes } from '../src/palettes.mjs';
+import { upgrade } from '../src/schema/migrate.mjs';
+import { canonicalize } from '../src/schema/validate.mjs';
+import { makeFontsFixture } from './lib/fonts-fixture.mjs';
 
 const PIXEL_BASE = '96e784e'; // the last commit before the refactor; Precision must render identically to it
+// minimal: also build and gate test/fixtures/site.minimal.json (hidden sections, no facts, removed lines);
+// the layouts' own scripts assert the seed's geometry, so they are not run on it.
 const TABLE = {
-  precision: { nav: '.topnav', design: 'cobalt', script: null },
-  studio: { nav: '.st-nav', design: 'lime', script: 'scripts/checks/studio.mjs' },
-  ledger: { nav: '.lg-nav', design: 'cobalt', script: 'scripts/checks/ledger.mjs', palettes: ['cobalt', 'lime', 'crimson'] },
+  precision: { nav: '.topnav', design: 'cobalt', script: null, minimal: true },
+  studio: { nav: '.st-nav', design: 'lime', script: 'scripts/checks/studio.mjs', minimal: true },
+  ledger: { nav: '.lg-nav', design: 'cobalt', script: 'scripts/checks/ledger.mjs', palettes: ['cobalt', 'lime', 'crimson'], minimal: true },
 };
 const layouts = Object.keys(LAYOUTS).filter((id) => TABLE[id]);
 const palettes = loadPalettes().palettes.map((p) => p.id);
@@ -59,6 +64,7 @@ const builds = [];
 for (const id of layouts) {
   for (const pal of palettes) builds.push(node(`build ${id}-${pal}`, ['build.mjs'], { LAYOUT: id, PALETTE: pal, OUT_DIR: dir(id, pal) }));
   builds.push(node(`build ${id}-stress`, ['build.mjs'], { LAYOUT: id, SITE_JSON: 'test/fixtures/site.stress.json', OUT_DIR: dir(id, 'stress') }));
+  if (TABLE[id].minimal) builds.push(node(`build ${id}-minimal`, ['build.mjs'], { LAYOUT: id, SITE_JSON: 'test/fixtures/site.minimal.json', OUT_DIR: dir(id, 'minimal') }));
 }
 await pool(builds);
 if (failures.some((f) => f.startsWith('build '))) { console.log(`\n${failures.length} FAILED (builds broken; later gates skipped)`); process.exit(1); }
@@ -71,6 +77,10 @@ for (const id of layouts) {
   jobs.push(node(`${id}: page gate (stress, no print)`, ['scripts/check-pages.mjs', '--dist', dir(id, 'stress'), '--only', 'overflow,casing,focus,names,motion']));
   jobs.push(node(`${id}: stress gate (seed)`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, t.design), '--topnav', t.nav]));
   jobs.push(node(`${id}: stress gate (stress fixture)`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, 'stress'), '--topnav', t.nav]));
+  if (t.minimal) {
+    jobs.push(node(`${id}: page gate (minimal)`, ['scripts/check-pages.mjs', '--dist', dir(id, 'minimal')]));
+    jobs.push(node(`${id}: stress gate (minimal)`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, 'minimal'), '--topnav', t.nav]));
+  }
   for (const pal of palettes) jobs.push(node(`${id}: contrast with ${pal}`, ['scripts/check-pages.mjs', '--dist', dir(id, pal), '--only', 'contrast']));
   if (t.script) {
     for (const pal of t.palettes || [t.design]) jobs.push(node(`${id}: own checks (${pal})`, [t.script, dir(id, pal)]));
@@ -81,7 +91,8 @@ await pool(jobs);
 
 // 6. Precision pixel identity against the pre-refactor build
 if (layouts.includes('precision')) {
-  const norm = (s) => { const o = JSON.parse(s); delete o.settings.layout; delete o.settings.palette; return JSON.stringify(o); };
+  // site.example.json is the v1 design record: both documents are compared canonical, at the current version
+  const norm = (s) => { const o = upgrade(JSON.parse(s)); delete o.settings.layout; delete o.settings.palette; return canonicalize(o); };
   const same = norm(readFileSync('src/content/site.json', 'utf8')) === norm(readFileSync('docs/plans/site.example.json', 'utf8'));
   if (!same) console.log('--   pixel identity skipped: seed differs from the base content');
   else {
@@ -91,6 +102,23 @@ if (layouts.includes('precision')) {
     }
     await run('precision: pixel identity with production (30 shots)', 'node', ['scripts/check-precision-pixels.mjs', '--baseline', '.cache/base/dist', '--candidate', dir('precision', 'cobalt')]);
   }
+}
+
+// 7. fonts: the same gates on a real store of swapped faces, one document per fixture, every layout
+// (fonts plan §7.4). The store is rebuilt from the repository's own font files through the upload pipeline,
+// so these runs exercise the override path end to end — CSS block, hashed files, width estimates and all.
+const fx = await makeFontsFixture('.cache/fonts');
+console.log(`ok   fonts fixture (.cache/fonts: ${Object.keys(fx.ids).length} fonts through the upload pipeline)`);
+const fontVariants = [['fonts', fx.seed], ['fonts-stress', fx.stress]];
+await pool(layouts.flatMap((id) => fontVariants.map(([variant, json]) =>
+  node(`build ${id}-${variant}`, ['build.mjs'], { LAYOUT: id, SITE_JSON: json, FONTS_DIR: fx.dir, OUT_DIR: dir(id, variant) }))));
+if (failures.some((f) => /^build \S+-fonts/.test(f))) console.log('--   fonts gates skipped: the swapped-font builds failed');
+else {
+  await pool(layouts.flatMap((id) => fontVariants.map(([variant]) => [
+    node(`${id}: fonts gate (${variant})`, ['scripts/check-fonts.mjs', '--dist', dir(id, variant), '--expect', fx.expect[id].join(',')]),
+    node(`${id}: page gate (${variant}, no print)`, ['scripts/check-pages.mjs', '--dist', dir(id, variant), '--only', 'overflow,casing,focus,names,motion']),
+    node(`${id}: stress gate (${variant})`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, variant), '--topnav', TABLE[id].nav]),
+  ]).flat()));
 }
 
 console.log(failures.length ? `\n${failures.length} FAILED: ${failures.join('; ')}` : `\nALL CHECKS PASSED (${ran} runs, layouts: ${layouts.join(', ')})`);

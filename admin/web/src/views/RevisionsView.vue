@@ -117,13 +117,14 @@ onMounted(load);
     <h2 id="builds-title" class="panel-head">Live builds</h2>
     <p v-if="!builds.length" class="muted">Nothing has been published from the admin yet.</p>
     <table v-else class="tbl" data-testid="builds">
-      <thead><tr><th scope="col">Date</th><th scope="col">Rev</th><th scope="col">Layout</th><th scope="col">Palette</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <thead><tr><th scope="col">Date</th><th scope="col">Rev</th><th scope="col">Layout</th><th scope="col">Palette</th><th scope="col">Fonts</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>
         <tr v-for="b in builds" :key="b.buildId" :data-build="b.buildId">
           <td data-label="Date:">{{ fmt(b.createdAt) }}</td>
           <td data-label="Rev:" class="num">r{{ b.rev }}</td>
           <td data-label="Layout:">{{ layoutName(b.layout) }}</td>
           <td data-label="Palette:">{{ paletteName(b.palette) }}</td>
+          <td data-label="Fonts:" class="fonts-cell">{{ b.fontsSummary || 'Layout defaults' }}</td>
           <td>
             <div class="acts">
               <span v-if="b.current" class="st st-ok"><Icon name="live" />Live now</span>
@@ -138,7 +139,7 @@ onMounted(load);
   <section class="panel" aria-labelledby="revs-title">
     <h2 id="revs-title" class="panel-head">Revisions <span class="muted small">(newest {{ keep }} kept, plus the live one)</span></h2>
     <table class="tbl" data-testid="revisions">
-      <thead><tr><th scope="col">Date</th><th scope="col">Reason</th><th scope="col">Rev</th><th scope="col">Note</th><th scope="col">Layout · palette</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <thead><tr><th scope="col">Date</th><th scope="col">Reason</th><th scope="col">Rev</th><th scope="col">Note</th><th scope="col">Layout · palette</th><th scope="col">Fonts</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>
         <template v-for="r in revisions" :key="r.id">
           <tr :data-revision="r.id" :data-reason="r.reason">
@@ -147,6 +148,7 @@ onMounted(load);
             <td data-label="Rev:" class="num">r{{ r.rev }}</td>
             <td data-label="Note:" class="break-all">{{ r.note }}</td>
             <td data-label="Layout · palette:">{{ layoutName(r.layout) }} · {{ paletteName(r.palette) }}</td>
+            <td data-label="Fonts:" class="fonts-cell">{{ r.fontsSummary || 'Layout defaults' }}</td>
             <td>
               <div class="acts">
                 <button type="button" class="btn" :aria-label="`Preview: the revision of ${fmt(r.createdAt)}`" @click="previewRev = r">Preview</button>
@@ -156,7 +158,7 @@ onMounted(load);
             </td>
           </tr>
           <tr v-if="open[r.id]" class="changes-row">
-            <td colspan="6">
+            <td colspan="7">
               <p v-if="open[r.id].loading" class="muted">Loading…</p>
               <p v-else-if="open[r.id].error" class="st st-error"><Icon name="error" />{{ open[r.id].error }}</p>
               <p v-else-if="!open[r.id].changes.length" class="muted">Identical to the draft.</p>

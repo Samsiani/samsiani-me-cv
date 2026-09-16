@@ -1,6 +1,7 @@
 <script setup>
-// The nav budget (admin-ops.md §3.3): the eight effective labels (nav, else title) total at most 100
-// characters per language (NAV_BUDGET), and a title without a nav label is at most 28 (NAV_LABEL).
+// The nav budget (admin-ops.md §3.3): the effective labels of the shown sections (nav, else title) total at
+// most 100 characters per language (NAV_BUDGET), and a title without a nav label is at most 28 (NAV_LABEL).
+// A hidden section has no nav link, so it is out of the budget until it is shown again.
 import { computed } from 'vue';
 import Icon from './Icon.vue';
 import { SECTIONS } from '@src/shared/localize.mjs';
@@ -19,7 +20,7 @@ const rows = computed(() => {
     const long = [];
     for (const { key } of SECTIONS) {
       const sec = s[key];
-      if (!sec?.title) continue;
+      if (!sec?.title || sec.hidden) continue;
       const label = (sec.nav || sec.title)[lang] || '';
       total += len(label);
       if (!sec.nav && len(label) > LABEL_MAX) long.push({ key, n: len(label), path: `$.sections.${key}.title.${lang}` });
@@ -49,6 +50,6 @@ const rows = computed(() => {
         </li>
       </ul>
     </div>
-    <p class="help">All eight labels together, per language. Each label: at most {{ LABEL_MAX }}.</p>
+    <p class="help">All shown labels together, per language. Each label: at most {{ LABEL_MAX }}.</p>
   </section>
 </template>

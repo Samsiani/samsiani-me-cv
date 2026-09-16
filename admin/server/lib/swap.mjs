@@ -54,7 +54,9 @@ export async function applyBuild(buildDir, webRoot, manifest, { dryRun = false }
   return { changed: plan.length, plan: plan.map(([rel]) => rel) };
 }
 
-const HASHED = /^[a-z0-9-]+\.[0-9a-f]{8,}\.(css|js|png|webmanifest)$/;
+// Hashed names the build owns. A chosen font ships as fonts/<slug>.<hash>.woff2 and is collected like any
+// other hashed file; the layouts' own faces keep their fixed descriptive names and never match.
+const HASHED = /^[a-z0-9-]+\.[0-9a-f]{8,}\.(css|js|png|webmanifest|woff2)$/;
 
 /** Delete hashed files that no kept manifest lists and that are older than 24 h; stale .*.tmp older than 1 h. */
 export async function gcWebRoot(webRoot, manifests, { now = Date.now() } = {}) {

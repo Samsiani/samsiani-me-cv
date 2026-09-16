@@ -1,0 +1,105 @@
+// inspectUpload(bytes, { filename, now }) -> { record, files } for an uploaded font file (fonts plan §4.4).
+// The bytes are untrusted: nothing is executed, nothing is read by a name the file carries, every size is
+// capped and every structural problem comes back as an AppError the route turns into a 422 with a reason.
+//
+// A WOFF2 ships as it is. A WOFF, TTF or OTF is re-wrapped into a WOFF2 (D5) and the conversion is read back
+// through the same reader — same tables, same coverage, same metrics — before anything is stored; the
+// original bytes are kept as well, because satori cannot read WOFF2 (D8, used from F8).
+import { createHash } from 'node:crypto';
+import { GEORGIAN_RANGE_CSS } from '../../../../src/typography/roles.mjs';
+import { FontParseError, coverageOf, metricsOf, parseFont, rangesOf, sniff, wrapWoff2 } from '../../../../src/typography/sfnt.mjs';
+import { AppError } from '../errors.mjs';
+import { LIMITS } from './store.mjs';
+
+const MIN_BYTES = 1024;
+const STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+const sha256 = (b) => createHash('sha256').update(b).digest('hex');
+// A name record is admin-only text; control characters and angle brackets never belong in one.
+const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f-\u009f<>]/g, '').trim().slice(0, max);
+
+const invalid = (reason, message) => { throw new AppError(422, 'font_invalid', message, { reason }); };
+
+/** Sans Serif / Serif / Monospace from the OS/2 panose bytes, the way the Google catalogue categorises. */
+function categoryOf(font) {
+  if (font.fixedPitch) return 'Monospace';
+  const os2 = font.tables.get('OS/2');
+  const familyType = os2.length > 32 ? os2[32] : 0, serifStyle = os2.length > 33 ? os2[33] : 0;
+  if (familyType === 2 && serifStyle >= 2 && serifStyle <= 10) return 'Serif';
+  if (familyType === 3 || familyType === 4) return 'Display';
+  return 'Sans Serif';
+}
+
+const axisOf = (font, tag) => font.fvar?.axes.find((a) => a.tag === tag) || null;
+
+export function inspectUpload(bytes, { filename = '', now = Date.now() } = {}) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < MIN_BYTES) invalid('format', 'That file is too small to be a font.');
+  if (bytes.length > LIMITS.file) throw new AppError(413, 'too_large', 'A font file may not be larger than 2 MB.');
+  const flavor = sniff(bytes);
+  if (!flavor) invalid('format', 'This file is not a TTF, OTF, WOFF or WOFF2 font.');
+
+  let font;
+  try { font = parseFont(bytes); }
+  catch (e) {
+    if (e instanceof FontParseError) invalid(e.reason, 'This font file could not be read; it may be damaged.');
+    throw e;
+  }
+  if (font.italic) invalid('italic', 'This is an italic font; the site uses upright faces only.');
+
+  const coverage = coverageOf(font);
+  if (!coverage.latin && !coverage.georgian) {
+    invalid('coverage', 'The font has no complete Latin or Georgian alphabet, so no role could use it.');
+  }
+
+  // The web file: a WOFF2 as it is, anything else converted and read back before it is trusted.
+  const files = new Map();
+  let web = bytes;
+  if (flavor !== 'woff2') {
+    try { web = wrapWoff2(bytes); } catch (e) { throw new AppError(500, 'font_convert_failed', `This font could not be converted to WOFF2: ${e.message}`); }
+    let back;
+    try { back = parseFont(web); } catch (e) { throw new AppError(500, 'font_convert_failed', `The converted WOFF2 could not be read back: ${e.message}`); }
+    const same = JSON.stringify([coverageOf(back), metricsOf(back)]) === JSON.stringify([coverage, metricsOf(font)]);
+    if (!same || back.numGlyphs !== font.numGlyphs) throw new AppError(500, 'font_convert_failed', 'The converted WOFF2 does not match the file that was uploaded.');
+    if (web.length > LIMITS.file) throw new AppError(413, 'too_large', 'The converted font is larger than 2 MB.');
+  }
+
+  const wght = axisOf(font, 'wght'), wdth = axisOf(font, 'wdth');
+  const webName = `${sha256(web)}.woff2`;
+  files.set(webName, web);
+  const face = (subset, unicodeRange) => ({
+    kind: 'web', subset, style: 'normal', file: webName, bytes: web.length, unicodeRange,
+    weight: wght ? [wght.min, wght.max] : [font.weightClass, font.weightClass],
+    ...(wdth ? { stretch: `${wdth.min}% ${wdth.max}%` } : {}),
+  });
+  const faces = [];
+  // One upload can serve two roles: the same file fenced to everything but Georgian, and to Georgian only.
+  if (coverage.latin) faces.push(face('latin', rangesOf(font, { excludeGeorgian: true }).join(', ')));
+  if (coverage.georgian) faces.push(face('georgian', GEORGIAN_RANGE_CSS));
+  if (flavor !== 'woff2') {
+    const name = `${sha256(bytes)}.${flavor}`;
+    files.set(name, bytes);
+    faces.push({ kind: 'satori', weight: font.weightClass, style: 'normal', file: name, bytes: bytes.length });
+  }
+
+  const family = clean(font.names.family, LIMITS.displayName) || clean(filename.replace(/\.[a-z0-9]+$/i, ''), LIMITS.displayName) || 'Uploaded font';
+  return {
+    record: {
+      id: sha256(bytes).slice(0, 16),
+      source: 'upload',
+      family,
+      displayName: family,
+      category: categoryOf(font),
+      version: null,
+      licence: { kind: 'attested', note: '' },
+      addedAt: new Date(now).toISOString(),
+      coverage: { latin: coverage.latin, georgian: coverage.georgian },
+      variable: Boolean(wght),
+      axes: Object.fromEntries((font.fvar?.axes || []).map((a) => [a.tag, [a.min, a.max]])),
+      weights: wght ? STEPS.filter((w) => w >= wght.min && w <= wght.max) : [font.weightClass],
+      satoriVariable: flavor !== 'woff2' && Boolean(wght),
+      metrics: metricsOf(font),
+      faces,
+      origin: { filename: clean(filename, 80) || null },
+    },
+    files,
+  };
+}

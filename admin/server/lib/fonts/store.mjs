@@ -1,0 +1,187 @@
+// The font store: data/fonts/index.json plus content-addressed files under data/fonts/files/ (fonts plan
+// §3.2). Records come from the upload pipeline or the Google fetcher; nothing here parses a font.
+//
+// Two rules hold every write together. Files are written before the index, so a crash leaves an unreferenced
+// file (collected by `sweep()`) and never an index entry without its bytes; and a file is addressed only by
+// the sha256 of its own content, so a name out of a font file can never choose a path.
+import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { FONT_ID_RE } from '../../../../src/typography/roles.mjs';
+import { writeFileAtomic, writeJsonAtomic, readJson, exists } from '../fsx.mjs';
+import { AppError, NotFoundError } from '../errors.mjs';
+import { nullAudit } from '../audit.mjs';
+
+export const LIMITS = {
+  file: 2 * 1024 * 1024, // one face
+  family: 6 * 1024 * 1024, // one record's files together
+  faces: 8, // files per record
+  store: 200 * 1024 * 1024, // everything under data/fonts/files
+  displayName: 60,
+};
+const FILE_RE = /^[0-9a-f]{64}\.(?:woff2|woff|ttf|otf)$/;
+const EMPTY = { v: 1, fonts: {} };
+
+export class StoreFullError extends AppError {
+  constructor(msg) { super(507, 'store_full', msg); }
+}
+
+export function createFontStore({ dataDir, audit = nullAudit, lock, references = async () => [] }) {
+  const dir = join(dataDir, 'fonts');
+  const filesDir = join(dir, 'files');
+  const indexFile = join(dir, 'index.json');
+  const withLock = lock || ((_name, fn) => fn());
+
+  const readIndex = async () => {
+    try {
+      const doc = await readJson(indexFile);
+      return doc && typeof doc.fonts === 'object' && doc.fonts ? doc : EMPTY;
+    } catch (e) {
+      if (e.code === 'ENOENT') return EMPTY;
+      if (e.name === 'CorruptFileError') throw new AppError(503, 'degraded', 'The font index is unreadable.');
+      throw e;
+    }
+  };
+  const filePath = (name) => {
+    if (!FILE_RE.test(String(name))) throw new AppError(400, 'bad_request', 'Not a font file name.');
+    return join(filesDir, name);
+  };
+  /** Every file name the index still points at (a face file may be shared by two faces of one record). */
+  const referenced = (index) => new Set(Object.values(index.fonts).flatMap((r) => (r.faces || []).map((f) => f.file)));
+
+  async function bytes() {
+    let total = 0;
+    for (const n of await readdir(filesDir).catch(() => [])) {
+      try { total += (await stat(join(filesDir, n))).size; } catch {}
+    }
+    return total;
+  }
+
+  const api = {
+    dir,
+    limits: LIMITS,
+
+    async list() {
+      const index = await readIndex();
+      return Object.values(index.fonts).sort((a, b) => String(a.addedAt).localeCompare(String(b.addedAt)));
+    },
+
+    async get(id) {
+      if (typeof id !== 'string' || !FONT_ID_RE.test(id)) return null;
+      return (await readIndex()).fonts[id] || null;
+    },
+
+    async has(id) { return Boolean(await api.get(id)); },
+
+    /** The bytes of one face of a record. `face` is the face object or its index in record.faces. */
+    async readFace(record, face) {
+      const f = typeof face === 'number' ? (record.faces || [])[face] : face;
+      if (!f) throw new NotFoundError('font face');
+      return readFile(filePath(f.file));
+    },
+
+    async bytes() { return bytes(); },
+
+    /**
+     * Store a record and its files. Idempotent: an id that is already stored is returned untouched, so a
+     * second upload of the same bytes or a second fetch of the same family costs nothing.
+     * @param {object} record  a FontRecord (fonts plan §3.2)
+     * @param {Map<string, Buffer>} files  file name (`<sha256>.<ext>`) -> bytes
+     */
+    async add(record, files) {
+      if (!FONT_ID_RE.test(String(record?.id))) throw new AppError(400, 'bad_request', 'A font record needs a 16 hex character id.');
+      if (files.size > LIMITS.faces) throw new AppError(422, 'font_invalid', `A font may not carry more than ${LIMITS.faces} files.`, { reason: 'faces' });
+      let total = 0;
+      for (const [name, buf] of files) {
+        filePath(name);
+        if (buf.length > LIMITS.file) throw new AppError(413, 'too_large', 'A font file may not be larger than 2 MB.');
+        total += buf.length;
+      }
+      if (total > LIMITS.family) throw new AppError(413, 'too_large', 'One font may not take more than 6 MB.');
+      return withLock('write', async () => {
+        const index = await readIndex();
+        const known = index.fonts[record.id];
+        // Files first, and only the ones that are not here: a record restored from a backup without its
+        // bytes (`cli fonts refetch`) gets them back without a second index entry.
+        await mkdir(filesDir, { recursive: true, mode: 0o700 });
+        const missing = [];
+        for (const [name, buf] of files) if (!(await exists(join(filesDir, name)))) missing.push([name, buf]);
+        if (missing.length) {
+          const add = missing.reduce((n, [, buf]) => n + buf.length, 0);
+          if ((await bytes()) + add > LIMITS.store) throw new StoreFullError('The font store is full; delete a font you no longer use.');
+          for (const [name, buf] of missing) await writeFileAtomic(join(filesDir, name), buf, { mode: 0o600 });
+        }
+        if (known) return { record: known, created: false, repaired: missing.length };
+        await writeJsonAtomic(indexFile, { ...index, v: 1, fonts: { ...index.fonts, [record.id]: record } }, { mode: 0o600 });
+        await audit.log('font_added', { id: record.id, source: record.source, detail: record.family });
+        return { record, created: true, repaired: 0 };
+      }, { op: 'fontAdd' });
+    },
+
+    /** Rename: the display name is admin-only text and never reaches CSS or a path. */
+    async rename(id, displayName) {
+      const name = String(displayName ?? '').replace(/[\u0000-\u001f\u007f-\u009f<>]/g, '').trim().slice(0, LIMITS.displayName);
+      if (!name) throw new AppError(400, 'bad_request', 'A display name is required.');
+      return withLock('write', async () => {
+        const index = await readIndex();
+        const cur = index.fonts[id];
+        if (!cur) throw new NotFoundError('font');
+        const record = { ...cur, displayName: name };
+        await writeJsonAtomic(indexFile, { ...index, fonts: { ...index.fonts, [id]: record } }, { mode: 0o600 });
+        await audit.log('font_renamed', { id, detail: name });
+        return record;
+      }, { op: 'fontRename' });
+    },
+
+    /** Remove a record, then every file no other record still points at. */
+    async remove(id) {
+      return withLock('write', async () => {
+        const index = await readIndex();
+        const cur = index.fonts[id];
+        if (!cur) throw new NotFoundError('font');
+        const fonts = { ...index.fonts };
+        delete fonts[id];
+        await writeJsonAtomic(indexFile, { ...index, fonts }, { mode: 0o600 });
+        const keep = referenced({ fonts });
+        for (const f of cur.faces || []) if (!keep.has(f.file)) await rm(join(filesDir, f.file), { force: true });
+        await audit.log('font_removed', { id, detail: cur.family });
+        return { id };
+      }, { op: 'fontRemove' });
+    },
+
+    /**
+     * Which fonts are in use, and by what: `{ "<id>": ["draft", "published", "build"] }`. The sources come
+     * from the injected `references()` so the store never has to know about documents or builds.
+     */
+    async usage() {
+      const out = {};
+      for (const { source, ids } of await references()) {
+        for (const id of ids) {
+          if (!FONT_ID_RE.test(String(id))) continue;
+          const by = (out[id] ??= []);
+          if (!by.includes(source)) by.push(source);
+        }
+      }
+      return out;
+    },
+
+    /** Files under files/ that no record points at (a crash between the two writes leaves one). */
+    async sweep({ dryRun = false } = {}) {
+      return withLock('write', async () => {
+        const keep = referenced(await readIndex());
+        const removed = [];
+        for (const n of await readdir(filesDir).catch(() => [])) {
+          if (!FILE_RE.test(n) || keep.has(n)) continue;
+          if (!dryRun) await rm(join(filesDir, n), { force: true });
+          removed.push(n);
+        }
+        return removed;
+      }, { op: 'fontSweep' });
+    },
+
+    /** The loader shape resolveFonts() and buildSite() take. */
+    loader() {
+      return { get: (id) => api.get(id), readFace: (record, face) => api.readFace(record, face) };
+    },
+  };
+  return api;
+}

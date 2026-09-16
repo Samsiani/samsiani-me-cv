@@ -9,6 +9,7 @@
 //   owner discards it, so nothing typed is lost (network error, 5xx, 401 while the login modal is open).
 import { reactive, watch, computed, toRaw } from 'vue';
 import { validate, canonicalize } from '@schema/validate.mjs';
+import { upgrade, SCHEMA_VERSION } from '@schema/migrate.mjs';
 import { diffPaths } from '@admin-shared/diff.mjs';
 import { isBlocking } from '@admin-shared/draft-rules.mjs';
 import { api, ApiError, saveBlob } from '../api.js';
@@ -111,14 +112,6 @@ const issueIndex = computed(() => {
 });
 /** Issues whose $.path is exactly `path`. */
 export const issuesAt = (path) => issueIndex.value.get(path) || [];
-/** Issues under any of the given $.path prefixes. */
-export function issuesUnder(prefixes) {
-  const hit = (p) => prefixes.some((x) => p === x || p.startsWith(x + '.') || p.startsWith(x + '['));
-  return {
-    errors: draft.issues.errors.filter((e) => hit(e.path)),
-    warnings: draft.issues.warnings.filter((w) => hit(w.path)),
-  };
-}
 
 /** Number of leaf fields where the working copy differs from the live document. */
 export const diffCount = computed(() => {
@@ -151,7 +144,7 @@ function adopt(site, meta = {}) {
   cancelScheduled();
   stopUntilEdit = false;
   forceNext = false;
-  draft.site = site;
+  draft.site = upgrade(site); // a document written before the last deploy arrives at its own schema version
   savedJson = localJson();
   if (meta.etag) draft.etag = meta.etag;
   if (meta.rev !== undefined) draft.rev = meta.rev;
@@ -319,7 +312,7 @@ export async function load() {
   const p = readPendingCopy();
   if (p) {
     let same = false;
-    try { same = canonicalize(p.site) === canonicalize(d.site); } catch { same = false; }
+    try { same = canonicalize(upgrade(toRaw(p.site))) === canonicalize(d.site); } catch { same = false; }
     if (same) removePendingCopy();
     else draft.offerPending = { ...p, sameBase: p.etag === d.etag };
   }
@@ -347,7 +340,7 @@ export function restorePendingCopy() {
   if (!p) return;
   draft.offerPending = null;
   if (!p.sameBase) forceNext = true; // "Use mine": the server draft is kept as pre-overwrite
-  draft.site = p.site; // a local edit: the watcher schedules the save
+  draft.site = upgrade(toRaw(p.site)); // raw: the migration clones, and a proxy cannot be structured-cloned
   flush();
 }
 export function discardPendingCopy() {
@@ -357,7 +350,7 @@ export function discardPendingCopy() {
 export function downloadPendingCopy() {
   const p = draft.offerPending;
   if (!p) return;
-  const doc = { format: 'samsiani.me/site', schemaVersion: 1, source: 'device', rev: p.rev, exportedAt: p.at, site: p.site };
+  const doc = { format: 'samsiani.me/site', schemaVersion: SCHEMA_VERSION, source: 'device', rev: p.rev, exportedAt: p.at, site: p.site };
   saveBlob(new Blob([JSON.stringify(doc, null, 2) + '\n'], { type: 'application/json' }), `samsiani-site-this-device-r${p.rev ?? 'x'}.json`);
 }
 

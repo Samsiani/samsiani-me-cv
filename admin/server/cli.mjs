@@ -1,17 +1,20 @@
 // Admin CLI (admin-ops.md §10.3). Runs as the site user on the server, or locally with ./data.
 //   node admin/server/cli.mjs <init|migrate [--dry-run]|verify|set-password [--username=]|backup [--name=]|
 //                              restore-backup (--date=YYYY-MM-DD|--file=path) --part=draft|published|all|
-//                              export [--source=draft|published]|import --file=path>
+//                              export [--source=draft|published]|import --file=path|fonts <ls|rm|refetch>>
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { loadConfig, ConfigError } from './config.mjs';
 import { createDeps } from './deps.mjs';
 import { createBackup } from './lib/backup.mjs';
-import { BUILD_ID_RE } from './lib/store.mjs';
+import { fontIssues } from './lib/fonts/check.mjs';
+import { BUILD_ID_RE, sha256 } from './lib/store.mjs';
+import { writeJsonAtomic } from './lib/fsx.mjs';
 import { passwordProblem } from './lib/auth.mjs';
 import { AppError } from './lib/errors.mjs';
-import { validate } from '../../src/schema/validate.mjs';
+import { validate, canonicalize } from '../../src/schema/validate.mjs';
+import { SCHEMA_VERSION, canMigrate, migrateSite, upgrade } from '../../src/schema/migrate.mjs';
 import { LAYOUTS } from '../../src/layouts/index.mjs';
 import { loadPalettes, checkPalettes } from '../../src/palettes.mjs';
 
@@ -103,7 +106,7 @@ try {
     case 'restore-build': {
       const id = flag('from');
       if (typeof id !== 'string' || !BUILD_ID_RE.test(id)) die('restore-build needs --from=<buildId>');
-      const site = JSON.parse(await readFile(join(cfg.buildsDir, id, '.site.json'), 'utf8'));
+      const site = upgrade(JSON.parse(await readFile(join(cfg.buildsDir, id, '.site.json'), 'utf8')));
       const out = await store.importDraft(site, { actor: 'cli' });
       console.log(`draft replaced with the content of ${id} (r${out.rev}); publish to put it live`);
       break;
@@ -144,10 +147,13 @@ try {
       break;
     }
     case 'migrate': {
+      // The stored files are read raw here: every other read path upgrades the document it returns.
+      const file = (n) => join(cfg.dataDir, n);
+      const readEnv = async (f) => { try { return JSON.parse(await readFile(f, 'utf8')); } catch { return null; } };
       const pending = [];
-      for (const [name, get] of [['draft', () => store.getDraft()], ['published', () => store.getPublished()]]) {
-        const d = await get().catch(() => null);
-        if (d && d.site?.schemaVersion !== 1) pending.push(name);
+      for (const [name, f] of [['draft', file('draft.json')], ['published', file('site.json')]]) {
+        const d = await readEnv(f);
+        if (d?.site && d.site.schemaVersion !== SCHEMA_VERSION) pending.push(name);
       }
       if (flag('dry-run')) {
         console.log(pending.length ? `pending migrations: ${pending.join(', ')}` : 'no pending migrations');
@@ -155,7 +161,29 @@ try {
       }
       if (await healthAnswers()) die('the admin service is running; stop it before migrating', 2);
       if (!pending.length) { console.log('no pending migrations'); break; }
-      die(`documents at an unknown schema version: ${pending.join(', ')}; no migration is defined yet`);
+      // keep the draft as it stands before anything is rewritten (a revert restores the backup, not this)
+      const before = await readEnv(file('draft.json'));
+      const snap = before?.site ? await store.snapshot('pre-migrate', before.site, { actor: 'cli', rev: before.rev }) : null;
+      const docs = [];
+      const revDir = file('revisions');
+      const revs = (await readdir(revDir).catch(() => [])).filter((n) => n.endsWith('.json') && n !== `${snap?.id}.json`);
+      for (const f of [file('draft.json'), file('site.json'), ...revs.map((n) => join(revDir, n))]) {
+        const env = await readEnv(f);
+        if (env?.site) docs.push({ f, env });
+      }
+      const unknown = docs.filter((d) => !canMigrate(d.env.site));
+      if (unknown.length) die(`documents at an unknown schema version: ${unknown.map((d) => basename(d.f)).join(', ')}; no migration is defined yet`);
+      await store.lock('write', async () => {
+        for (const { f, env } of docs) {
+          const canonical = canonicalize(migrateSite(env.site).site);
+          await writeJsonAtomic(f, { ...env, etag: sha256(canonical), site: JSON.parse(canonical) });
+        }
+        // nothing reads publishedEtag today, but it must keep describing site.json
+        const state = await store.readState();
+        const pub = await readEnv(file('site.json'));
+        if (state && pub) await writeJsonAtomic(file('publish-state.json'), { ...state, publishedEtag: pub.etag });
+      }, { op: 'migrate' });
+      console.log(`migrated ${docs.length} document(s) to schema version ${SCHEMA_VERSION}${snap ? `; the draft is kept as revision ${snap.id}` : ''}`);
       break;
     }
     case 'verify': {
@@ -189,6 +217,9 @@ try {
         if (pub) {
           const v = validate(pub.site, { mode: 'build', paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, today: store.today() });
           if (v.errors.length) problems.push(`the published document has ${v.errors.length} error(s) under this release: ${v.errors.slice(0, 3).map((e) => `${e.code} ${e.path}`).join(', ')}`);
+          // a font this machine no longer has: publishing would render the layout's own face instead
+          const f = await fontIssues(pub.site, deps.fonts);
+          for (const e of f.errors) problems.push(`${e.code} ${e.path}: ${e.msg}`);
         }
         await store.getDraft().catch((e) => problems.push(`draft.json: ${e.message}`));
       }
@@ -222,12 +253,55 @@ try {
       if (!file) die('restore-backup needs --date=YYYY-MM-DD or --file=path');
       const r = await backup().restore(file, part);
       console.log(`restored ${r.restored.join(', ')}${part !== 'draft' ? ' (publish again to put it live)' : ''}`);
+      if (r.droppedFonts?.length) console.log(`::warning::${r.droppedFonts.length} font record(s) had no files on this machine and were dropped: ${r.droppedFonts.join(', ')}`);
+      break;
+    }
+    case 'fonts': {
+      const sub = rest[0];
+      const kb = (n) => `${Math.round(n / 1024)} KB`;
+      if (sub === 'ls') {
+        const [items, usage] = await Promise.all([deps.fonts.list(), deps.fonts.usage()]);
+        for (const f of items) {
+          const size = (f.faces || []).reduce((n, x) => n + (x.bytes || 0), 0);
+          const cov = [f.coverage?.latin && 'latin', f.coverage?.georgian && 'georgian'].filter(Boolean).join('+') || 'none';
+          console.log(`${f.id}  ${f.source.padEnd(6)}  ${kb(size).padStart(7)}  ${cov.padEnd(14)}  ${(usage[f.id] || ['unused']).join(',').padEnd(18)}  ${f.displayName || f.family}`);
+        }
+        console.log(`${items.length} font(s), ${kb(await deps.fonts.bytes())} of ${kb(deps.fonts.limits.store)}`);
+        break;
+      }
+      if (sub === 'rm') {
+        const id = rest[1];
+        const usage = (await deps.fonts.usage())[id];
+        if (usage?.length) die(`fonts rm: ${id} is still used by ${usage.join(', ')}; reset those roles first`);
+        await deps.fonts.remove(id);
+        console.log(`removed ${id}`);
+        break;
+      }
+      if (sub === 'refetch') {
+        // After a restore the index is here and the files are not: every Google record is downloaded again.
+        const google = (await deps.fonts.list()).filter((f) => f.source === 'google');
+        let repaired = 0;
+        for (const f of google) {
+          try {
+            const { record, files } = await deps.google.fetchFamily(f.family, { lookup: async () => null });
+            const out = await deps.fonts.add(record.id === f.id ? f : record, files);
+            repaired += out.repaired || (out.created ? 1 : 0);
+            console.log(`${out.repaired || out.created ? 'refetched' : 'ok       '} ${f.family} (${record.version})`);
+          } catch (e) {
+            console.log(`::warning::${f.family}: ${e.message}`);
+          }
+        }
+        const uploads = (await deps.fonts.list()).filter((f) => f.source === 'upload');
+        console.log(`${repaired} file(s) restored for ${google.length} Google font(s)${uploads.length ? `; upload again: ${uploads.map((f) => f.displayName || f.family).join(', ')}` : ''}`);
+        break;
+      }
+      die('usage: cli.mjs fonts <ls|rm <id>|refetch>', 2);
       break;
     }
     case 'export': {
       const source = flag('source') === 'published' ? 'published' : 'draft';
       const doc = source === 'draft' ? await store.getDraft() : await store.getPublished();
-      const out = { format: 'samsiani.me/site', schemaVersion: 1, source, rev: doc.rev, exportedAt: new Date().toISOString(), site: doc.site };
+      const out = { format: 'samsiani.me/site', schemaVersion: SCHEMA_VERSION, source, rev: doc.rev, exportedAt: new Date().toISOString(), site: doc.site };
       process.stdout.write(JSON.stringify(out, null, 2) + '\n');
       break;
     }
@@ -239,7 +313,7 @@ try {
       break;
     }
     default:
-      die('usage: cli.mjs <init|migrate [--dry-run]|verify [--web-root]|set-password [--username=]|backup [--name=]|restore-backup (--date=|--file=) --part=|export [--source=]|import --file=|publish [--source=draft|published] [--reason=] [--if-changed]|rollback [--to=]|builds|restore-build --from=>', 2);
+      die('usage: cli.mjs <init|migrate [--dry-run]|verify [--web-root]|set-password [--username=]|backup [--name=]|restore-backup (--date=|--file=) --part=|export [--source=]|import --file=|publish [--source=draft|published] [--reason=] [--if-changed]|rollback [--to=]|builds|restore-build --from=|fonts <ls|rm <id>|refetch>>', 2);
   }
 } catch (e) {
   if (e instanceof AppError) die(`${cmd}: ${e.message}${e.details?.errors ? ' ' + JSON.stringify(e.details.errors.slice(0, 5)) : ''}`);

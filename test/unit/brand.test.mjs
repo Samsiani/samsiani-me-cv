@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { brandNames, brandPlan } from '../../src/shared/brand.mjs';
+import { brandNames, brandPlan, ogInputs } from '../../src/shared/brand.mjs';
+import { ogCard } from '../../src/brand/cards.mjs';
 import { renderBrand, RENDERER_ID, stats } from '../../src/brand/render.mjs';
 import { loadPalettes } from '../../src/palettes.mjs';
 import { LAYOUTS } from '../../src/layouts/index.mjs';
@@ -70,4 +71,78 @@ test('every TTF is a static instance whose OS/2 weight matches its name', () => 
 test('the plan lists two cards and four icons', () => {
   const plan = brandPlan(seed(), P('cobalt'), meta, RENDERER_ID);
   assert.deepEqual(plan.map((p) => p.name.split('.')[0]).sort(), ['apple-touch-icon', 'favicon-32', 'icon-192', 'icon-512', 'og-en', 'og-ka']);
+});
+
+test('a removed line or fact renders a card without it, under a new name', async () => {
+  const base = names(seed());
+  const stripped = seed();
+  stripped.hero.eyebrow = null;
+  stripped.hero.subrole = null;
+  assert.notEqual(names(stripped).og.en, base.og.en, 'a removed line changes the card name');
+  const inputs = (s, lang = 'en') => ogInputs(s, lang, P('cobalt'), meta);
+  assert.equal(inputs(stripped).eyebrow, null);
+  assert.equal(inputs(stripped).subrole, null);
+  const noChildIsNull = (node) => {
+    const kids = node?.props?.children;
+    if (!Array.isArray(kids)) return true;
+    return kids.every((k) => k != null && noChildIsNull(k));
+  };
+  for (const n of [0, 1, 3, 4]) {
+    const s = structuredClone(stripped);
+    s.hero.facts = seed().hero.facts.slice(0, n);
+    const card = ogCard(inputs(s));
+    assert.ok(noChildIsNull(card), `${n} facts: no null child`);
+  }
+  const cacheDir = mkdtempSync(join(tmpdir(), 'brand-'));
+  const empty = seed();
+  empty.hero.eyebrow = null; empty.hero.subrole = null; empty.hero.facts = [];
+  const r = await renderBrand(empty, P('cobalt'), meta, { cacheDir });
+  for (const lang of ['en', 'ka']) assert.deepEqual(png(r.files.get(r.og[lang])), { w: 1200, h: 630, sig: 'PNG' });
+});
+
+// ------------------------------------------------------------------ chosen fonts on the card (fonts plan §5.6)
+// The shape resolveFonts() hands the brand pipeline: per role, a key for the name and the bytes to register.
+const cardFace = (file, weight = 400) => ({
+  key: file.slice(0, 8),
+  faces: [{ weight, style: 'normal', read: () => readFileSync(new URL(`../../src/brand/fonts/${file}`, import.meta.url)) }],
+});
+const NO_SATORI = { text: null, label: null, georgian: null };
+
+test('a font satori cannot read leaves every card name exactly where it was', () => {
+  const base = names(seed());
+  assert.equal('fonts' in ogInputs(seed(), 'en', P('cobalt'), meta), false, 'no key at all without chosen fonts');
+  assert.equal('fonts' in ogInputs(seed(), 'en', P('cobalt'), meta, NO_SATORI), false, 'nor when no role has a readable file');
+  const same = brandNames(seed(), P('cobalt'), meta, RENDERER_ID, NO_SATORI);
+  assert.deepEqual(same.og, base.og);
+  assert.deepEqual(same.icons, base.icons);
+});
+
+test('a chosen card face renames the cards, never the icons, and changes the pixels', async () => {
+  const base = names(seed());
+  const og = { ...NO_SATORI, text: cardFace('JetBrainsMono-Regular.ttf') };
+  const inputs = ogInputs(seed(), 'en', P('cobalt'), meta, og);
+  assert.deepEqual(inputs.fonts, { text: og.text.key, label: 'default', georgian: 'default' });
+  const withFont = brandNames(seed(), P('cobalt'), meta, RENDERER_ID, og);
+  assert.notEqual(withFont.og.en, base.og.en);
+  assert.notEqual(withFont.og.ka, base.og.ka, 'the Georgian card carries Latin too');
+  assert.deepEqual(withFont.icons, base.icons, 'the monogram keeps the built-in face');
+
+  const dir = mkdtempSync(join(tmpdir(), 'brand-'));
+  const plain = await renderBrand(seed(), P('cobalt'), meta, { cacheDir: dir });
+  const custom = await renderBrand(seed(), P('cobalt'), meta, { cacheDir: dir, fonts: og });
+  assert.deepEqual(png(custom.files.get(custom.og.en)), { w: 1200, h: 630, sig: 'PNG' });
+  assert.notEqual(Buffer.compare(plain.files.get(plain.og.en), custom.files.get(custom.og.en)), 0, 'the card is drawn in the other face');
+  for (const k of Object.keys(base.icons)) assert.equal(Buffer.compare(plain.files.get(plain.icons[k]), custom.files.get(custom.icons[k])), 0, `${k} is untouched`);
+  // and it is deterministic, like every other card
+  const again = await renderBrand(seed(), P('cobalt'), meta, { cacheDir: mkdtempSync(join(tmpdir(), 'brand-')), fonts: og });
+  assert.equal(Buffer.compare(custom.files.get(custom.og.en), again.files.get(again.og.en)), 0);
+});
+
+test('the Georgian role draws the Georgian card text', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'brand-'));
+  const og = { ...NO_SATORI, georgian: cardFace('NotoSansGeorgian-SemiBold.ttf', 600) };
+  const plain = await renderBrand(seed(), P('cobalt'), meta, { cacheDir: dir });
+  const custom = await renderBrand(seed(), P('cobalt'), meta, { cacheDir: dir, fonts: og });
+  assert.notEqual(custom.og.ka, plain.og.ka);
+  assert.notEqual(Buffer.compare(plain.files.get(plain.og.ka), custom.files.get(custom.og.ka)), 0);
 });

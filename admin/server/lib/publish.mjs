@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname, posix } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validate, canonicalize } from '../../../src/schema/validate.mjs';
+import { upgrade } from '../../../src/schema/migrate.mjs';
 import { buildSite, BuildValidationError } from '../../../src/build-site.mjs';
 import { LAYOUTS } from '../../../src/layouts/index.mjs';
 import { loadPalettes } from '../../../src/palettes.mjs';
@@ -13,13 +14,15 @@ import { fsyncDir, readJson } from './fsx.mjs';
 import { applyBuild, ImmutableChangedError, sha256File, gcWebRoot, safeJoin } from './swap.mjs';
 import { AppError, PreconditionError, NotFoundError } from './errors.mjs';
 import { BUILD_ID_RE } from './store.mjs';
+import { fontIssues } from './fonts/check.mjs';
 import { purgeFixedUrls } from './cloudflare.mjs';
 
 export const KEEP_BUILDS = 10;
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
 const buildStamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z'); // 20260914T101502Z
+// What counts as a content change for the publish date rule; the section order is content, the layout is not.
 const CONTENT_KEYS = ['person', 'meta', 'ui', 'hero', 'contact', 'sections'];
-const contentOf = (site) => JSON.stringify(Object.fromEntries(CONTENT_KEYS.map((k) => [k, site[k]])));
+const contentOf = (site) => JSON.stringify([...CONTENT_KEYS.map((k) => site[k]), site.settings?.sectionOrder]);
 
 export class PublishError extends AppError {
   constructor(stage, message, details = {}) { super(500, 'publish_failed', message, { stage, ...details }); }
@@ -28,9 +31,10 @@ export class PublishError extends AppError {
 export const hooks = { afterSwap: null }; // test seam: simulate a crash between swap and commit
 
 /**
- * @param {{ cfg, store, audit, clock, brand: (site) => Promise<{files, og, icons}>|object, paletteIds, layoutIds }} opts
+ * @param {{ cfg, store, audit, clock, brand: (site) => Promise<{files, og, icons}>|object, fonts, paletteIds, layoutIds }} opts
+ *   fonts: the font store, or null; without it every layout keeps its committed faces
  */
-export function createPublisher({ cfg, store, audit, clock = { now: () => Date.now() }, brand, paletteIds, layoutIds }) {
+export function createPublisher({ cfg, store, audit, clock = { now: () => Date.now() }, brand, fonts = null, paletteIds, layoutIds }) {
   const locks = join(cfg.dataDir, 'locks');
   const buildsDir = cfg.buildsDir;
   const webRoot = cfg.webRoot;
@@ -47,7 +51,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     await rm(tmp, { recursive: true, force: true });
     const manifest = {
       buildId, rev, createdAt: new Date(clock.now()).toISOString(), reason, release: cfg.release,
-      layout: files.layoutId, palette: files.paletteId, updated: site.settings.updated, files: {},
+      layout: files.layoutId, palette: files.paletteId, fonts: files.fonts ?? null, updated: site.settings.updated, files: {},
     };
     try {
       const dirs = new Set([tmp]);
@@ -139,7 +143,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     for (const n of names) {
       try {
         const m = await readManifest(n);
-        items.push({ buildId: n, rev: m.rev, createdAt: m.createdAt, layout: m.layout, palette: m.palette, current: state?.current === n, files: Object.keys(m.files).length, bytes: Object.values(m.files).reduce((a, f) => a + f.bytes, 0) });
+        items.push({ buildId: n, rev: m.rev, createdAt: m.createdAt, layout: m.layout, palette: m.palette, fonts: m.fonts ?? null, current: state?.current === n, files: Object.keys(m.files).length, bytes: Object.values(m.files).reduce((a, f) => a + f.bytes, 0) });
       } catch {}
     }
     return items;
@@ -172,8 +176,13 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
       site = structuredClone(draftEnv.site);
     } else site = structuredClone(live.site);
     site.settings.siteUrl = cfg.siteUrl;
-    // 3. full validation
+    // 3. full validation, plus the checks that need this machine's font store
     const v = validate(site, { mode: 'save', paletteIds, layoutIds, today });
+    if (fonts) {
+      const fi = await fontIssues(site, fonts);
+      v.errors.push(...fi.errors);
+      v.warnings.push(...fi.warnings);
+    }
     if (v.errors.length) throw new AppError(400, 'invalid', 'The draft has errors; fix them before publishing.', { errors: v.errors });
     if (source === 'draft' && v.warnings.length && acknowledgeWarnings !== true) throw new AppError(409, 'warnings_unacknowledged', 'Review the warnings, then publish again.', { warnings: v.warnings });
     // 4. date rule: content changes set today's date; layout, palette or theme changes alone keep it
@@ -188,8 +197,8 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     const warnings = [];
     const state0 = await store.readState();
     const reuseDir = state0?.current ? dirOf(state0.current) : null;
-    const provider = async (s, pal, meta) => {
-      try { return await brand(s, pal, meta, reuseDir); }
+    const provider = async (s, pal, meta, ogFonts) => {
+      try { return await brand(s, pal, meta, ogFonts, reuseDir); }
       catch (e) {
         if (!reuseDir) throw new PublishError('og', `Brand images failed: ${e.message}`);
         const m = await readManifest(state0.current);
@@ -203,7 +212,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
     };
     // 6. render
     let files;
-    try { files = await buildSite(site, { mode: 'publish', base: '/', brand: provider, today, palettes }); }
+    try { files = await buildSite(site, { mode: 'publish', base: '/', brand: provider, today, palettes, fonts: fonts?.loader() ?? null }); }
     catch (e) {
       if (e instanceof BuildValidationError) throw new AppError(400, 'invalid', 'The draft has errors.', { errors: e.errors });
       if (e instanceof PublishError) throw e;
@@ -286,7 +295,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
         const target = buildId ?? (state.history || []).find((id) => id !== state.current && existsSync(join(dirOf(id), 'manifest.json')));
         if (!target || !BUILD_ID_RE.test(target)) throw new AppError(404, 'unknown_build', 'There is no earlier build to roll back to.');
         const manifest = await readManifest(target);
-        const site = JSON.parse(await readFile(join(dirOf(target), '.site.json'), 'utf8'));
+        const site = upgrade(JSON.parse(await readFile(join(dirOf(target), '.site.json'), 'utf8')));
         const pub = await store.getPublished();
         await store.snapshot('pre-rollback', pub.site, { actor: 'admin', rev: pub.rev });
         await store.writePublishState((s) => ({ ...s, pending: { buildId: target, rev: manifest.rev, source: 'rollback', draftEtag: null, startedAt: new Date(clock.now()).toISOString() } }));
@@ -311,7 +320,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
           live = en === manifest.files['index.html']?.sha256 && ka === manifest.files['ka/index.html']?.sha256;
         } catch {}
         if (live && existsSync(join(dirOf(p.buildId), '.site.json'))) {
-          const site = JSON.parse(await readFile(join(dirOf(p.buildId), '.site.json'), 'utf8'));
+          const site = upgrade(JSON.parse(await readFile(join(dirOf(p.buildId), '.site.json'), 'utf8')));
           if (p.source === 'draft') {
             await store.commitPublished({ rev: p.rev, site, buildId: p.buildId });
             const d = await store.getDraft();

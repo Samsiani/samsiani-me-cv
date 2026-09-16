@@ -1,9 +1,19 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "settings": {
     "layout": "precision",
     "palette": "cobalt",
     "defaultTheme": "system",
+    "sectionOrder": [
+      "profile",
+      "skills",
+      "abilities",
+      "workstyle",
+      "principles",
+      "experience",
+      "languages",
+      "contact"
+    ],
     "updated": "2026-06-07",
     "autoUpdateDateOnPublish": false,
     "siteUrl": "https://samsiani.me"
@@ -300,6 +310,7 @@
   },
   "sections": {
     "profile": {
+      "hidden": false,
       "nav": {
         "en": "Profile",
         "ka": "პროფილი"
@@ -358,6 +369,7 @@
       ]
     },
     "skills": {
+      "hidden": false,
       "nav": {
         "en": "Stack & skills",
         "ka": "სტეკი და უნარები"
@@ -2154,6 +2166,7 @@
       ]
     },
     "abilities": {
+      "hidden": false,
       "nav": {
         "en": "What I can own end to end ok",
         "ka": "რას ვასრულებ თავიდან ბოლომდე"
@@ -2302,6 +2315,7 @@
       ]
     },
     "workstyle": {
+      "hidden": false,
       "nav": {
         "en": "How I work",
         "ka": "როგორ ვმუშაობ"
@@ -2450,6 +2464,7 @@
       ]
     },
     "principles": {
+      "hidden": false,
       "nav": {
         "en": "Principles",
         "ka": "პრინციპები"
@@ -2598,6 +2613,7 @@
       ]
     },
     "experience": {
+      "hidden": false,
       "nav": {
         "en": "Experience",
         "ka": "გამოცდილება"
@@ -2794,6 +2810,7 @@
       ]
     },
     "languages": {
+      "hidden": false,
       "nav": {
         "en": "Languages",
         "ka": "ენები"
@@ -2876,6 +2893,7 @@
       ]
     },
     "contact": {
+      "hidden": false,
       "nav": {
         "en": "Contact me",
         "ka": "ვისაუბროთ"

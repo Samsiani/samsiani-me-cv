@@ -42,7 +42,7 @@ ${themeColorMeta(layout, ctx.defaultTheme)}
 <link rel="icon" href="${assets.icons.i192}" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="${assets.icons.i180}">
 <link rel="manifest" href="${assets.manifestHref}">
-${layout.preload[c.lang].map((f) => `<link rel="preload" href="${assets.base}fonts/${f}.woff2" as="font" type="font/woff2" crossorigin>`).join('\n')}
+${(ctx.fonts?.preload?.[c.lang] ?? layout.preload[c.lang].map((f) => `fonts/${f}.woff2`)).map((f) => `<link rel="preload" href="${assets.base}${f}" as="font" type="font/woff2" crossorigin>`).join('\n')}
 ${layout.headExtra ? layout.headExtra(c, ctx) : ''}<link rel="stylesheet" href="${assets.cssHref}">
 ${themeInitScript(ctx.defaultTheme)}
 <script type="application/ld+json">${jsonForScript(personJsonLd(c, ctx))}</script>`;

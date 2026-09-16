@@ -8,7 +8,7 @@ import IssueList from './IssueList.vue';
 import Icon from './Icon.vue';
 import { issuesAt, todayTbilisi } from '../state/draft.js';
 import { maxFor } from '../state/registry.js';
-import { fieldId, genericPath, labelFor, helpFor } from '../fields.js';
+import { fieldId, genericPath, labelFor, helpFor, keepReason } from '../fields.js';
 import { cleanInput } from '../text.js';
 
 const props = defineProps({
@@ -30,6 +30,7 @@ const name = computed(() => props.label || labelFor(props.path));
 const helpText = computed(() => (props.help !== undefined ? props.help : helpFor(props.path)));
 const max = computed(() => (props.kind === 'text' ? maxFor(genericPath(props.path)) ?? props.spec.max ?? 0 : 0));
 const issues = computed(() => issuesAt(props.path));
+const keep = computed(() => (props.spec.nullable ? '' : keepReason(props.path)));
 const invalid = computed(() => issues.value.some((i) => i.level === 'error') || !!localError.value);
 const describedBy = computed(() => [helpText.value ? id.value + '-help' : '', max.value ? id.value + '-n' : '', issues.value.length || localError.value ? id.value + '-i' : ''].filter(Boolean).join(' ') || undefined);
 
@@ -88,6 +89,7 @@ function onPresent(e) {
         <Counter v-if="kind === 'text'" :value="model[field] ?? ''" :max="max" :id="id + '-n'" />
       </div>
       <p v-if="helpText" :id="id + '-help'" class="help">{{ helpText }}</p>
+      <p v-if="keep" class="help">Cannot be removed: {{ keep }}</p>
       <input
         v-if="kind === 'text'"
         :id="id"

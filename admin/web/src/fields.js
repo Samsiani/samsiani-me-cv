@@ -28,7 +28,7 @@ const LABELS = {
   'hero.tagline': L('Tagline'),
   'hero.location': L('Location'),
   'hero.availability': L('Availability'),
-  'hero.facts': L('Facts', 'Exactly four value and label pairs.'),
+  'hero.facts': L('Facts', 'Up to four value and label pairs; the strip is not shown when there are none.'),
   'hero.facts[]': L('Fact'),
   'hero.facts[].value': L('Value', 'Short: up to 7 Latin or 4 Georgian letters per word.'),
   'hero.facts[].label': L('Label'),
@@ -75,35 +75,81 @@ const LABELS = {
   'settings.updated': L('Last updated'),
 };
 
-// Interface strings: where each one shows (data-model.md §3.4)
+// Interface strings: where each one shows (data-model.md §3.4) and, for the ones that stay, why
+// (content-editing.md decision D7). A third element means "required": the form shows it as the reason.
+const LEGEND_REASON = 'The skills legend is one unit; hide the skills section instead.';
+const TABLE_REASON = 'Ledger’s table headers.';
 export const UI_NOTES = {
-  skip: ['Skip link', 'The first link of the page, for keyboard users.'],
-  nav: ['Sections', 'Navigation label and the menu button.'],
-  theme: ['Theme toggle', 'The theme button’s label and tooltip.'],
-  themeShort: ['Theme (short)', 'Ledger’s visible “Theme” label.'],
-  print: ['Save as PDF', 'The print button.'],
-  printShort: ['Save as PDF (short)', 'The print button below 480 px.'],
-  language: ['Language', 'Label of the language navigation.'],
-  langShort: ['Language (short)', 'This page’s own cell in the language switch.'],
-  langSwitch: ['Language switch', 'Tooltip of the switch and the footer link, shown on the other page.'],
-  copy: ['Copy', 'The copy chip.'],
-  copied: ['Copied', 'The copy chip after a click.'],
-  legend: ['Skills legend', 'Label of the skills legend.'],
-  'levels.core': ['Level: core', 'Level label.'],
-  'levels.strong': ['Level: strong', 'Level label.'],
-  'levels.working': ['Level: working', 'Level label.'],
-  'levelHints.core': ['Level hint: core', 'Explanation in the legend.'],
-  'levelHints.strong': ['Level hint: strong', 'Explanation in the legend.'],
-  'levelHints.working': ['Level hint: working', 'Explanation in the legend.'],
-  colGroup: ['Column: group', 'Ledger’s skills table header.'],
-  colSkill: ['Column: skill', 'Ledger’s skills table header.'],
-  colDepth: ['Column: depth', 'Ledger’s skills table header.'],
-  present: ['Present', 'The open end of an experience period.'],
-  atAGlance: ['At a glance', 'Label of the introduction block.'],
-  updated: ['Last updated', 'Footer.'],
+  skip: ['Skip link', 'The first link of the page, for keyboard users.', 'Keyboard users need the skip link.'],
+  nav: ['Sections', 'Navigation label and the menu button.', 'Names the section navigation and the menu button.'],
+  theme: ['Theme toggle', 'The theme button’s label and tooltip.', 'Name of the theme button.'],
+  themeShort: ['Theme (short)', 'Ledger’s visible “Theme” label.', 'Name of the theme button.'],
+  print: ['Save as PDF', 'The print button.', 'Text of the print button.'],
+  printShort: ['Save as PDF (short)', 'The print button below 480 px.', 'Text of the print button.'],
+  language: ['Language', 'Label of the language navigation.', 'The language switch needs both its labels.'],
+  langShort: ['Language (short)', 'This page’s own cell in the language switch.', 'The language switch needs both its labels.'],
+  langSwitch: ['Language switch', 'Tooltip of the switch and the footer link, shown on the other page.', 'The language switch needs both its labels.'],
+  copy: ['Copy', 'The copy chip.', 'Text and state of the copy chip.'],
+  copied: ['Copied', 'The copy chip after a click.', 'Text and state of the copy chip.'],
+  legend: ['Skills legend', 'Label of the skills legend.', LEGEND_REASON],
+  'levels.core': ['Level: core', 'Level label.', LEGEND_REASON],
+  'levels.strong': ['Level: strong', 'Level label.', LEGEND_REASON],
+  'levels.working': ['Level: working', 'Level label.', LEGEND_REASON],
+  'levelHints.core': ['Level hint: core', 'Explanation in the legend.', LEGEND_REASON],
+  'levelHints.strong': ['Level hint: strong', 'Explanation in the legend.', LEGEND_REASON],
+  'levelHints.working': ['Level hint: working', 'Explanation in the legend.', LEGEND_REASON],
+  colGroup: ['Column: group', 'Ledger’s skills table header.', TABLE_REASON],
+  colSkill: ['Column: skill', 'Ledger’s skills table header.', TABLE_REASON],
+  colDepth: ['Column: depth', 'Ledger’s skills table header.', TABLE_REASON],
+  present: ['Present', 'The open end of an experience period.', 'Shown for an open experience period.'],
+  atAGlance: ['At a glance', 'Label of the introduction block.', 'Names the introduction for screen readers.'],
+  updated: ['Last updated', 'Footer.', 'Footer label and link text.'],
   builtWith: ['Built with', 'Footer.'],
-  top: ['Back to top', 'Footer.'],
+  top: ['Back to top', 'Footer.', 'Footer label and link text.'],
 };
+
+// Single lines that may be removed: what the form says once they are gone (decision D3). A path in this
+// map also turns the field's Add button into "Add back"; nav, lead and detail keep their own wording.
+const OFF_TEXT = {
+  'hero.eyebrow': 'Removed: no line above the name.',
+  'hero.subrole': 'Removed: no line under the role.',
+  'hero.tagline': 'Removed: no tagline in the introduction.',
+  'hero.location': 'Removed: not shown in the location line.',
+  'hero.availability': 'Removed: not shown in the location line.',
+  'sections.skills.groups[].lead': 'Removed: the group shows only its title.',
+  'sections.contact.cta': 'Removed: only the big email link and the extra buttons are shown.',
+  'ui.builtWith': 'Removed: the footer ends with the date.',
+};
+const generic = (path) => (path.startsWith('$') ? genericPath(path) : path);
+/** What the form says in place of a removed content line ('' for a field that has no wording of its own). */
+export const offTextFor = (path) => OFF_TEXT[generic(path)] || '';
+/** True for the content lines that can be added back (as opposed to nav, lead and detail). */
+export const isContentLine = (path) => generic(path) in OFF_TEXT;
+
+// Lines that can never be removed, and the reason the form gives (decision D8).
+const KEEP = {
+  'person.givenName': 'The name is always shown.',
+  'person.familyName': 'The name is always shown.',
+  'person.monogram': 'Drawn in the icons and the social cards.',
+  'hero.role': 'Also the job title in the structured data, the social-card text and the app name.',
+  'contact.heading': 'Names the contact list for screen readers.',
+  'contact.items[].label': 'Names the row for screen readers.',
+  'sections.*.title': 'A section needs a title; to remove the section, hide it under Section order.',
+  'meta.title': 'Required by search engines.',
+  'meta.description': 'Required by search engines.',
+};
+// Why a list keeps its minimum, and what to do instead (decision D5).
+const MIN_NOTES = { 'sections.skills.groups[].items': 'Remove the group instead.' };
+export function minNoteFor(path) {
+  const g = generic(path);
+  return MIN_NOTES[g] || (g.startsWith('sections.') ? 'To remove the whole section, hide it under Section order.' : '');
+}
+
+/** Why a required line stays ('' when the form has nothing to add). */
+export function keepReason(path) {
+  const g = generic(path);
+  return KEEP[g] || KEEP[g.replace(/^sections\.[a-z]+\./, 'sections.*.')] || '';
+}
 
 function lookup(g) {
   if (LABELS[g]) return LABELS[g];
@@ -133,6 +179,9 @@ export function helpFor(path) {
 export const TAB_ROOTS = {
   person: ['$.person.givenName', '$.person.familyName', '$.person.monogram', '$.hero'],
   contact: ['$.contact'],
+  // the Section order tab owns the order and what is reported on the section set as a whole
+  // ($.sections itself: NO_SECTIONS, NAV_BUDGET); a path inside a section belongs to that section's tab
+  sections: ['$.settings.sectionOrder', '$.sections'],
   profile: ['$.sections.profile'],
   skills: ['$.sections.skills'],
   abilities: ['$.sections.abilities'],
@@ -148,11 +197,24 @@ export const DASHBOARD_ROOTS = ['$.settings'];
 
 const under = (p, root) => p === root || p.startsWith(root + '.') || p.startsWith(root + '[');
 
+/**
+ * The content tab that edits a path, or null. The most specific root wins, so "$.sections" belongs to the
+ * Section order tab while "$.sections.profile.title" belongs to Profile, and "$.settings.sectionOrder"
+ * beats the dashboard's "$.settings".
+ */
+export function tabOf(path) {
+  let best = null;
+  for (const [tab, roots] of Object.entries(TAB_ROOTS)) {
+    for (const r of roots) if (under(path, r) && (!best || r.length > best.len)) best = { tab, len: r.length };
+  }
+  return best ? best.tab : null;
+}
+
 export function routeForPath(path) {
-  if (DASHBOARD_ROOTS.some((r) => under(path, r))) return '/';
+  const tab = tabOf(path);
+  if (tab) return `/content/${tab}`;
   if (SEO_ROOTS.some((r) => under(path, r))) return '/seo';
-  for (const [tab, roots] of Object.entries(TAB_ROOTS)) if (roots.some((r) => under(path, r))) return `/content/${tab}`;
-  if (path === '$.sections') return '/content/profile';
+  if (DASHBOARD_ROOTS.some((r) => under(path, r))) return '/';
   return '/content/person';
 }
 

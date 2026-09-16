@@ -177,6 +177,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .st-t-name { display: flex; flex-direction: column; justify-content: space-between; padding: 24px 22px 22px; container-type: inline-size; }
 .st-eyebrow { font: 500 11px/1.3 var(--st-label); letter-spacing: 0.16em; text-transform: var(--st-caps); color: var(--accent-ink); }
 /* size = min(scale, fit): the longest name word (data-len, 4–12) always fits the tile (plan §3.1) */
+.st-t-name > .st-name:first-child { margin-top: 0; } /* the eyebrow was removed */
 .st-name { margin-top: 26px; font: 700 var(--st-h1)/0.92 var(--st-sans); font-size: min(var(--st-h1), calc(100cqi / (var(--st-name-len, 8) * var(--st-name-em)))); font-stretch: var(--st-w-h1); letter-spacing: -0.03em; color: var(--st-ink); overflow-wrap: anywhere; }
 .st-name[data-len="4"] { --st-name-len: 4; }
 .st-name[data-len="5"] { --st-name-len: 5; }
@@ -369,6 +370,7 @@ html[lang="ka"] .st-nav, html[lang="ka"] .st-menu-list a { letter-spacing: 0; }
   .st-t-name { grid-column: span 7; min-height: 280px; padding: 36px 36px 32px; }
   .st-t-role { grid-column: span 5; padding: 32px 32px 28px; }
   .st-t-contact { grid-column: span 5; padding: 26px 30px 28px; }
+  .st-bento > .st-t-contact:last-child { grid-column: 1 / -1; } /* no facts follow it */
   .st-facts { grid-column: span 7; }
   .st-fact { padding: 24px 26px; }
   :root { --st-fact-size: 34px; }
@@ -437,6 +439,7 @@ html[lang="ka"] .st-nav, html[lang="ka"] .st-menu-list a { letter-spacing: 0; }
   html[lang] .st-t-name { grid-column: span 7; min-height: 0; padding: 4mm 5mm; }
   html[lang] .st-t-role { grid-column: span 5; padding: 4mm 5mm; }
   html[lang] .st-t-contact { grid-column: span 5; padding: 3.5mm 5mm; }
+  html[lang] .st-bento > .st-t-contact:last-child { grid-column: 1 / -1; }
   html[lang] .st-facts { grid-column: span 7; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   html[lang] .st-tile { background: none; border: 0.75pt solid var(--st-line); break-inside: avoid; }
   html[lang] .st-name { margin-top: 3mm; }

@@ -2,6 +2,7 @@
 import { Hono } from 'hono';
 import { validate } from '../../../src/schema/validate.mjs';
 import { diffPaths } from '../../shared/diff.mjs';
+import { fontIssues, fontNamer } from '../lib/fonts/check.mjs';
 import { jsonBody, ifMatchValue, fail } from '../lib/http.mjs';
 
 export function draftRoutes(cfg, deps) {
@@ -48,10 +49,16 @@ export function draftRoutes(cfg, deps) {
     const s = structuredClone(site);
     if (s.settings && typeof s.settings === 'object') s.settings.siteUrl = cfg.siteUrl;
     const v = validate(s, { mode: 'save', paletteIds: deps.paletteIds, layoutIds: deps.layoutIds, today: store.today() });
-    return c.json({ errors: v.errors, warnings: v.warnings });
+    // whether a chosen font is actually on this machine is a server fact, not a property of the document
+    const f = await fontIssues(s, deps.fonts);
+    return c.json({ errors: [...v.errors, ...f.errors], warnings: [...v.warnings, ...f.warnings] });
   });
 
-  r.get('/revisions', async (c) => c.json({ items: await store.listRevisions(), keep: 30 }));
+  r.get('/revisions', async (c) => {
+    const items = await store.listRevisions();
+    const name = await fontNamer(deps.fonts);
+    return c.json({ items: items.map((r2) => ({ ...r2, fontsSummary: name(r2.fonts) })), keep: 30 });
+  });
 
   r.get('/revisions/:id', async (c) => {
     const rev = await store.getRevision(c.req.param('id'));

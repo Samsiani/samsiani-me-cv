@@ -1,5 +1,6 @@
 // Export and import (admin-ops.md §4.7 rows 24–25).
 import { Hono } from 'hono';
+import { SCHEMA_VERSION } from '../../../src/schema/migrate.mjs';
 import { jsonBody, fail } from '../lib/http.mjs';
 
 export function ioRoutes(cfg, deps) {
@@ -12,7 +13,7 @@ export function ioRoutes(cfg, deps) {
     const doc = source === 'draft' ? await store.getDraft() : await store.getPublished();
     const day = store.today();
     c.header('Content-Disposition', `attachment; filename="samsiani-site-${source}-r${doc.rev}-${day}.json"`);
-    return c.json({ format: 'samsiani.me/site', schemaVersion: 1, source, rev: doc.rev, exportedAt: new Date(deps.clock.now()).toISOString(), site: doc.site });
+    return c.json({ format: 'samsiani.me/site', schemaVersion: SCHEMA_VERSION, source, rev: doc.rev, exportedAt: new Date(deps.clock.now()).toISOString(), site: doc.site });
   });
 
   r.post('/import', async (c) => {

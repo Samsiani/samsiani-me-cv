@@ -5,6 +5,8 @@ import { buildSite } from '../../../src/build-site.mjs';
 import { LAYOUTS } from '../../../src/layouts/index.mjs';
 import { loadPalettes } from '../../../src/palettes.mjs';
 import { brandPlan } from '../../../src/shared/brand.mjs';
+import { fontNamer } from '../lib/fonts/check.mjs';
+import { resolveFonts } from '../../../src/typography/resolve.mjs';
 import { renderPng, RENDERER_ID } from '../../../src/brand/render.mjs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -32,7 +34,7 @@ export function publishRoutes(cfg, deps) {
     const token = previews.newToken();
     let files;
     try {
-      files = await buildSite(checked.site, { mode: 'preview', base: `/admin/preview/${token}/`, brand: deps.previewBrand(checked.site), today: store.today() });
+      files = await buildSite(checked.site, { mode: 'preview', base: `/admin/preview/${token}/`, brand: deps.previewBrand(checked.site), today: store.today(), fonts: deps.fonts.loader() });
     } catch (e) {
       fail(422, 'preview_render_failed', `Preview cannot render this draft: ${e.message}`);
     }
@@ -57,14 +59,20 @@ export function publishRoutes(cfg, deps) {
     const pals = loadPalettes();
     const pal = pals.palettes.find((p) => p.id === checked.site.settings.palette) || pals.palettes.find((p) => p.id === pals.default);
     const meta = (LAYOUTS[checked.site.settings.layout] || LAYOUTS.precision).meta;
-    const item = brandPlan(checked.site, pal, meta, RENDERER_ID).find((p) => p.kind === 'og' && p.key === lang);
+    // the same faces a publish would draw with, so the preview is the card
+    const fonts = await resolveFonts(checked.site, meta, deps.fonts.loader());
+    const item = brandPlan(checked.site, pal, meta, RENDERER_ID, fonts.og).find((p) => p.kind === 'og' && p.key === lang);
     const cache = join(cfg.dataDir, 'brand-cache');
     let png = await readFile(join(cache, item.name)).catch(() => null);
     if (!png) { png = await renderPng(item); await mkdir(cache, { recursive: true }); await writeFile(join(cache, item.name), png, { mode: 0o644 }); }
     return c.body(png, 200, { 'Content-Type': 'image/png' });
   });
 
-  r.get('/builds', async (c) => c.json({ items: await publisher.listBuilds() }));
+  r.get('/builds', async (c) => {
+    const items = await publisher.listBuilds();
+    const name = await fontNamer(deps.fonts);
+    return c.json({ items: items.map((b) => ({ ...b, fontsSummary: name(b.fonts) })) });
+  });
 
   r.post('/builds/rollback', async (c) => {
     const lim = limiter.hit('publish:' + c.get('session').sid, 10, 60_000);

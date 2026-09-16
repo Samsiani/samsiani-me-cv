@@ -20,7 +20,8 @@ export const langSwitchLink = (c, alt, label, extra = '') =>
   `<a href="${c.altPath}" hreflang="${alt.lang}" lang="${alt.lang}"${extra} data-lang-switch="${alt.lang}">${esc(label)}</a>`;
 
 // a[data-spy="<anchor>"]: main.js marks the visible section with aria-current="location".
+// The full legacy order, kept for tests and tools; the page follows c.sectionOrder (shown sections only).
 export const SECTION_ORDER = ['profile', 'skills', 'abilities', 'workstyle', 'principles', 'experience', 'education', 'contact'];
-export const orderedSections = (c) => SECTION_ORDER.map((k) => c.sections[k]);
+export const orderedSections = (c) => c.sectionOrder.map((k) => c.sections[k]).filter(Boolean);
 
 export const isExternal = (href) => href.startsWith('http');

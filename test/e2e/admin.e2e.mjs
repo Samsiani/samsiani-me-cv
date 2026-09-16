@@ -1,8 +1,9 @@
-// Admin end-to-end flows E1–E11 (docs/plans/admin-layouts-palettes.md, M8 acceptance), node:test + Playwright.
+// Admin end-to-end flows E1–E17 (docs/plans/admin-layouts-palettes.md M8, content-editing.md, fonts.md §7.5),
+// node:test + Playwright.
 // Run: npm run test:e2e   (E2E_SHOTS=<dir> also writes review screenshots)
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { buildSpa, createHarness, waitFor, sleep, INITIAL_PASSWORD, PASSWORD, USERNAME, ROOT } from './_harness.mjs';
 import { overflowProbe, contrastProbe, focusProbe } from '../../scripts/lib/dom-checks.mjs';
@@ -74,14 +75,22 @@ test('review screenshots (E2E_SHOTS=<dir>)', { ...T, skip: !process.env.E2E_SHOT
     ['dashboard-1440-dark', 1440, 'dark', '/'],
     ['content-skills-1440-light', 1440, 'light', '/content/skills'],
     ['dashboard-390-light', 390, 'light', '/'],
+    ['font-dialog-google-1440-light', 1440, 'light', '/', 'fonts'],
+    ['font-dialog-google-1440-dark', 1440, 'dark', '/', 'fonts'],
+    ['font-dialog-google-390-light', 390, 'light', '/', 'fonts'],
   ];
-  for (const [name, width, colorScheme, route] of shots) {
+  for (const [name, width, colorScheme, route, open] of shots) {
     const x = await h.open({ width, height: 900, colorScheme });
     try {
       await h.login(x.page);
       await go(x.page, route);
       await x.page.locator('main h1').first().waitFor();
       if (route === '/') await h.inPreview(x.page, () => document.readyState === 'complete');
+      if (open === 'fonts') {
+        await x.page.getByRole('button', { name: 'Change the text font of A · Precision' }).click();
+        await x.page.locator('#font-search').waitFor({ timeout: 15_000 });
+        await waitFor(async () => (await x.page.locator('.fp-row').count()) > 0, { message: 'the catalogue rows' });
+      }
       await x.page.waitForLoadState('networkidle').catch(() => {});
       // a viewport as tall as the page (a full-page capture leaves the sandboxed frame unpainted)
       const height = await x.page.evaluate(() => document.documentElement.scrollHeight);
@@ -415,9 +424,9 @@ async function auditScreen(page, cdp, label) {
   return { fails, stops };
 }
 
-const SCREENS = ['/', '/content/person', '/content/contact', '/content/profile', '/content/skills', '/content/abilities',
-  '/content/workstyle', '/content/principles', '/content/experience', '/content/languages', '/content/talk', '/content/ui',
-  '/seo', '/revisions', '/account'];
+const SCREENS = ['/', '/content/person', '/content/contact', '/content/sections', '/content/profile', '/content/skills',
+  '/content/abilities', '/content/workstyle', '/content/principles', '/content/experience', '/content/languages',
+  '/content/talk', '/content/ui', '/seo', '/revisions', '/account'];
 
 test('E10: dom-checks on every screen at 1280 and 390 px, light and dark', { timeout: 900_000 }, async () => {
   const fails = [];
@@ -455,6 +464,21 @@ test('E10: dom-checks on every screen at 1280 and 390 px, light and dark', { tim
           summary.push(`${at} publish dialog: ${d.stops} tab stops`);
           await x.page.getByRole('button', { name: 'Cancel', exact: true }).click();
         }
+        // the font chooser, one audit per tab (fonts plan §7.5)
+        await x.page.goto('about:blank');
+        await x.page.goto(`${h.origin}/admin/#/`);
+        await x.page.locator('main h1', { hasText: 'Dashboard' }).waitFor();
+        await x.page.getByRole('button', { name: /^Change the text font/ }).click();
+        await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+        for (const name of ['Google Fonts', 'Upload a file', 'Already added']) {
+          await x.page.getByRole('tab', { name }).click();
+          await x.page.waitForLoadState('networkidle').catch(() => {});
+          await sleep(150);
+          const f = await auditScreen(x.page, cdp, `${at} font dialog (${name})`);
+          fails.push(...f.fails);
+          summary.push(`${at} font dialog (${name}): ${f.stops} tab stops`);
+        }
+        await x.page.getByRole('button', { name: 'Close', exact: true }).click();
       } finally {
         await x.context.close();
       }
@@ -529,5 +553,258 @@ test('autosave on a 5xx or a network error keeps the copy on this device, retrie
     assert.equal(await x.page.evaluate(() => localStorage.getItem('sm-admin:pending')), null, 'the device copy is removed after the save');
   } finally {
     await x.context.close();
+  }
+});
+
+test('E12: Remove takes a single line off the page, Undo puts it back, Add back leaves an empty pair', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    const before = (await h.api(x.page, 'GET', '/draft')).json.site.hero.subrole;
+    await x.page.getByRole('link', { name: 'Content' }).first().click();
+    await x.page.locator('#f-hero-subrole-en').waitFor();
+    const t0 = Date.now();
+    await x.page.getByRole('button', { name: 'Remove Subrole', exact: true }).click();
+    assert.equal(await x.page.evaluate(() => document.activeElement?.textContent?.trim()), 'Add back', 'focus moves to Add back');
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await h.inPreview(x.page, () => !document.querySelector('.subrole, .st-subrole, .lg-subrole'), undefined, { timeout: 5_000 });
+    const elapsed = Date.now() - t0;
+    assert.ok(elapsed < 1500, `the preview dropped the line after ${elapsed} ms`);
+    // the toast is still open (10 s): Undo restores the pair and focuses its EN input
+    await x.page.getByRole('link', { name: 'Content' }).first().click();
+    await x.page.getByText('Removed ‘Subrole’.').waitFor({ timeout: 5_000 });
+    await x.page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await x.page.locator('#f-hero-subrole-en').waitFor();
+    assert.equal(await x.page.locator('#f-hero-subrole-en').inputValue(), before.en, 'the text is back');
+    assert.equal(await x.page.evaluate(() => document.activeElement?.id), 'f-hero-subrole-en', 'focus is in the EN input');
+    // removed again and saved: the stored draft has null
+    await x.page.getByRole('button', { name: 'Remove Subrole', exact: true }).click();
+    await h.waitSaved(x.page);
+    assert.equal((await h.api(x.page, 'GET', '/draft')).json.site.hero.subrole, null);
+    // Add back gives an empty pair, which the form flags
+    await x.page.getByRole('button', { name: 'Add back Subrole', exact: true }).click();
+    await x.page.locator('#f-hero-subrole-en').waitFor();
+    await waitFor(async () => (await x.page.locator('#f-hero-subrole-en').getAttribute('aria-invalid')) === 'true', { message: 'the EMPTY flag' });
+    await x.page.locator('#f-hero-subrole-en').fill(before.en);
+    await x.page.locator('#f-hero-subrole-ka').fill(before.ka);
+    await h.waitSaved(x.page);
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E13: hide and reorder sections with the keyboard; the published page loses the hidden one', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.goto(`${h.origin}/admin/#/content/sections`);
+    await x.page.locator('main h1').first().waitFor();
+    const hide = x.page.getByRole('button', { name: 'Hide ‘Experience’', exact: true });
+    await hide.focus();
+    await x.page.keyboard.press('Enter');
+    await x.page.getByRole('button', { name: 'Show ‘Experience’', exact: true }).waitFor();
+    assert.equal(await x.page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Show ‘Experience’', 'focus stays on the toggle');
+    assert.equal(await x.page.evaluate(() => document.activeElement?.textContent?.trim()), 'Show', 'the visible label stays short so the rows line up');
+    const move = x.page.getByRole('button', { name: 'Move ‘Languages’ up', exact: true });
+    await move.focus();
+    await x.page.keyboard.press('Enter');
+    await waitFor(async () => (await x.page.evaluate(() => document.activeElement?.closest('[data-key]')?.dataset?.key)) === 'languages', { message: 'the move' });
+    assert.equal(await x.page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Move ‘Languages’ up', 'focus stays on the same button of the moved row');
+    // the tab list follows the order and marks the hidden section
+    assert.deepEqual(
+      await x.page.evaluate(() => [...document.querySelectorAll('.tabs a')].map((a) => a.innerText.trim().replace(/\s+/g, ' '))),
+      ['Person & hero', 'Contact rail', 'Section order', 'Profile', 'Stack & skills', 'Abilities', 'How I work', 'Principles',
+        'Languages', 'Experience · hidden', 'Let’s talk', 'Interface strings'],
+    );
+    await h.waitSaved(x.page);
+    // the preview lists the shown sections only, in the new order, numbered 01…07
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await h.inPreview(x.page, () => new Set([...document.querySelectorAll('a[data-spy]')].map((a) => a.getAttribute('href'))).size === 7, undefined, { timeout: 5_000 });
+    const nav = await h.inPreview(x.page, () => {
+      const first = [...document.querySelectorAll('nav')].find((n) => n.querySelector('a[data-spy]'));
+      const numbered = [...document.querySelectorAll('nav')].find((n) => n.querySelector('a[data-spy] .idx, a[data-spy] .st-menu-idx, a[data-spy] .n'));
+      return {
+        hrefs: [...first.querySelectorAll('a[data-spy]')].map((a) => a.getAttribute('href')),
+        numbers: [...numbered.querySelectorAll('a[data-spy]')].map((a) => a.querySelector('.idx, .st-menu-idx, .n').textContent),
+      };
+    });
+    assert.deepEqual(nav.hrefs, ['#profile', '#skills', '#abilities', '#work-style', '#principles', '#languages', '#contact']);
+    assert.deepEqual(nav.numbers, ['01', '02', '03', '04', '05', '06', '07']);
+    // publish: the live page has no experience section and no worksFor
+    await x.page.getByTestId('publish').click();
+    await publishFromDialog(x.page);
+    const live = h.webFile('index.html').toString('utf8');
+    assert.equal(live.includes('id="experience"'), false, 'the hidden section is not on the page');
+    const ld = JSON.parse(live.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    assert.equal('worksFor' in ld, false, 'the structured data follows what is shown');
+    // show it again and publish (the next flows expect the whole page)
+    await x.page.goto(`${h.origin}/admin/#/content/sections`);
+    await x.page.getByRole('button', { name: 'Show ‘Experience’', exact: true }).click();
+    await h.waitSaved(x.page);
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await x.page.getByTestId('publish').click();
+    await publishFromDialog(x.page);
+    assert.ok(h.webFile('index.html').toString('utf8').includes('id="experience"'), 'the section is back');
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E14: the facts strip goes to zero and one Undo brings a fact back', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.goto(`${h.origin}/admin/#/content/person`);
+    await x.page.locator('#f-hero-facts').waitFor();
+    const remove = x.page.locator('#f-hero-facts [data-act="remove"]');
+    for (let left = 4; left > 0; left--) {
+      assert.equal(await remove.first().getAttribute('aria-disabled'), null, `Remove stays enabled at ${left} facts`);
+      await remove.first().click();
+      await waitFor(async () => (await remove.count()) === left - 1, { message: `${left - 1} facts` });
+    }
+    await h.waitSaved(x.page);
+    assert.deepEqual((await h.api(x.page, 'GET', '/draft')).json.site.hero.facts, []);
+    await x.page.getByRole('link', { name: 'Dashboard' }).first().click();
+    await h.inPreview(x.page, () => !document.querySelector('.facts, .st-facts, .lg-facts'), undefined, { timeout: 5_000 });
+    // the last removal is still undoable
+    await x.page.getByRole('link', { name: 'Content' }).first().click();
+    await x.page.locator('#f-hero-facts').waitFor();
+    await x.page.getByRole('button', { name: 'Undo', exact: true }).last().click();
+    await waitFor(async () => (await x.page.locator('#f-hero-facts [data-act="remove"]').count()) === 1, { message: 'the restored fact' });
+    assert.equal((await x.page.locator('#f-hero-facts-max').innerText()).trim(), '1 of at most 4 facts.');
+    await h.waitSaved(x.page);
+  } finally {
+    await x.context.close();
+  }
+});
+
+// ------------------------------------------------------------------ fonts (fonts plan §7.5)
+// The harness runs the server with GOOGLE_FONTS_FIXTURE, so the picker reads the catalogue and the font
+// files from test/fixtures/google-fonts/ and nothing in this suite reaches the network.
+const facesOf = (family) => [...document.fonts].filter((f) => f.family === family).map((f) => f.status);
+
+test('E15: choose a Google family for Precision text; the preview draws it and Reset puts the layout face back', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.getByRole('button', { name: 'Change the text font of A · Precision' }).click();
+    await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+    assert.match((await x.page.locator('#font-dlg-title').innerText()).trim(), /^Choose the text font for A · Precision$/);
+    await x.page.locator('#font-search').fill('Chivo');
+    const row = x.page.getByRole('button', { name: /^Chivo/ });
+    await waitFor(async () => (await row.count()) === 1, { message: 'the Chivo row' });
+    await row.click();
+    // the specimen is drawn in the fetched face, inside the admin page itself
+    const chosen = x.page.locator('#font-chosen-title');
+    await chosen.waitFor({ timeout: 20_000 });
+    const alias = await waitFor(
+      () => x.page.evaluate(() => document.querySelector('.fp-chosen .fp-spec')?.style.getPropertyValue('--fp-face')),
+      { message: 'the specimen face' },
+    );
+    assert.match(alias, /^"sm-spec-[0-9a-f]{16}"/, 'the specimen uses a generated alias, never the font’s own name');
+    const specAlias = alias.slice(1, alias.indexOf('"', 1));
+    assert.deepEqual(await x.page.evaluate(facesOf, specAlias), ['loaded'], 'the specimen face is loaded in the admin');
+    await x.page.getByRole('button', { name: 'Use this font' }).click();
+    await h.waitSaved(x.page);
+    const id = (await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision.text;
+    assert.match(String(id), /^[0-9a-f]{16}$/, 'the draft names the stored font');
+    // the preview renders with the chosen face on both pages
+    for (const lang of ['EN', 'KA']) {
+      await x.page.getByRole('button', { name: lang, exact: true }).click();
+      await h.inPreview(x.page, async () => {
+        await document.fonts.ready;
+        return [...document.fonts].some((f) => f.family === 'sm-text' && f.status === 'loaded');
+      }, undefined, { timeout: 20_000 });
+    }
+    // the report line and the specimen row follow the choice
+    await waitFor(async () => /^Fonts on \/ka\/: \d+ KB/.test((await x.page.getByTestId('fonts-report').innerText()).trim()), { message: 'the report line' });
+    assert.match(await x.page.locator('.fp-item[data-role="text"] .fp-source').innerText(), /^Google · Chivo$/);
+    // Reset: the role is null again (never removed) and the preview is back on the layout's own face
+    await x.page.getByRole('button', { name: 'Reset the text font of A · Precision' }).click();
+    await h.waitSaved(x.page);
+    const after = (await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision;
+    assert.deepEqual(after, { text: null, label: null, georgian: null }, 'a reset writes null and keeps the keys');
+    await x.page.getByRole('button', { name: 'EN', exact: true }).click();
+    await h.inPreview(x.page, async () => {
+      await document.fonts.ready;
+      return ![...document.fonts].some((f) => f.family === 'sm-text');
+    }, undefined, { timeout: 20_000 });
+    assert.match(await x.page.locator('.fp-item[data-role="text"] .fp-source').innerText(), /^Layout default · Chivo$/);
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E16: upload a TTF for the Georgian role, publish it, then roll back', T, async () => {
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    const prevKa = h.webFile('ka/index.html');
+    await x.page.getByRole('button', { name: 'Change the georgian font of A · Precision' }).click();
+    await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+    await x.page.getByRole('tab', { name: 'Upload a file' }).click();
+    await x.page.locator('#font-file').setInputFiles(join(ROOT, 'src/brand/fonts/NotoSansGeorgian-SemiBold.ttf'));
+    // the licence attestation is the only way the upload is accepted (the server refuses it otherwise)
+    const upload = x.page.getByRole('button', { name: 'Upload', exact: true });
+    assert.equal(await upload.getAttribute('aria-disabled'), 'true', 'no upload without the licence checkbox');
+    await x.page.locator('#font-licence').check();
+    await upload.click();
+    await x.page.locator('#font-chosen-title').waitFor({ timeout: 30_000 });
+    assert.match(await x.page.locator('#font-chosen-title').innerText(), /Noto Sans Georgian/);
+    await x.page.getByRole('button', { name: 'Use this font' }).click();
+    await h.waitSaved(x.page);
+    assert.match((await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision.georgian, /^[0-9a-f]{16}$/);
+    // publish: the web root carries the converted WOFF2 and /ka/ preloads it first
+    await x.page.getByTestId('publish').click();
+    assert.match(await x.page.getByTestId('publish-fonts').innerText(), /Noto Sans Georgian/);
+    await publishFromDialog(x.page);
+    // the layout's own faces keep their fixed names; the chosen one is a hashed file beside them
+    const shipped = readdirSync(join(h.dirs.WEB_ROOT, 'fonts')).filter((f) => /^noto-sans-georgian-.*\.[0-9a-f]{8}\.woff2$/.test(f));
+    assert.equal(shipped.length, 1, `one converted face is shipped (${readdirSync(join(h.dirs.WEB_ROOT, 'fonts')).join(', ')})`);
+    const ka = h.webFile('ka/index.html').toString('utf8');
+    const preloads = [...ka.matchAll(/<link rel="preload" href="\/([^"]+)" as="font"/g)].map((m) => m[1]);
+    assert.equal(preloads[0], `fonts/${shipped[0]}`, 'the Georgian face is preloaded first on /ka/');
+    const css = h.webFile(/styles\.[0-9a-f]{8}\.css/.exec(ka)[0]).toString('utf8');
+    assert.match(css, /@font-face \{\n {2}font-family: "sm-georgian";/, 'the generated block names the role alias, not the font');
+    // Revisions and Live builds name the fonts of each entry
+    await x.page.getByRole('link', { name: 'Revisions' }).first().click();
+    await waitFor(async () => (await x.page.locator('[data-testid="builds"] tbody tr').count()) >= 2, { message: 'the builds table' });
+    assert.match(await x.page.locator('[data-testid="builds"] tbody tr').first().locator('.fonts-cell').innerText(), /Noto Sans Georgian/);
+    assert.match(await x.page.locator('[data-testid="revisions"] tbody tr').first().locator('.fonts-cell').innerText(), /Noto Sans Georgian/);
+    // roll back: the previous build's bytes are live again
+    await x.page.locator('[data-testid="builds"] tbody tr').nth(1).getByRole('button', { name: /^Roll back to this build/ }).click();
+    await x.page.getByRole('button', { name: 'Roll back', exact: true }).click();
+    await x.page.getByText(/^Rolled back: the live site is r\d+ again\.$/).waitFor({ timeout: 15_000 });
+    assert.ok(h.webFile('ka/index.html').equals(prevKa), 'ka/index.html has the bytes of the previous build');
+  } finally {
+    await x.context.close();
+  }
+});
+
+test('E17: with Google unreachable the picker says so and uploads still work', T, async () => {
+  // a machine that has never reached Google: no cached catalogue, and every request to it fails
+  await h.stop();
+  rmSync(join(h.dirs.DATA_DIR, 'fonts', 'catalogue.json'), { force: true });
+  await h.start({ GOOGLE_FONTS_FIXTURE_OFFLINE: '1' });
+  const x = await h.open();
+  try {
+    await h.login(x.page);
+    await x.page.getByRole('button', { name: 'Change the labels font of A · Precision' }).click();
+    await x.page.locator('#font-dlg-title').waitFor({ timeout: 10_000 });
+    await x.page.getByText(/Google Fonts is unreachable from the server/).waitFor({ timeout: 15_000 });
+    assert.equal(await x.page.locator('#font-search').count(), 0, 'no search box without a catalogue');
+    // the upload tab is unaffected
+    await x.page.getByRole('tab', { name: 'Upload a file' }).click();
+    await x.page.locator('#font-file').setInputFiles(join(ROOT, 'src/fonts/ibm-plex-mono-latin-400.woff2'));
+    await x.page.locator('#font-licence').check();
+    await x.page.getByRole('button', { name: 'Upload', exact: true }).click();
+    await x.page.locator('#font-chosen-title').waitFor({ timeout: 30_000 });
+    await x.page.getByRole('button', { name: 'Use this font' }).click();
+    await h.waitSaved(x.page);
+    assert.match((await h.api(x.page, 'GET', '/draft')).json.site.settings.fonts.precision.label, /^[0-9a-f]{16}$/);
+  } finally {
+    await x.context.close();
+    await h.stop();
+    await h.start();
   }
 });

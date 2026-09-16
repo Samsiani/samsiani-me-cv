@@ -51,6 +51,34 @@ export async function api(method, path, { body, etag, auth = true, raw = false }
   }
 }
 
+/**
+ * POST a file as the request body (the font upload is the one route that takes bytes, not JSON). Same CSRF
+ * header, same credentials and the same 401 → login modal → one retry as api(); a Blob body can be sent
+ * twice, so nothing is lost when the session expired while the file was being chosen.
+ * @param {string} path  below /admin/api
+ * @param {Blob|ArrayBuffer} file
+ * @param {Record<string, string>} [extra]  request headers (X-Font-Filename, X-Font-Licence)
+ */
+export async function apiUpload(path, file, extra = {}) {
+  for (let attempt = 0; ; attempt++) {
+    const headers = { 'X-Requested-With': 'samsiani-admin', Accept: 'application/json', 'Content-Type': 'application/octet-stream', ...extra };
+    let res;
+    try { res = await fetch(BASE + path, { method: 'POST', headers, body: file, credentials: 'same-origin', cache: 'no-store' }); }
+    catch { throw new ApiError(0, { error: 'network', message: 'The admin server could not be reached.' }); }
+    if (res.status === 401 && authHandler && attempt === 0) {
+      await authHandler();
+      continue;
+    }
+    const type = res.headers.get('content-type') || '';
+    const data = type.includes('application/json') ? await res.json().catch(() => null) : null;
+    if (!res.ok) throw new ApiError(res.status, data || {});
+    return data;
+  }
+}
+
+/** Header values are byte strings: a file name may carry anything, a header may not. */
+export const asciiHeader = (s, max = 120) => String(s ?? '').replace(/[^\x20-\x7e]/g, '_').slice(0, max);
+
 /** "attachment; filename="x.json"" → x.json */
 export function filenameOf(res, fallback) {
   const m = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') || '');

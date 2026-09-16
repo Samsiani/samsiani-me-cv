@@ -22,6 +22,10 @@ const props = defineProps({
   layout: { type: String, default: 'block' }, // block | row
   newItem: { type: Function, default: null },
   showNumber: { type: Boolean, default: true },
+  minNote: { type: String, default: '' },   // why the minimum is what it is, and what to do instead
+  lock: { type: Function, default: null },  // (item, i) -> reason this one item cannot be removed
+  nameOf: { type: Function, default: null },// (item, i) -> the name the buttons use
+  keyOf: { type: Function, default: null }, // (item, i) -> a stable row key (default: the item's id)
 });
 
 const root = ref(null);
@@ -32,8 +36,11 @@ const max = computed(() => props.spec.max ?? Infinity);
 const fixed = computed(() => min.value === max.value);
 const atMin = computed(() => props.list.length <= min.value);
 const atMax = computed(() => props.list.length >= max.value);
-const keyOf = (item, i) => (item && typeof item === 'object' && typeof item.id === 'string' ? item.id : String(i));
-const nameOf = (item, i) => itemTitle(item, i);
+const keyOf = (item, i) => (props.keyOf ? props.keyOf(item, i) : item && typeof item === 'object' && typeof item.id === 'string' ? item.id : String(i));
+const nameOf = (item, i) => (props.nameOf ? props.nameOf(item, i) : itemTitle(item, i));
+const lockOf = (item, i) => (props.lock ? props.lock(item, i) : null);
+const lockId = (item, i) => `${id.value}-lock-${keyOf(item, i)}`;
+const removeTitle = (item, i) => lockOf(item, i) || (atMin.value ? props.minNote || 'Remove' : 'Remove');
 const langOf = (s) => (GEORGIAN.test(s) ? 'ka' : undefined);
 
 function rowOf(key) {
@@ -61,7 +68,7 @@ async function move(i, d) {
 }
 
 async function remove(i) {
-  if (atMin.value) return;
+  if (atMin.value || lockOf(props.list[i], i)) return;
   const item = props.list[i];
   const label = nameOf(item, i);
   const site = draft.site;
@@ -112,7 +119,7 @@ async function add() {
           <div class="list-actions">
             <button type="button" class="btn btn-quiet" data-act="up" :aria-disabled="i === 0 ? 'true' : undefined" :aria-label="`Move ‘${nameOf(item, i)}’ up`" :title="i === 0 ? 'Already first' : 'Move up'" @click="move(i, -1)"><Icon name="up" /></button>
             <button type="button" class="btn btn-quiet" data-act="down" :aria-disabled="i === list.length - 1 ? 'true' : undefined" :aria-label="`Move ‘${nameOf(item, i)}’ down`" :title="i === list.length - 1 ? 'Already last' : 'Move down'" @click="move(i, 1)"><Icon name="down" /></button>
-            <button v-if="!fixed" type="button" class="btn btn-quiet btn-danger" data-act="remove" :aria-disabled="atMin ? 'true' : undefined" :aria-describedby="atMin ? id + '-min' : undefined" :aria-label="`Remove ‘${nameOf(item, i)}’`" title="Remove" @click="remove(i)"><Icon name="remove" /></button>
+            <button v-if="!fixed" type="button" class="btn btn-quiet btn-danger" data-act="remove" :aria-disabled="atMin || lockOf(item, i) ? 'true' : undefined" :aria-describedby="lockOf(item, i) ? lockId(item, i) : atMin ? id + '-min' : undefined" :aria-label="`Remove ‘${nameOf(item, i)}’`" :title="removeTitle(item, i)" @click="remove(i)"><Icon name="remove" /><span v-if="lockOf(item, i)" :id="lockId(item, i)" class="sr-only">{{ lockOf(item, i) }}</span></button>
           </div>
         </div>
         <slot :item="item" :index="i" :path="`${path}[${i}]`" />
@@ -122,7 +129,7 @@ async function add() {
           :item="item"
           :index="i"
           :path="`${path}[${i}]`"
-          :actions="{ up: () => move(i, -1), down: () => move(i, 1), remove: () => remove(i), first: i === 0, last: i === list.length - 1, atMin, fixed, name: nameOf(item, i), minId: id + '-min' }"
+          :actions="{ up: () => move(i, -1), down: () => move(i, 1), remove: () => remove(i), first: i === 0, last: i === list.length - 1, atMin, fixed, name: nameOf(item, i), minId: id + '-min', lock: lockOf(item, i), lockId: lockId(item, i) }"
         />
       </template>
       <template v-else>
@@ -130,7 +137,7 @@ async function add() {
         <div class="list-actions">
           <button type="button" class="btn btn-quiet" data-act="up" :aria-disabled="i === 0 ? 'true' : undefined" :aria-label="`Move ‘${nameOf(item, i)}’ up`" :title="i === 0 ? 'Already first' : 'Move up'" @click="move(i, -1)"><Icon name="up" /></button>
           <button type="button" class="btn btn-quiet" data-act="down" :aria-disabled="i === list.length - 1 ? 'true' : undefined" :aria-label="`Move ‘${nameOf(item, i)}’ down`" :title="i === list.length - 1 ? 'Already last' : 'Move down'" @click="move(i, 1)"><Icon name="down" /></button>
-          <button v-if="!fixed" type="button" class="btn btn-quiet btn-danger" data-act="remove" :aria-disabled="atMin ? 'true' : undefined" :aria-describedby="atMin ? id + '-min' : undefined" :aria-label="`Remove ‘${nameOf(item, i)}’`" title="Remove" @click="remove(i)"><Icon name="remove" /></button>
+          <button v-if="!fixed" type="button" class="btn btn-quiet btn-danger" data-act="remove" :aria-disabled="atMin || lockOf(item, i) ? 'true' : undefined" :aria-describedby="lockOf(item, i) ? lockId(item, i) : atMin ? id + '-min' : undefined" :aria-label="`Remove ‘${nameOf(item, i)}’`" :title="removeTitle(item, i)" @click="remove(i)"><Icon name="remove" /><span v-if="lockOf(item, i)" :id="lockId(item, i)" class="sr-only">{{ lockOf(item, i) }}</span></button>
         </div>
       </template>
     </div>
@@ -138,7 +145,7 @@ async function add() {
       <template v-if="!fixed">
         <button type="button" class="btn" data-act="add" :aria-disabled="atMax ? 'true' : undefined" :aria-describedby="id + '-max'" @click="add"><Icon name="plus" /> Add {{ noun }}</button>
         <span :id="id + '-max'" class="list-bound">{{ list.length }} of at most {{ max }} {{ plural }}.</span>
-        <span :id="id + '-min'" class="sr-only">At least {{ min }} {{ min === 1 ? noun : plural }} must stay.</span>
+        <span :id="id + '-min'" class="sr-only">At least {{ min }} {{ min === 1 ? noun : plural }} must stay.<template v-if="minNote"> {{ minNote }}</template></span>
       </template>
       <span v-else class="list-bound">Exactly {{ min }} {{ plural }}.</span>
     </div>
