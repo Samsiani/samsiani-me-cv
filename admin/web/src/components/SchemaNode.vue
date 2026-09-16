@@ -8,7 +8,8 @@ import SField from './SField.vue';
 import ListEditor from './ListEditor.vue';
 import SkillGroup from './SkillGroup.vue';
 import ContactRefs from './ContactRefs.vue';
-import { genericPath, labelFor } from '../fields.js';
+import { draft } from '../state/draft.js';
+import { genericPath, labelFor, minNoteFor } from '../fields.js';
 
 defineOptions({ name: 'SchemaNode' });
 
@@ -45,7 +46,12 @@ const enumOptions = computed(() => {
   return (props.spec.values || []).map((v) => ({ value: v, label: ENUMS[key]?.[v] ?? String(v) }));
 });
 const transform = computed(() => (['person.monogram', 'person.address.country'].includes(g.value) ? 'upper' : ''));
-const childEntries = computed(() => Object.entries(props.spec.shape || {}).filter(([k, s]) => s.t !== 'id' && s.t !== 'ref' && !(s.t === 'arr' && s.item?.t === 'ref')));
+// `hidden` is never a checkbox in the form: it is the Hide/Show button of the section's own tab
+const childEntries = computed(() => Object.entries(props.spec.shape || {}).filter(([k, s]) => k !== 'hidden' && s.t !== 'id' && s.t !== 'ref' && !(s.t === 'arr' && s.item?.t === 'ref')));
+const minNote = computed(() => minNoteFor(props.path));
+// the primary email cannot leave the contact list while it is the primary (decision D8)
+const lock = computed(() => (g.value !== 'contact.items' ? null
+  : (it) => (it.id === draft.site?.sections?.contact?.primary ? 'This item is the primary email (Let’s talk). Choose another primary first.' : null)));
 const hasRefs = computed(() => Object.values(props.spec.shape || {}).some((s) => s.t === 'ref'));
 </script>
 
@@ -60,7 +66,7 @@ const hasRefs = computed(() => Object.values(props.spec.shape || {}).some((s) =>
       <h3 class="grp-title">{{ name }}</h3>
       <ListEditor
         v-if="g === 'sections.skills.groups'"
-        :list="value" :path="path" :spec="spec" :label="name" noun="group" layout="custom"
+        :list="value" :path="path" :spec="spec" :label="name" noun="group" layout="custom" :min-note="minNote"
       >
         <template #default="{ item, index, path: ip, actions }">
           <SkillGroup :group="item" :path="ip" :spec="spec.item" :index="index" :actions="actions" />
@@ -68,7 +74,7 @@ const hasRefs = computed(() => Object.values(props.spec.shape || {}).some((s) =>
       </ListEditor>
       <ListEditor
         v-else
-        :list="value" :path="path" :spec="spec" :label="name" :noun="noun[0]" :nouns="noun[1]"
+        :list="value" :path="path" :spec="spec" :label="name" :noun="noun[0]" :nouns="noun[1]" :min-note="minNote" :lock="lock"
       >
         <template #default="{ item, index, path: ip }">
           <SchemaNode v-if="spec.item.t === 'obj'" :model="value" :field="index" :path="ip" :spec="spec.item" :heading="false" />

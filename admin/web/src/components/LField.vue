@@ -5,9 +5,10 @@
 import { computed, nextTick } from 'vue';
 import Counter from './Counter.vue';
 import IssueList from './IssueList.vue';
-import { issuesAt } from '../state/draft.js';
+import { draft, issuesAt } from '../state/draft.js';
 import { maxFor } from '../state/registry.js';
-import { fieldId, genericPath, labelFor, helpFor } from '../fields.js';
+import { toast } from '../state/ui.js';
+import { fieldId, genericPath, labelFor, helpFor, offTextFor, isContentLine, keepReason } from '../fields.js';
 import { cleanInput, vAutogrow } from '../text.js';
 
 const props = defineProps({
@@ -27,7 +28,11 @@ const name = computed(() => props.label || labelFor(props.path));
 const helpText = computed(() => (props.help !== undefined ? props.help : helpFor(props.path)));
 const max = computed(() => maxFor(genericPath(props.path)) ?? props.spec.max ?? 0);
 const isMulti = computed(() => props.multiline ?? (!!props.spec.text || max.value > 100));
-const offLabel = computed(() => props.offText || (props.field === 'nav' ? 'Not set: the navigation uses the title.' : props.field === 'lead' ? 'Not set: no line under the title.' : 'Not set.'));
+const offLabel = computed(() => props.offText || offTextFor(props.path)
+  || (props.field === 'nav' ? 'Not set: the navigation uses the title.' : props.field === 'lead' ? 'Not set: no line under the title.' : 'Not set.'));
+// a line that was there before comes back, an optional extra is simply added
+const addLabel = computed(() => (isContentLine(props.path) ? 'Add back' : 'Add'));
+const keep = computed(() => (props.spec.optional ? '' : keepReason(props.path)));
 const idOf = (lang) => fieldId(`${props.path}.${lang}`);
 const baseId = computed(() => fieldId(props.path));
 const errorIn = (lang) => issuesAt(`${props.path}.${lang}`).some((i) => i.level === 'error');
@@ -53,22 +58,37 @@ async function addPair() {
   document.getElementById(idOf('en'))?.focus();
 }
 async function removePair() {
+  const site = draft.site;
+  const kept = props.model[props.field];
   props.model[props.field] = null;
   await nextTick();
   document.getElementById(baseId.value + '-add')?.focus();
+  toast(`Removed ‘${name.value}’.`, {
+    timeout: 10_000,
+    action: {
+      label: 'Undo',
+      run: async () => {
+        if (draft.site !== site || props.model[props.field] !== null) return; // the field moved on
+        props.model[props.field] = kept;
+        await nextTick();
+        document.getElementById(idOf('en'))?.focus();
+      },
+    },
+  });
 }
 </script>
 
 <template>
   <div class="fld" :class="{ 'fld-compact': compact }">
     <div class="fld-head">
-      <span class="lbl" :id="baseId + '-label'">{{ name }}</span>
+      <span class="fld-head-name"><span class="lbl" :id="baseId + '-label'">{{ name }}</span><slot name="badge" /></span>
       <div v-if="value" class="btn-row">
         <button type="button" class="btn btn-quiet" :aria-label="`Copy EN → KA (${name})`" title="Fill the Georgian input with the English value" @click="copyEnToKa">Copy EN → KA</button>
         <button v-if="spec.optional" type="button" class="btn btn-quiet" :aria-label="`Remove ${name}`" @click="removePair">Remove</button>
       </div>
     </div>
     <p v-if="helpText" :id="baseId + '-help'" class="help">{{ helpText }}</p>
+    <p v-if="keep" class="help">Cannot be removed: {{ keep }}</p>
     <div v-if="value" class="fld-pair">
       <div v-for="lang in ['en', 'ka']" :key="lang" class="fld-lang">
         <div class="fld-lang-head">
@@ -108,7 +128,7 @@ async function removePair() {
     </div>
     <div v-else class="fld-opt-off">
       <span>{{ offLabel }}</span>
-      <button :id="baseId + '-add'" type="button" class="btn" :aria-label="`Add ${name}`" @click="addPair">Add</button>
+      <button :id="baseId + '-add'" type="button" class="btn" :aria-label="`${addLabel} ${name}`" @click="addPair">{{ addLabel }}</button>
     </div>
     <IssueList :issues="issuesAt(path)" />
   </div>

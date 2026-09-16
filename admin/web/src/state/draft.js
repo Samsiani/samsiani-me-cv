@@ -112,14 +112,6 @@ const issueIndex = computed(() => {
 });
 /** Issues whose $.path is exactly `path`. */
 export const issuesAt = (path) => issueIndex.value.get(path) || [];
-/** Issues under any of the given $.path prefixes. */
-export function issuesUnder(prefixes) {
-  const hit = (p) => prefixes.some((x) => p === x || p.startsWith(x + '.') || p.startsWith(x + '['));
-  return {
-    errors: draft.issues.errors.filter((e) => hit(e.path)),
-    warnings: draft.issues.warnings.filter((w) => hit(w.path)),
-  };
-}
 
 /** Number of leaf fields where the working copy differs from the live document. */
 export const diffCount = computed(() => {

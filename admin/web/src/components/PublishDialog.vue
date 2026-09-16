@@ -11,7 +11,7 @@ import { draft, diffCount, todayTbilisi } from '../state/draft.js';
 import { layoutById, paletteById } from '../state/registry.js';
 import { pub, closePublish, confirmPublish, publishDate } from '../state/publish.js';
 
-const CONTENT = /^\$\.(person|meta|ui|hero|contact|sections)\b/;
+const CONTENT = /^\$\.(person|meta|ui|hero|contact|sections)\b|^\$\.settings\.sectionOrder\b/;
 const contentChanged = computed(() => {
   void draft.version;
   if (!draft.site || !draft.publishedSite) return false;
@@ -22,6 +22,13 @@ const date = computed(() => publishDate(contentChanged.value, today));
 const layout = computed(() => layoutById(draft.site?.settings?.layout)?.label || draft.site?.settings?.layout);
 const palette = computed(() => paletteById(draft.site?.settings?.palette)?.label?.en || draft.site?.settings?.palette);
 const siteUrl = computed(() => draft.site?.settings?.siteUrl || '');
+const sections = computed(() => {
+  void draft.version;
+  const keys = draft.site?.settings?.sectionOrder || [];
+  const s = draft.site?.sections || {};
+  const hidden = keys.filter((k) => s[k]?.hidden).map((k) => s[k].title.en || k);
+  return { total: keys.length, shown: keys.length - hidden.length, hidden };
+});
 const canPublish = computed(() => pub.phase === 'review' && !pub.errors.length && (!pub.warnings.length || pub.ack));
 const busy = computed(() => pub.phase === 'publishing' || pub.phase === 'settling');
 const extraWarnings = computed(() => (pub.result?.warnings || []).filter((w) => typeof w === 'string'));
@@ -38,6 +45,7 @@ const extraWarnings = computed(() => (pub.result?.warnings || []).filter((w) => 
         <dl class="dlg-facts">
           <dt>Layout</dt><dd>{{ layout }}</dd>
           <dt>Palette</dt><dd>{{ palette }}</dd>
+          <dt>Sections</dt><dd>{{ sections.shown }} of {{ sections.total }} shown<span v-if="sections.hidden.length"> · hidden: {{ sections.hidden.join(', ') }}</span></dd>
           <dt>Changed fields</dt><dd>{{ diffCount }} {{ diffCount === 1 ? 'field differs' : 'fields differ' }} from the live site</dd>
           <dt>Date</dt><dd>{{ date }}<span v-if="date !== draft.site?.settings?.updated" class="muted"> (today: content changed and “Set to today” is on)</span></dd>
         </dl>

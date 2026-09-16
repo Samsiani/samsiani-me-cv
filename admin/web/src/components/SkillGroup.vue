@@ -8,7 +8,7 @@ import ListEditor from './ListEditor.vue';
 import Icon from './Icon.vue';
 import IssueList from './IssueList.vue';
 import { issuesAt } from '../state/draft.js';
-import { fieldId } from '../fields.js';
+import { fieldId, minNoteFor } from '../fields.js';
 import { GEORGIAN } from '../text.js';
 
 const props = defineProps({
@@ -59,7 +59,7 @@ async function removeDetail(item, ip) {
       <div class="skill-cols" aria-hidden="true">
         <span>Name · EN</span><span>Detail · EN</span><span>Name · KA</span><span>Detail · KA</span><span>Level</span><span />
       </div>
-      <ListEditor :list="group.items" :path="`${path}.items`" :spec="itemSpec" label="Skills" noun="skill" layout="row">
+      <ListEditor :list="group.items" :path="`${path}.items`" :spec="itemSpec" label="Skills" noun="skill" layout="row" :min-note="minNoteFor(`${path}.items`)">
         <template #default="{ item, path: ip }">
           <LangInput :pair="item.name" lang="en" :path="`${ip}.name`" label="Name (EN)" />
           <LangInput v-if="item.detail" :pair="item.detail" lang="en" :path="`${ip}.detail`" label="Detail (EN)">

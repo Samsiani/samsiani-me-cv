@@ -3,9 +3,11 @@
 import { reactive, nextTick } from 'vue';
 import { session } from './state/session.js';
 
+// The eight section tabs are shown in settings.sectionOrder (ContentView); this list is the fixed set.
 export const CONTENT_TABS = [
   { id: 'person', title: 'Person & hero' },
   { id: 'contact', title: 'Contact rail' },
+  { id: 'sections', title: 'Section order' },
   { id: 'profile', title: 'Profile' },
   { id: 'skills', title: 'Stack & skills' },
   { id: 'abilities', title: 'Abilities' },
