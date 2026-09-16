@@ -6,6 +6,7 @@ import { LAYOUTS } from '../src/layouts/index.mjs';
 import { loadPalettes } from '../src/palettes.mjs';
 import { upgrade } from '../src/schema/migrate.mjs';
 import { canonicalize } from '../src/schema/validate.mjs';
+import { makeFontsFixture } from './lib/fonts-fixture.mjs';
 
 const PIXEL_BASE = '96e784e'; // the last commit before the refactor; Precision must render identically to it
 // minimal: also build and gate test/fixtures/site.minimal.json (hidden sections, no facts, removed lines);
@@ -101,6 +102,23 @@ if (layouts.includes('precision')) {
     }
     await run('precision: pixel identity with production (30 shots)', 'node', ['scripts/check-precision-pixels.mjs', '--baseline', '.cache/base/dist', '--candidate', dir('precision', 'cobalt')]);
   }
+}
+
+// 7. fonts: the same gates on a real store of swapped faces, one document per fixture, every layout
+// (fonts plan §7.4). The store is rebuilt from the repository's own font files through the upload pipeline,
+// so these runs exercise the override path end to end — CSS block, hashed files, width estimates and all.
+const fx = await makeFontsFixture('.cache/fonts');
+console.log(`ok   fonts fixture (.cache/fonts: ${Object.keys(fx.ids).length} fonts through the upload pipeline)`);
+const fontVariants = [['fonts', fx.seed], ['fonts-stress', fx.stress]];
+await pool(layouts.flatMap((id) => fontVariants.map(([variant, json]) =>
+  node(`build ${id}-${variant}`, ['build.mjs'], { LAYOUT: id, SITE_JSON: json, FONTS_DIR: fx.dir, OUT_DIR: dir(id, variant) }))));
+if (failures.some((f) => /^build \S+-fonts/.test(f))) console.log('--   fonts gates skipped: the swapped-font builds failed');
+else {
+  await pool(layouts.flatMap((id) => fontVariants.map(([variant]) => [
+    node(`${id}: fonts gate (${variant})`, ['scripts/check-fonts.mjs', '--dist', dir(id, variant), '--expect', fx.expect[id].join(',')]),
+    node(`${id}: page gate (${variant}, no print)`, ['scripts/check-pages.mjs', '--dist', dir(id, variant), '--only', 'overflow,casing,focus,names,motion']),
+    node(`${id}: stress gate (${variant})`, ['scripts/check-layout-stress.mjs', '--dist', dir(id, variant), '--topnav', TABLE[id].nav]),
+  ]).flat()));
 }
 
 console.log(failures.length ? `\n${failures.length} FAILED: ${failures.join('; ')}` : `\nALL CHECKS PASSED (${ran} runs, layouts: ${layouts.join(', ')})`);

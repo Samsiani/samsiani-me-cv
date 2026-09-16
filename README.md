@@ -6,7 +6,7 @@ Bilingual (English `/`, Georgian `/ka/`) CV for Giorgi Samsiani. The public site
 - **URL:** `https://samsiani.me/admin/`, one account, reachable only through Cloudflare.
 - **First login** uses the initial password from the server's `admin.env`; the admin then forces a password change.
 - **What it does:** every text in English and Georgian side by side, three layouts (Precision, Studio, Ledger), six palettes, default theme, last-updated date, live preview of unsaved edits, publish in about a second, 30 revisions and one-click rollback of the live site, export and import. Single lines can be removed and added back, the facts strip holds none to four, and sections can be reordered or hidden (Content → Section order).
-- **Fonts:** each layout has a text, a label and a Georgian face, and each can be replaced per layout — from the Google Fonts catalogue (the server downloads the files once; the visitor's browser never talks to Google) or from an uploaded WOFF2, WOFF, TTF or OTF. The files live in `$SITE_HOME/data/fonts/` and ship with the site under hashed names. Without a choice every layout keeps its own faces and the output is unchanged. `cli fonts ls|rm <id>|refetch` manages the store from the server.
+- **Fonts:** each layout has a text, a label and a Georgian face, and each can be replaced per layout under Dashboard → Fonts — from the Google Fonts catalogue (the server downloads the files once; the visitor's browser never talks to Google, and neither does the admin page) or from an uploaded WOFF2, WOFF, TTF or OTF, which needs a licence attestation and is converted to WOFF2. Each row shows the face in English and Georgian, and the panel reports the bytes `/ka/` will carry and the width the header nav needs. The files live in `$SITE_HOME/data/fonts/` and ship with the site under hashed names; the stylesheet names them by role (`sm-text`, `sm-label`, `sm-georgian`), never by the font's own name. Without a choice every layout keeps its own faces and the output is byte-for-byte unchanged. `cli fonts ls|rm <id>|refetch` manages the store from the server.
 - **Content lives on the server** (`$SITE_HOME/data/site.json`). `src/content/site.json` in this repository is only the first-boot seed and the local development content; production edits never come back into git unless exported by hand.
 
 ## Local development
@@ -16,10 +16,10 @@ npm run cli -- init          # ./data from the seed (./dist is the local web roo
 npm run dev                  # admin service on :3097 + Vite dev server on http://localhost:5173/admin/
 npm run build                # static build of the seed into dist/ (no admin needed)
 npm test                     # unit + admin tests
-npm run check:all            # every layout x palette through the page gates (needs Playwright)
+npm run check:all            # every layout x palette through the page gates, plus the swapped-font builds (needs Playwright)
 npm run test:e2e             # the admin end to end
 ```
-Local dev reads `.env.development` if present (for example `ADMIN_INITIAL_PASSWORD=...` for the first login). `SITE_JSON=path`, `LAYOUT=` and `PALETTE=` override the static build's input.
+Local dev reads `.env.development` if present (for example `ADMIN_INITIAL_PASSWORD=...` for the first login). `SITE_JSON=path`, `LAYOUT=` and `PALETTE=` override the static build's input, and `FONTS_DIR=<a font store>` builds with chosen fonts (`node scripts/lib/fonts-fixture.mjs .cache/fonts` makes one out of the repository's own faces). `GOOGLE_FONTS_FIXTURE=test/fixtures/google-fonts` (dev only) serves the Google catalogue from disk, so nothing in the tests or in local development reaches Google.
 
 ## Deploy
 Push to `main`. GitHub Actions runs four jobs: `test` (unit and admin tests, palette gate, `v-html` check, leak check), `gates` (SPA build, the layout matrix, stress fixture, end-to-end tests), `release` (production dependencies installed on the runner, packed without `deploy/`), and `deploy` (rsync to `/opt/samsiani-admin/releases/<sha>`, then `deploy/remote-deploy.sh` as root: verify, migrate if needed, flip the `current` symlink, reload PM2, health check with automatic revert, re-render the public site from the server's content). Pull requests run `test` and `gates` only.
@@ -30,7 +30,7 @@ Server details never live in this repository: the host, SSH user, deploy key and
 - `src/` — content, schema (`schema/validate.mjs`), renderer (`render.mjs`, `build-site.mjs`), layouts (`layouts/<id>/`), palettes (`palettes.json`, `palettes.mjs`), brand images (`brand/`, `shared/brand.mjs`), fonts.
 - `admin/server/` — the admin service (Hono): storage, auth, API, preview, publish, CLI (`cli.mjs`). `admin/shared/` — code shared with the SPA. `admin/web/` — the Vue admin interface.
 - `deploy/` — PM2 ecosystem, OpenLiteSpeed proxy block, remote deploy script, env examples.
-- `scripts/` — page gates, stress gate, pixel identity, leak check, font downloads. `test/` — unit and end-to-end tests.
+- `scripts/` — page gates, stress gate, fonts gate (`check-fonts.mjs` and the store `lib/fonts-fixture.mjs` builds), pixel identity, leak check, font downloads. `test/` — unit and end-to-end tests.
 - `docs/plans/` — the build plan and its specs (design record).
 
 ## Runbooks (details in `docs/plans/admin-ops.md` §12)
