@@ -249,6 +249,7 @@ try {
       if (!file) die('restore-backup needs --date=YYYY-MM-DD or --file=path');
       const r = await backup().restore(file, part);
       console.log(`restored ${r.restored.join(', ')}${part !== 'draft' ? ' (publish again to put it live)' : ''}`);
+      if (r.droppedFonts?.length) console.log(`::warning::${r.droppedFonts.length} font record(s) had no files on this machine and were dropped: ${r.droppedFonts.join(', ')}`);
       break;
     }
     case 'export': {

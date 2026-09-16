@@ -15,8 +15,11 @@ import { registryRoute } from './routes/registry.mjs';
 import { draftRoutes } from './routes/draft.mjs';
 import { ioRoutes } from './routes/io.mjs';
 import { publishRoutes, previewFiles } from './routes/publish.mjs';
+import { fontRoutes } from './routes/fonts.mjs';
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+// The one route whose body is a file rather than JSON: a font upload, capped well above the 2 MB face limit.
+const UPLOAD_PATH = '/admin/api/fonts/upload';
 
 export function createApp(cfg, deps) {
   const app = new Hono();
@@ -61,13 +64,14 @@ export function createApp(cfg, deps) {
     if (UNSAFE.has(c.req.method)) {
       if (!originAllowed(c.req.header('origin'), cfg.allowedOrigins)) return c.json({ error: 'csrf_origin', message: 'Origin not allowed.' }, 403);
       const ct = (c.req.header('content-type') || '').split(';')[0].trim().toLowerCase();
-      if (ct !== 'application/json') return c.json({ error: 'unsupported_media_type', message: 'Send JSON.' }, 415);
+      const wanted = c.req.path === UPLOAD_PATH ? 'application/octet-stream' : 'application/json';
+      if (ct !== wanted) return c.json({ error: 'unsupported_media_type', message: `Send ${wanted === 'application/json' ? 'JSON' : 'the font file as the body'}.` }, 415);
     }
     return next();
   });
-  const small = bodyLimit({ maxSize: 256 * 1024, onError: (c) => c.json({ error: 'too_large', message: 'The request body is too large.' }, 413) });
-  const large = bodyLimit({ maxSize: 320 * 1024, onError: (c) => c.json({ error: 'too_large', message: 'The request body is too large.' }, 413) });
-  app.use('/admin/api/*', (c, next) => (c.req.path === '/admin/api/import' ? large : small)(c, next));
+  const limit = (kb) => bodyLimit({ maxSize: kb * 1024, onError: (c) => c.json({ error: 'too_large', message: 'The request body is too large.' }, 413) });
+  const small = limit(256), large = limit(320), font = limit(3 * 1024);
+  app.use('/admin/api/*', (c, next) => (c.req.path === '/admin/api/import' ? large : c.req.path === UPLOAD_PATH ? font : small)(c, next));
 
   app.get('/admin/api/session', sessionInfo(cfg, deps));
   app.route('/admin/api/auth', authRoutes(cfg, deps));
@@ -86,6 +90,7 @@ export function createApp(cfg, deps) {
   app.route('/admin/api', draftRoutes(cfg, deps));
   app.route('/admin/api', ioRoutes(cfg, deps));
   app.route('/admin/api/account', accountRoutes(cfg, deps));
+  app.route('/admin/api', fontRoutes(cfg, deps));
   app.route('/admin/api', publishRoutes(cfg, deps));
   app.get('/admin/preview/:token/*', previewFiles(deps));
   app.get('/admin/preview/:token', (c) => c.redirect(`/admin/preview/${c.req.param('token')}/`, 302));

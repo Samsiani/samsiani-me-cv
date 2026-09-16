@@ -47,6 +47,15 @@ export function defaultFonts(layoutMeta) {
   return Object.fromEntries(FONT_ROLES.map((role) => [role, defaultFaceMetrics(layoutMeta.fontRoles[role].files[0])]));
 }
 
+/** Font bytes each page carries, overridden or not (the FONT_HEAVY figure the admin reports). */
+export function pageBytes(layoutMeta, fonts) {
+  if (fonts?.overridden) return fonts.bytes;
+  const roles = layoutMeta.fontRoles;
+  const sum = (list) => list.reduce((n, f) => n + defaultFaceBytes(f), 0);
+  const en = sum([...roles.text.files, ...roles.label.files]);
+  return { en, ka: en + sum(roles.georgian.files) };
+}
+
 // ---------------------------------------------------------------- face selection
 const weightsOf = (face) => (Array.isArray(face.weight) ? face.weight : [face.weight, face.weight]);
 const isVariable = (face) => Array.isArray(face.weight) && face.weight[0] !== face.weight[1];
@@ -68,9 +77,12 @@ function pickFaces(record, role, want) {
   return picked.slice(0, MAX_FACES_PER_ROLE);
 }
 
-const faceName = (record, role, face, bytes) => {
+// One upload can serve two roles from one file (Latin text and Georgian), so the published name is decided
+// per source file and names every subset it carries: both @font-face rules then point at one URL and the
+// visitor downloads it once.
+const faceName = (record, face, subsets, bytes) => {
   const [lo, hi] = weightsOf(face);
-  return `fonts/${slug(record.family)}-${slug(face.subset || (role === 'georgian' ? 'georgian' : 'latin'))}-normal-${lo === hi ? lo : `${lo}-${hi}`}.${sha8(bytes)}.woff2`;
+  return `fonts/${slug(record.family)}-${[...subsets].map(slug).join('-')}-normal-${lo === hi ? lo : `${lo}-${hi}`}.${sha8(bytes)}.woff2`;
 };
 
 // ---------------------------------------------------------------- the CSS block
@@ -129,23 +141,38 @@ export async function resolveFonts(site, layoutMeta, loader) {
   const files = new Map();
   const fallback = (role, msg) => warnings.push({ code: 'FONT_FALLBACK', path: `$.settings.fonts.${layoutMeta.id}.${role}`, msg });
 
+  // 1. which record and which of its faces each role takes
+  const picked = {};
   for (const role of FONT_ROLES) {
     const id = cfg[role];
     if (typeof id !== 'string' || !FONT_ID_RE.test(id)) continue;
     const record = await loader.get(id);
     if (!record) { fallback(role, `no font with id ${id} in the store; the layout default is used`); continue; }
     if (role === 'georgian' && record.coverage?.georgian !== true) { fallback(role, 'that font has no Georgian letters; the layout default is used'); continue; }
-    const picked = pickFaces(record, role, roles[role].weights);
-    if (!picked.length) { fallback(role, `that font has no ${role === 'georgian' ? 'Georgian' : 'Latin'} face to ship; the layout default is used`); continue; }
+    const list = pickFaces(record, role, roles[role].weights);
+    if (!list.length) { fallback(role, `that font has no ${role === 'georgian' ? 'Georgian' : 'Latin'} face to ship; the layout default is used`); continue; }
     chosen[role] = record;
-    for (const face of picked) {
-      const bytes = await loader.readFace(record, face);
-      const name = faceName(record, role, face, bytes);
-      files.set(name, bytes);
-      faces[role].push({ face, name });
-    }
+    picked[role] = list;
   }
   if (!FONT_ROLES.some((r) => chosen[r])) return { ...NO_FONTS, warnings };
+
+  // 2. one published name per source file, then the bytes, read once each
+  const subsets = new Map();
+  for (const role of FONT_ROLES) for (const face of picked[role] || []) {
+    const set = subsets.get(face.file) ?? new Set();
+    set.add(face.subset || (role === 'georgian' ? 'georgian' : 'latin'));
+    subsets.set(face.file, set);
+  }
+  const named = new Map();
+  for (const role of FONT_ROLES) for (const face of picked[role] || []) {
+    if (!named.has(face.file)) {
+      const bytes = await loader.readFace(chosen[role], face);
+      const name = faceName(chosen[role], face, subsets.get(face.file), bytes);
+      named.set(face.file, name);
+      files.set(name, bytes);
+    }
+    faces[role].push({ face, name: named.get(face.file) });
+  }
 
   // Metrics: the chosen record's for an overridden role, the layout's own file for one kept at its default.
   const metrics = Object.fromEntries(FONT_ROLES.map((r) => [r, chosen[r]?.metrics || defaultFaceMetrics(roles[r].files[0])]));
@@ -154,7 +181,9 @@ export async function resolveFonts(site, layoutMeta, loader) {
 
   // Preload and page weight: text then label on /, the Georgian face first on /ka/ (fonts plan §5.3).
   const filesOf = (role) => (faces[role].length ? faces[role].map((f) => f.name) : roles[role].files.map((f) => `fonts/${f}.woff2`));
-  const order = { en: [...filesOf('text'), ...filesOf('label')], ka: [...filesOf('georgian'), ...filesOf('text'), ...filesOf('label')] };
+  // a file two roles share is one download, so it appears once in the list and counts once in the weight
+  const uniq = (...lists) => [...new Set(lists.flat())];
+  const order = { en: uniq(filesOf('text'), filesOf('label')), ka: uniq(filesOf('georgian'), filesOf('text'), filesOf('label')) };
   const weigh = (list) => list.reduce((n, p) => n + (files.get(p)?.length ?? defaultFaceBytes(p.slice('fonts/'.length, -'.woff2'.length))), 0);
 
   return {

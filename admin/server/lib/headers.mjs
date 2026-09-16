@@ -5,6 +5,8 @@ export const previewCsp = (origin) =>
   `sandbox allow-scripts; default-src 'none'; script-src ${origin} 'unsafe-inline'; style-src ${origin} 'unsafe-inline'; font-src ${origin}; img-src ${origin} data:; frame-ancestors ${origin}; base-uri 'none'; form-action 'none'`;
 
 export function kindOf(path) {
+  // font faces the picker loads with FontFace(): cacheable in the owner's browser, same-origin only
+  if (/^\/admin\/api\/fonts\/(?:[0-9a-f]{16}\/files\/\d+|default\/[a-z0-9-]+\/[a-z]+)$/.test(path)) return 'font-file';
   if (path.startsWith('/admin/api/')) return 'api';
   if (path.startsWith('/admin/assets/')) return 'asset';
   if (path.startsWith('/admin/preview/')) return /\/$|\.html$/.test(path) ? 'preview-html' : 'preview-file';
@@ -25,6 +27,9 @@ export function headersFor(cfg) {
     if (kind === 'api') {
       h.set('Cache-Control', 'no-store');
       h.set('X-Frame-Options', 'DENY');
+    } else if (kind === 'font-file') {
+      h.set('X-Frame-Options', 'DENY');
+      if (c.res.status !== 200) h.set('Cache-Control', 'no-store'); // the route sets its own on a hit
     } else if (kind === 'asset') {
       if (c.res.status === 200) h.set('Cache-Control', 'public, max-age=31536000, immutable');
       h.set('Cross-Origin-Resource-Policy', 'same-origin');

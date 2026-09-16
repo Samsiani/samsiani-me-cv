@@ -39,11 +39,14 @@ export async function setup({ production = false, clock = makeClock(), init = tr
 }
 
 const ORIGIN = (cfg) => cfg.publicOrigin;
+// A Buffer or typed array is the body as it stands (the font upload route); anything else is JSON.
+const bodyOf = (b) => (b === undefined ? undefined : typeof b === 'string' || ArrayBuffer.isView(b) ? b : JSON.stringify(b));
+
 /** app.request with the standard admin headers; opts.cookie, opts.headers override */
 export function req(ctx, method, path, { body, cookie, headers = {}, ip = '203.0.113.9', edge = ctx.cfg.production } = {}) {
   const h = { 'X-Requested-With': 'samsiani-admin', ...(method !== 'GET' ? { Origin: ORIGIN(ctx.cfg), 'Content-Type': 'application/json' } : {}), ...(edge ? { 'x-sm-edge': EDGE } : {}), ...(cookie ? { Cookie: cookie } : {}), ...headers };
   for (const k of Object.keys(h)) if (h[k] === null) delete h[k];
-  return ctx.app.request(path, { method, headers: h, body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body) }, { remoteAddress: ip });
+  return ctx.app.request(path, { method, headers: h, body: bodyOf(body) }, { remoteAddress: ip });
 }
 
 /** cookie header value from Set-Cookie lines (name=value pairs only) */
