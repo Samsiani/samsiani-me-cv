@@ -3,6 +3,7 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 import { readdir, readFile, rm, mkdir, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { canonicalize, validate } from '../../../src/schema/validate.mjs';
+import { upgrade } from '../../../src/schema/migrate.mjs';
 import { blockingErrors } from '../../shared/draft-rules.mjs';
 import { writeFileAtomic, writeJsonAtomic, exists } from './fsx.mjs';
 import { REVISION_ID_RE, sha256 } from './store.mjs';
@@ -56,6 +57,10 @@ export function createBackup({ dataDir, store, release = 'dev', clock = { now: (
       let doc;
       try { doc = JSON.parse(gunzipSync(await readFile(file)).toString('utf8')); }
       catch (e) { throw new AppError(400, 'invalid', `backup is unreadable: ${e.message}`); }
+      // a backup written by an older release: every document is upgraded before it is checked or written
+      for (const d of [doc?.draft, doc?.published, ...(Array.isArray(doc?.revisions) ? doc.revisions : [])]) {
+        if (d && typeof d === 'object' && d.site) d.site = upgrade(d.site);
+      }
       const today = store.today();
       const vo = { mode: 'save', paletteIds, layoutIds, today };
       const problems = [];

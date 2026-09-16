@@ -4,6 +4,7 @@ import { mkdir, readdir, rm, rename, readFile, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validate, canonicalize } from '../../../src/schema/validate.mjs';
+import { upgrade } from '../../../src/schema/migrate.mjs';
 import { blockingErrors } from '../../shared/draft-rules.mjs';
 import { writeJsonAtomic, readJson, exists, CorruptFileError } from './fsx.mjs';
 import { withLock } from './lock.mjs';
@@ -38,11 +39,20 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
     return s;
   };
   const envelope = (meta, site) => ({ ...meta, site: JSON.parse(canonicalize(site)) });
+  // Upgrade on read: a file written by an older release (or restored from an old backup or build) is served
+  // at the current schema version. The ETag describes the document, so it is recomputed when one changed.
+  const upgradeEnvelope = (env) => {
+    if (!env || typeof env !== 'object' || !env.site) return env;
+    const site = upgrade(env.site);
+    if (site === env.site) return env;
+    const canonical = canonicalize(site);
+    return { ...env, site: JSON.parse(canonical), etag: sha256(canonical) };
+  };
 
   /** Apply the draft rules: returns { site (siteUrl fixed), validation, canonical, etag } or throws DraftRejectedError. */
   function checkDraft(site) {
     if (!site || typeof site !== 'object' || Array.isArray(site)) throw new DraftRejectedError([{ path: '$', code: 'TYPE', msg: 'expected an object' }]);
-    const s = withSiteUrl(site);
+    const s = withSiteUrl(upgrade(site)); // documents arrive from an export, an offline copy or an older release
     const validation = validate(s, vopts('save'));
     const blocking = blockingErrors(validation.errors);
     if (blocking.length) throw new DraftRejectedError(blocking);
@@ -51,7 +61,7 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
   }
 
   async function readPublished() {
-    try { return await readJson(F.site); }
+    try { return upgradeEnvelope(await readJson(F.site)); }
     catch (e) {
       if (e.code === 'ENOENT') throw new NotInitialisedError('content');
       if (e instanceof CorruptFileError) throw new DegradedError();
@@ -76,12 +86,12 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
     try {
       const d = await readJson(F.draft);
       if (!d || d.kind !== 'draft' || !d.site) throw new CorruptFileError(F.draft);
-      return d;
+      return upgradeEnvelope(d);
     } catch (e) {
       if (e.code === 'ENOENT' && !(await exists(F.site))) throw new NotInitialisedError('content');
       // recover: newest revision, else the published document
       const newest = (await listRevisionsRaw())[0];
-      const src = newest?.site ?? (await readPublished()).site;
+      const src = upgrade(newest?.site ?? (await readPublished()).site);
       const canonical = canonicalize(src);
       const v = validate(src, vopts());
       const env = envelope({ kind: 'draft', rev: (newest?.rev ?? 0) + 1, etag: sha256(canonical), savedAt: iso(), issues: { errors: v.errors.length, warnings: v.warnings.length } }, src);
@@ -200,7 +210,7 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
 
     async getRevision(id) {
       if (typeof id !== 'string' || !REVISION_ID_RE.test(id)) throw new NotFoundError('revision');
-      try { return await readJson(join(F.revisions, id + '.json')); }
+      try { return upgradeEnvelope(await readJson(join(F.revisions, id + '.json'))); }
       catch (e) { if (e.code === 'ENOENT') throw new NotFoundError('revision'); throw e; }
     },
 
@@ -284,7 +294,7 @@ export function createStore({ dataDir, siteUrl, paletteIds, layoutIds, clock = {
       return lock('write', async () => {
         const haveSite = await exists(F.site), haveDraft = await exists(F.draft);
         if (haveSite && haveDraft) return { created: false };
-        const s = withSiteUrl(site);
+        const s = withSiteUrl(upgrade(site));
         const v = validate(s, vopts('build'));
         if (v.errors.length) throw new AppError(400, 'invalid', `${source} document is invalid: ${v.errors.map((e) => `${e.code} ${e.path}`).join(', ')}`);
         const canonical = canonicalize(s), etag = sha256(canonical);

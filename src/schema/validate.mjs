@@ -39,16 +39,21 @@ const OPT = { optional: true };
 const TEXT = { text: true }; // long prose: translation lints apply
 
 const NAV = LS(28, OPT); // short label for top/side navs; null => title is used
-const head = (leadMax = 200) => ({ nav: NAV, title: LS(40), lead: LS(leadMax, { ...OPT, ...TEXT }) });
+// `hidden: true` keeps the section's content and validation but renders nothing (no markup, no nav link).
+const head = (leadMax = 200) => ({ hidden: B(), nav: NAV, title: LS(40), lead: LS(leadMax, { ...OPT, ...TEXT }) });
 const cardList = (max) => O({ ...head(), items: A(O({ id: ID, title: LS(64), text: LS(280, TEXT) }), 1, max) });
+
+export const SCHEMA_VERSION = 2;
+export const SECTION_KEYS = SECTIONS.map((s) => s.key);
 
 export function buildSchema({ paletteIds = DEFAULT_PALETTE_IDS, layoutIds = LAYOUT_IDS } = {}) {
   return O({
-    schemaVersion: E([1]),
+    schemaVersion: E([SCHEMA_VERSION]),
     settings: O({
       layout: E(layoutIds),
       palette: E(paletteIds),
       defaultTheme: E(THEMES),
+      sectionOrder: A(E(SECTION_KEYS), SECTION_KEYS.length, SECTION_KEYS.length),
       updated: S(10, { pattern: DATE_RE, date: true }),
       autoUpdateDateOnPublish: B(),
       siteUrl: S(100, { pattern: ORIGIN_RE }),
@@ -72,16 +77,16 @@ export function buildSchema({ paletteIds = DEFAULT_PALETTE_IDS, layoutIds = LAYO
       levelHints: O(Object.fromEntries(LEVELS.map((l) => [l, LS(32)]))),
       colGroup: LS(14), colSkill: LS(14), colDepth: LS(14),
       present: LS(12),
-      atAGlance: LS(24), updated: LS(24), builtWith: LS(48), top: LS(24),
+      atAGlance: LS(24), updated: LS(24), builtWith: LS(48, OPT), top: LS(24),
     }),
     hero: O({
-      eyebrow: LS(32),
+      eyebrow: LS(32, OPT),
       role: LS(40),
-      subrole: LS(80),
-      tagline: LS(180, TEXT),
-      location: LS(32),
-      availability: LS(48),
-      facts: A(O({ id: ID, value: LS(10), label: LS(24) }), 4, 4),
+      subrole: LS(80, OPT),
+      tagline: LS(180, { ...OPT, ...TEXT }),
+      location: LS(32, OPT),
+      availability: LS(48, OPT),
+      facts: A(O({ id: ID, value: LS(10), label: LS(24) }), 0, 4),
     }),
     contact: O({
       heading: LS(16),
@@ -92,7 +97,7 @@ export function buildSchema({ paletteIds = DEFAULT_PALETTE_IDS, layoutIds = LAYO
       skills: O({
         ...head(),
         groups: A(O({
-          id: ID, title: LS(40), lead: LS(100),
+          id: ID, title: LS(40), lead: LS(100, OPT),
           items: A(O({ id: ID, name: LS(60), detail: LS(90, OPT), level: E(LEVELS) }), 1, 16),
         }), 1, 10),
       }),
@@ -107,7 +112,7 @@ export function buildSchema({ paletteIds = DEFAULT_PALETTE_IDS, layoutIds = LAYO
         }), 1, 10),
       }),
       languages: O({ ...head(), items: A(O({ id: ID, name: LS(24), proficiency: LS(32) }), 1, 6) }),
-      contact: O({ ...head(160), cta: LS(24), primary: REF, buttons: A(REF, 0, 3) }),
+      contact: O({ ...head(160), cta: LS(24, OPT), primary: REF, buttons: A(REF, 0, 3) }),
     }),
   });
 }
@@ -227,12 +232,23 @@ export function validate(site, { paletteIds, layoutIds, mode = 'save', today = n
   // ---------------- cross-field rules ----------------
   const s = site.sections || {};
   const updatedYear = Number(String(site.settings?.updated).slice(0, 4));
+  const shown = (key) => s[key]?.hidden !== true;
 
-  // nav labels: effective label = nav ?? title; per-label <= 28, per-language total <= 100
+  // section order: every key exactly once (ENUM and COUNT already cover unknown keys and the length)
+  const order = site.settings?.sectionOrder;
+  if (Array.isArray(order)) {
+    const seen = new Set(order.filter((k) => SECTION_KEYS.includes(k)));
+    const missing = SECTION_KEYS.filter((k) => !seen.has(k));
+    if (missing.length || seen.size !== order.length) err('$.settings.sectionOrder', 'SECTION_ORDER', `every section exactly once${missing.length ? `; missing: ${missing.join(', ')}` : ''}`);
+  }
+  // at least one section stays on the page (decision D8)
+  if (SECTION_KEYS.every((key) => s[key] && !shown(key))) err('$.sections', 'NO_SECTIONS', 'every section is hidden; show at least one');
+
+  // nav labels: effective label = nav ?? title; per-label <= 28, per-language total <= 100; shown sections only
   for (const lang of LANGS) {
     let total = 0;
     for (const { key } of SECTIONS) {
-      const sec = s[key]; if (!sec?.title) continue;
+      const sec = s[key]; if (!sec?.title || !shown(key)) continue;
       const label = (sec.nav || sec.title)[lang] || '';
       total += len(label);
       if (!sec.nav && len(label) > 28) err(`$.sections.${key}.title.${lang}`, 'NAV_LABEL', `title is also the nav label (${len(label)} > 28); shorten it or set sections.${key}.nav`);

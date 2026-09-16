@@ -206,3 +206,15 @@ test('pruning keeps every build the publish history names, however old', async (
   assert.ok(existsSync(join(cfg.buildsDir, ids[1], 'manifest.json')), 'a build named by the history survives pruning');
   assert.equal((await deps.publisher.rollback({ buildId: ids[1] })).current, ids[1]);
 });
+
+test('with autoUpdateDateOnPublish a reorder or a hidden section sets the date', async () => {
+  const clock = makeClock(Date.parse('2026-09-15T10:00:00Z'));
+  const { deps } = await setup({ password: null, clock });
+  await draftEdit(deps, (s) => { s.settings.autoUpdateDateOnPublish = true; });
+  await publishDraft(deps);
+  assert.equal((await deps.store.getPublished()).site.settings.updated, seed().settings.updated);
+  await draftEdit(deps, (s) => { s.settings.sectionOrder = [s.settings.sectionOrder[1], s.settings.sectionOrder[0], ...s.settings.sectionOrder.slice(2)]; });
+  assert.equal((await publishDraft(deps)).updated, '2026-09-15', 'the section order is content');
+  await draftEdit(deps, (s) => { s.settings.updated = seed().settings.updated; s.sections.principles.hidden = true; });
+  assert.equal((await publishDraft(deps)).updated, '2026-09-15', 'hiding a section is content');
+});

@@ -180,3 +180,22 @@ test('publish with a stale If-Match is 412; rollback via the API', async () => {
   assert.equal(rb.status, 200);
   assert.equal((await ctx.deps.store.getPublished()).site.settings.palette, 'cobalt');
 });
+
+test('the export envelope carries the current schema version; a v1 import comes back upgraded', async () => {
+  const ctx = await setup();
+  const { cookie } = await login(ctx);
+  const env = await (await req(ctx, 'GET', '/admin/api/export', { cookie })).json();
+  assert.equal(env.schemaVersion, 2);
+  assert.equal(env.site.schemaVersion, 2);
+  const old = seed();
+  delete old.settings.sectionOrder;
+  for (const sec of Object.values(old.sections)) delete sec.hidden;
+  old.schemaVersion = 1;
+  old.hero.tagline.en = 'Exported by an older release.';
+  const r = await req(ctx, 'POST', '/admin/api/import', { cookie, body: { format: 'samsiani.me/site', schemaVersion: 1, site: old } });
+  assert.equal(r.status, 200);
+  const d = await (await req(ctx, 'GET', '/admin/api/draft', { cookie })).json();
+  assert.equal(d.site.schemaVersion, 2);
+  assert.ok(Array.isArray(d.site.settings.sectionOrder));
+  assert.equal(d.site.sections.contact.hidden, false);
+});

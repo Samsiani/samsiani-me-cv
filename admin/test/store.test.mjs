@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { canonicalize } from '../../src/schema/validate.mjs';
+import { diffPaths } from '../shared/diff.mjs';
+import { sha256 } from '../server/lib/store.mjs';
 import { setup, seed, makeClock } from './_helpers.mjs';
 
 const edit = (site, text) => { const s = structuredClone(site); s.hero.tagline.en = text; return s; };
@@ -98,4 +100,46 @@ test('discard makes the draft the published document and snapshots the old draft
   const out = await deps.store.discardDraft({ ifMatch: d.etag });
   assert.equal(out.site.hero.tagline.en, seed().hero.tagline.en);
   assert.ok((await deps.store.listRevisions()).some((r) => r.reason === 'pre-discard'));
+});
+
+// ---------------------------------------------------------------- schema v1 -> v2 (upgrade on read)
+const v1 = () => {
+  const s = seed();
+  delete s.settings.sectionOrder;
+  for (const sec of Object.values(s.sections)) delete sec.hidden;
+  s.schemaVersion = 1;
+  return s;
+};
+
+test('a v1 document saved or imported is stored at the current schema version', async () => {
+  const { deps } = await setup({ password: null });
+  const d0 = await deps.store.getDraft();
+  const out = await deps.store.saveDraft(edit(v1(), 'from an older release'), { ifMatch: d0.etag });
+  assert.equal(out.site.schemaVersion, 2);
+  assert.deepEqual(out.site.settings.sectionOrder, ['profile', 'skills', 'abilities', 'workstyle', 'principles', 'experience', 'languages', 'contact']);
+  assert.equal(out.site.sections.profile.hidden, false);
+  const imported = await deps.store.importDraft(v1());
+  assert.equal(imported.site.schemaVersion, 2);
+});
+
+test('a v1 file on disk is served (and its ETag recomputed) at the current version', async () => {
+  const { deps, cfg } = await setup({ password: null });
+  for (const f of ['draft.json', 'site.json']) {
+    const p = join(cfg.dataDir, f);
+    const env = JSON.parse(readFileSync(p, 'utf8'));
+    writeFileSync(p, JSON.stringify({ ...env, site: v1() }));
+  }
+  const d = await deps.store.getDraft();
+  assert.equal(d.site.schemaVersion, 2);
+  assert.equal(d.etag, sha256(canonicalize(d.site)));
+  assert.equal((await deps.store.getPublished()).site.schemaVersion, 2);
+  assert.equal(await deps.store.isDirty(), false, 'both documents upgrade the same way');
+});
+
+test('a revision written at v1 is read at v2, so the changes list has no hidden fields', async () => {
+  const { deps } = await setup({ password: null });
+  const { id } = await deps.store.checkpoint({ note: 'older release', site: v1() });
+  const rev = await deps.store.getRevision(id);
+  assert.equal(rev.site.schemaVersion, 2);
+  assert.deepEqual(diffPaths((await deps.store.getDraft()).site, rev.site), []);
 });

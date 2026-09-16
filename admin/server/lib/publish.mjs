@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname, posix } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validate, canonicalize } from '../../../src/schema/validate.mjs';
+import { upgrade } from '../../../src/schema/migrate.mjs';
 import { buildSite, BuildValidationError } from '../../../src/build-site.mjs';
 import { LAYOUTS } from '../../../src/layouts/index.mjs';
 import { loadPalettes } from '../../../src/palettes.mjs';
@@ -18,8 +19,9 @@ import { purgeFixedUrls } from './cloudflare.mjs';
 export const KEEP_BUILDS = 10;
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
 const buildStamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z'); // 20260914T101502Z
+// What counts as a content change for the publish date rule; the section order is content, the layout is not.
 const CONTENT_KEYS = ['person', 'meta', 'ui', 'hero', 'contact', 'sections'];
-const contentOf = (site) => JSON.stringify(Object.fromEntries(CONTENT_KEYS.map((k) => [k, site[k]])));
+const contentOf = (site) => JSON.stringify([...CONTENT_KEYS.map((k) => site[k]), site.settings?.sectionOrder]);
 
 export class PublishError extends AppError {
   constructor(stage, message, details = {}) { super(500, 'publish_failed', message, { stage, ...details }); }
@@ -286,7 +288,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
         const target = buildId ?? (state.history || []).find((id) => id !== state.current && existsSync(join(dirOf(id), 'manifest.json')));
         if (!target || !BUILD_ID_RE.test(target)) throw new AppError(404, 'unknown_build', 'There is no earlier build to roll back to.');
         const manifest = await readManifest(target);
-        const site = JSON.parse(await readFile(join(dirOf(target), '.site.json'), 'utf8'));
+        const site = upgrade(JSON.parse(await readFile(join(dirOf(target), '.site.json'), 'utf8')));
         const pub = await store.getPublished();
         await store.snapshot('pre-rollback', pub.site, { actor: 'admin', rev: pub.rev });
         await store.writePublishState((s) => ({ ...s, pending: { buildId: target, rev: manifest.rev, source: 'rollback', draftEtag: null, startedAt: new Date(clock.now()).toISOString() } }));
@@ -311,7 +313,7 @@ export function createPublisher({ cfg, store, audit, clock = { now: () => Date.n
           live = en === manifest.files['index.html']?.sha256 && ka === manifest.files['ka/index.html']?.sha256;
         } catch {}
         if (live && existsSync(join(dirOf(p.buildId), '.site.json'))) {
-          const site = JSON.parse(await readFile(join(dirOf(p.buildId), '.site.json'), 'utf8'));
+          const site = upgrade(JSON.parse(await readFile(join(dirOf(p.buildId), '.site.json'), 'utf8')));
           if (p.source === 'draft') {
             await store.commitPublished({ rev: p.rev, site, buildId: p.buildId });
             const d = await store.getDraft();

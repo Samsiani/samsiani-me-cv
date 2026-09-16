@@ -2,6 +2,7 @@
 import { LAYOUTS } from '../../../src/layouts/index.mjs';
 import { loadPalettes, checkPalettes, parseColor } from '../../../src/palettes.mjs';
 import { buildSchema, limitsTable } from '../../../src/schema/validate.mjs';
+import { SCHEMA_VERSION } from '../../../src/schema/migrate.mjs';
 
 export function buildRegistry() {
   const palettes = loadPalettes();
@@ -19,7 +20,7 @@ export function buildRegistry() {
   }
   const paletteIds = palettes.palettes.map((p) => p.id);
   return {
-    schemaVersion: 1,
+    schemaVersion: SCHEMA_VERSION,
     layouts: Object.values(LAYOUTS).map(({ meta }) => ({ id: meta.id, label: meta.label, description: meta.description, thumbnail: meta.thumbnail ?? null, defaultTheme: meta.defaultTheme ?? null })),
     palettes,
     paletteChecks: checks.rows,

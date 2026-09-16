@@ -1,9 +1,19 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "settings": {
     "layout": "precision",
     "palette": "cobalt",
     "defaultTheme": "system",
+    "sectionOrder": [
+      "profile",
+      "skills",
+      "abilities",
+      "workstyle",
+      "principles",
+      "experience",
+      "languages",
+      "contact"
+    ],
     "updated": "2026-06-07",
     "autoUpdateDateOnPublish": false,
     "siteUrl": "https://samsiani.me"
@@ -278,6 +288,7 @@
   },
   "sections": {
     "profile": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "Profile",
@@ -316,6 +327,7 @@
       ]
     },
     "skills": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "Stack & skills",
@@ -1053,6 +1065,7 @@
       ]
     },
     "abilities": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "What I can own end to end",
@@ -1165,6 +1178,7 @@
       ]
     },
     "workstyle": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "How I work",
@@ -1244,6 +1258,7 @@
       ]
     },
     "principles": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "Principles",
@@ -1323,6 +1338,7 @@
       ]
     },
     "experience": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "Experience",
@@ -1387,6 +1403,7 @@
       ]
     },
     "languages": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "Languages",
@@ -1419,6 +1436,7 @@
       ]
     },
     "contact": {
+      "hidden": false,
       "nav": null,
       "title": {
         "en": "Let’s talk",

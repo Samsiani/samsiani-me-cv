@@ -39,7 +39,7 @@ test('restore-backup rejects a revision id "../x", an invalid published document
   const before = readFileSync(join(ctx.cfg.dataDir, 'draft.json'), 'utf8');
   const cases = {
     traversal: { ...good, revisions: [{ id: '../x', rev: 1, site: seed(), reason: 'publish', createdAt: new Date().toISOString() }] },
-    invalidPublished: { ...good, published: { ...good.published, site: { ...seed(), hero: { ...seed().hero, facts: [] } } } },
+    invalidPublished: { ...good, published: { ...good.published, site: { ...seed(), hero: { ...seed().hero, role: null } } } },
   };
   for (const [name, doc] of Object.entries(cases)) {
     const f = join(ctx.home, `${name}.json.gz`);

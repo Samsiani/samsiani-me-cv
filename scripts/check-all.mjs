@@ -4,6 +4,8 @@ import { spawn, execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { LAYOUTS } from '../src/layouts/index.mjs';
 import { loadPalettes } from '../src/palettes.mjs';
+import { upgrade } from '../src/schema/migrate.mjs';
+import { canonicalize } from '../src/schema/validate.mjs';
 
 const PIXEL_BASE = '96e784e'; // the last commit before the refactor; Precision must render identically to it
 const TABLE = {
@@ -81,7 +83,8 @@ await pool(jobs);
 
 // 6. Precision pixel identity against the pre-refactor build
 if (layouts.includes('precision')) {
-  const norm = (s) => { const o = JSON.parse(s); delete o.settings.layout; delete o.settings.palette; return JSON.stringify(o); };
+  // site.example.json is the v1 design record: both documents are compared canonical, at the current version
+  const norm = (s) => { const o = upgrade(JSON.parse(s)); delete o.settings.layout; delete o.settings.palette; return canonicalize(o); };
   const same = norm(readFileSync('src/content/site.json', 'utf8')) === norm(readFileSync('docs/plans/site.example.json', 'utf8'));
   if (!same) console.log('--   pixel identity skipped: seed differs from the base content');
   else {

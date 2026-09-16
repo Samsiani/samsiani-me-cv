@@ -5,6 +5,7 @@
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { buildSite, BuildValidationError } from './src/build-site.mjs';
+import { upgrade } from './src/schema/migrate.mjs';
 import { renderBrand } from './src/brand/render.mjs';
 
 const SITE_JSON = process.env.SITE_JSON || 'src/content/site.json';
@@ -12,7 +13,7 @@ const OUT = process.env.OUT_DIR || 'dist';
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tbilisi' }).format(new Date());
 
 const raw = JSON.parse(await readFile(SITE_JSON, 'utf8'));
-const site = raw && raw.kind && raw.site ? raw.site : raw;
+const site = upgrade(raw && raw.kind && raw.site ? raw.site : raw); // a build directory's .site.json may be older
 if (process.env.LAYOUT) site.settings.layout = process.env.LAYOUT;
 if (process.env.PALETTE) site.settings.palette = process.env.PALETTE;
 

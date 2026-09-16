@@ -29,24 +29,53 @@ const MUTATIONS = [
   ['bad level', (s) => { s.sections.skills.groups[0].items[0].level = 'expert'; }],
   ['to < from', (s) => { s.sections.experience.items[0].to = 2010; }],
   ['nav label too long', (s) => { s.sections.abilities.title.en = 'Everything I can own end to end, in production'; }],
-  ['3 facts', (s) => { s.hero.facts.pop(); }],
+  ['5 facts', (s) => { s.hero.facts.push({ ...s.hero.facts[0], id: 'fifth' }); }, 'COUNT'],
   ['unknown layout', (s) => { s.settings.layout = 'brutalist'; }],
   ['unknown key', (s) => { s.sections.education = { title: { en: 'Education', ka: 'განათლება' } }; }],
   ['newline in title', (s) => { s.sections.principles.items[0].title.en = 'Line one\nline two'; }],
   ['contact.primary not mailto', (s) => { s.sections.contact.primary = 'github'; }],
   ['siteUrl with path', (s) => { s.settings.siteUrl = 'https://samsiani.me/cv'; }],
   ['bad date', (s) => { s.settings.updated = '2026-02-30'; }],
+  ['schemaVersion 1', (s) => { s.schemaVersion = 1; }, 'ENUM'],
+  ['sectionOrder missing a key', (s) => { s.settings.sectionOrder = s.settings.sectionOrder.slice(0, 7); }, 'SECTION_ORDER'],
+  ['sectionOrder with a duplicate', (s) => { s.settings.sectionOrder[1] = s.settings.sectionOrder[0]; }, 'SECTION_ORDER'],
+  ['sectionOrder with an unknown key', (s) => { s.settings.sectionOrder[0] = 'education'; }, 'SECTION_ORDER'],
+  ['every section hidden', (s) => { for (const sec of Object.values(s.sections)) sec.hidden = true; }, 'NO_SECTIONS'],
+  ['hero.role removed', (s) => { s.hero.role = null; }, 'TYPE'],
 ];
 
-for (const [name, mutate] of MUTATIONS) {
+for (const [name, mutate, code] of MUTATIONS) {
   test(`rejects: ${name}`, () => {
     const s = seed();
     mutate(s);
     const r = validate(s, { today: TODAY });
     assert.ok(r.errors.length > 0, `expected an error, got none (${name})`);
+    if (code) assert.ok(codes(r).includes(code), `expected ${code}, got ${codes(r).join(', ')}`);
   });
 }
-test('there are 23 mutation cases', () => assert.equal(MUTATIONS.length, 23));
+test('there are 29 mutation cases', () => assert.equal(MUTATIONS.length, 29));
+
+test('accepts a document with every optional line removed and no facts', () => {
+  const s = seed();
+  s.hero.facts = [];
+  for (const k of ['eyebrow', 'subrole', 'tagline', 'location', 'availability']) s.hero[k] = null;
+  for (const g of s.sections.skills.groups) g.lead = null;
+  s.sections.contact.cta = null;
+  s.ui.builtWith = null;
+  const r = validate(s, { today: TODAY });
+  assert.deepEqual(r.errors, []);
+});
+
+test('a hidden section is out of the nav budget; the same title shown is a NAV_LABEL error', () => {
+  const long = { en: 'Everything I own, end to end in prod', ka: 'ყველაფერი, რასაც ვფლობ თავიდან ბოლომდე' };
+  const hidden = seed();
+  hidden.sections.abilities.title = { ...long };
+  hidden.sections.abilities.hidden = true;
+  assert.deepEqual(codes(validate(hidden, { today: TODAY })), []);
+  const shown = seed();
+  shown.sections.abilities.title = { ...long };
+  assert.ok(codes(validate(shown, { today: TODAY })).includes('NAV_LABEL'));
+});
 
 test('GEORGIAN_IN_CAPS on an English label shown in capitals', () => {
   const s = seed();

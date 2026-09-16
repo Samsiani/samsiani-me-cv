@@ -32,6 +32,27 @@ for (const [name, mutate] of [
   });
 }
 
+test('a draft may hide every section, but not break the section order', () => {
+  const hidden = seed();
+  for (const sec of Object.values(hidden.sections)) sec.hidden = true;
+  const e = V(hidden).errors;
+  assert.ok(e.some((x) => x.code === 'NO_SECTIONS'), 'publish is blocked');
+  assert.deepEqual(blockingErrors(e), [], 'the draft may still store it');
+  const order = seed();
+  order.settings.sectionOrder[1] = order.settings.sectionOrder[0];
+  assert.ok(blockingErrors(V(order).errors).some((x) => x.code === 'SECTION_ORDER'));
+});
+
+test('a draft with no facts and every optional line removed is stored', () => {
+  const s = seed();
+  s.hero.facts = [];
+  for (const k of ['eyebrow', 'subrole', 'tagline', 'location', 'availability']) s.hero[k] = null;
+  s.sections.contact.cta = null;
+  s.ui.builtWith = null;
+  const { errors } = V(s);
+  assert.deepEqual(errors, []);
+});
+
 test('Russian words in text are content (draft ok), a ru key is structure (blocked)', () => {
   assert.equal(isBlocking({ code: 'RUSSIAN', path: '$.hero.role.ka' }), false);
   assert.equal(isBlocking({ code: 'RUSSIAN', path: '$.hero.role.ru' }), true);

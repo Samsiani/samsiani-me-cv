@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 2,
+  "settings": {
+    "layout": "precision",
+    "palette": "cobalt",
+    "defaultTheme": "system",
+    "sectionOrder": [
+      "profile",
+      "experience",
+      "skills",
+      "languages",
+      "contact",
+      "abilities",
+      "workstyle",
+      "principles"
+    ],
+    "updated": "2026-06-07",
+    "autoUpdateDateOnPublish": false,
+    "siteUrl": "https://samsiani.me"
+  },
+  "person": {
+    "givenName": {
+      "en": "Giorgi",
+      "ka": "გიორგი"
+    },
+    "familyName": {
+      "en": "Samsiani",
+      "ka": "სამსიანი"
+    },
+    "alternateName": {
+      "en": "George Samsiani",
+      "ka": "Giorgi Samsiani"
+    },
+    "monogram": "GS",
+    "address": {
+      "locality": "Tbilisi",
+      "country": "GE"
+    },
+    "sameAs": [
+      "https://github.com/Samsiani",
+      "https://samsiani.com",
+      "https://codeon.ge"
+    ]
+  },
+  "meta": {
+    "title": {
+      "en": "Giorgi Samsiani — Full-Stack Web Developer · WordPress, WooCommerce, Next.js",
+      "ka": "გიორგი სამსიანი — Full-Stack ვებდეველოპერი · WordPress, WooCommerce, Next.js"
+    },
+    "description": {
+      "en": "Full-stack web developer in Tbilisi, Georgia. Custom and headless WordPress, WooCommerce engineering, Next.js and TypeScript front ends, bank and ERP integrations, performance and technical SEO.",
+      "ka": "Full-Stack ვებდეველოპერი თბილისში, საქართველოში. ინდივიდუალური და headless WordPress, WooCommerce-ის ინჟინერია, Next.js-ისა და TypeScript-ის ფრონტენდი, საბანკო და ERP-ინტეგრაციები, წარმადობა და ტექნიკური SEO."
+    }
+  },
+  "ui": {
+    "skip": {
+      "en": "Skip to content",
+      "ka": "კონტენტზე გადასვლა"
+    },
+    "nav": {
+      "en": "Sections",
+      "ka": "სექციები"
+    },
+    "theme": {
+      "en": "Toggle colour theme",
+      "ka": "თემის შეცვლა"
+    },
+    "themeShort": {
+      "en": "Theme",
+      "ka": "თემა"
+    },
+    "print": {
+      "en": "Save as PDF",
+      "ka": "PDF-ად შენახვა"
+    },
+    "printShort": {
+      "en": "PDF",
+      "ka": "PDF"
+    },
+    "language": {
+      "en": "Language",
+      "ka": "ენა"
+    },
+    "langShort": {
+      "en": "EN",
+      "ka": "ქართ"
+    },
+    "langSwitch": {
+      "en": "In English",
+      "ka": "ქართულად"
+    },
+    "copy": {
+      "en": "copy",
+      "ka": "ასლი"
+    },
+    "copied": {
+      "en": "copied",
+      "ka": "დაკოპირდა"
+    },
+    "legend": {
+      "en": "Depth of use",
+      "ka": "გამოყენების დონე"
+    },
+    "levels": {
+      "core": {
+        "en": "Core",
+        "ka": "ძირითადი"
+      },
+      "strong": {
+        "en": "Strong",
+        "ka": "საფუძვლიანი"
+      },
+      "working": {
+        "en": "Working",
+        "ka": "სამუშაო"
+      }
+    },
+    "levelHints": {
+      "core": {
+        "en": "daily, production",
+        "ka": "ყოველდღიური, პროდაქშენში"
+      },
+      "strong": {
+        "en": "regular",
+        "ka": "რეგულარული"
+      },
+      "working": {
+        "en": "as needed",
+        "ka": "საჭიროებისამებრ"
+      }
+    },
+    "colGroup": {
+      "en": "Group",
+      "ka": "ჯგუფი"
+    },
+    "colSkill": {
+      "en": "Skill",
+      "ka": "უნარი"
+    },
+    "colDepth": {
+      "en": "Depth",
+      "ka": "დონე"
+    },
+    "present": {
+      "en": "present",
+      "ka": "დღემდე"
+    },
+    "atAGlance": {
+      "en": "At a glance",
+      "ka": "მოკლედ"
+    },
+    "updated": {
+      "en": "Last updated",
+      "ka": "ბოლოს განახლდა"
+    },
+    "builtWith": null,
+    "top": {
+      "en": "Back to top",
+      "ka": "ზემოთ დაბრუნება"
+    }
+  },
+  "hero": {
+    "eyebrow": null,
+    "role": {
+      "en": "Full-Stack Web Developer",
+      "ka": "Full-Stack ვებდეველოპერი"
+    },
+    "subrole": null,
+    "tagline": null,
+    "location": null,
+    "availability": null,
+    "facts": []
+  },
+  "contact": {
+    "heading": {
+      "en": "Contact",
+      "ka": "კონტაქტი"
+    },
+    "items": [
+      {
+        "id": "email",
+        "label": {
+          "en": "Email",
+          "ka": "ელფოსტა"
+        },
+        "value": "contact@samsiani.com",
+        "href": "mailto:contact@samsiani.com",
+        "icon": "mail",
+        "copy": false
+      }
+    ]
+  },
+  "sections": {
+    "profile": {
+      "hidden": false,
+      "nav": null,
+      "title": {
+        "en": "Profile",
+        "ka": "პროფილი"
+      },
+      "lead": null,
+      "paragraphs": [
+        {
+          "id": "intro",
+          "text": {
+            "en": "I am a full-stack web developer based in Tbilisi. For more than ten years I have built and maintained commercial websites, online stores and internal business tools for companies in Georgia and abroad.",
+            "ka": "ვარ Full-Stack ვებდეველოპერი თბილისიდან. ათ წელზე მეტია ვაწყობ და ვმართავ კორპორატიულ ვებსაიტებს, ონლაინ მაღაზიებსა და შიდა ბიზნესინსტრუმენტებს ადგილობრივი და უცხოური კომპანიებისთვის."
+          }
+        }
+      ]
+    },
+    "skills": {
+      "hidden": false,
+      "nav": null,
+      "title": {
+        "en": "Stack & skills",
+        "ka": "სტეკი და უნარები"
+      },
+      "lead": null,
+      "groups": [
+        {
+          "id": "wordpress-woocommerce",
+          "title": {
+            "en": "WordPress & WooCommerce",
+            "ka": "WordPress და WooCommerce"
+          },
+          "lead": null,
+          "items": [
+            {
+              "id": "custom-wordpress-development",
+              "name": {
+                "en": "Custom WordPress development",
+                "ka": "WordPress-ის ინდივიდუალური დეველოპმენტი"
+              },
+              "detail": null,
+              "level": "core"
+            }
+          ]
+        }
+      ]
+    },
+    "abilities": {
+      "hidden": true,
+      "nav": null,
+      "title": {
+        "en": "What I can own end to end",
+        "ka": "რას ვასრულებ თავიდან ბოლომდე"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "figma-to-production",
+          "title": {
+            "en": "Figma to production",
+            "ka": "Figma-დან პროდაქშენამდე"
+          },
+          "text": {
+            "en": "I turn a design file into a working Next.js or Vue front end with typed components, accessible markup and a real build pipeline.",
+            "ka": "დიზაინის ფაილს ვაქცევ Next.js-ის ან Vue-ს სრულფასოვან ფრონტენდად, ტიპიზებული კომპონენტებით, ხელმისაწვდომი მარკაპითა და რეალური build-პროცესით."
+          }
+        }
+      ]
+    },
+    "workstyle": {
+      "hidden": true,
+      "nav": null,
+      "title": {
+        "en": "How I work",
+        "ka": "როგორ ვმუშაობ"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "check-the-code-before-blaming",
+          "title": {
+            "en": "Check the code before blaming the cache.",
+            "ka": "ჯერ კოდი შეამოწმე, მერე ქეშს დააბრალე."
+          },
+          "text": {
+            "en": "I reproduce every bug and trace it to a specific line before changing anything. A guess is not a diagnosis.",
+            "ka": "ყველა ბაგს ვარეპროდუცირებ და ცვლილების შეტანამდე კოდის კონკრეტულ ხაზამდე მივყვები. ვარაუდი დიაგნოზი არ არის."
+          }
+        }
+      ]
+    },
+    "principles": {
+      "hidden": true,
+      "nav": null,
+      "title": {
+        "en": "Principles",
+        "ka": "პრინციპები"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "performance-is-a-constraint-not",
+          "title": {
+            "en": "Performance is a constraint, not a feature.",
+            "ka": "წარმადობა სავალდებულო პირობაა და არა უბრალოდ ფუნქცია."
+          },
+          "text": {
+            "en": "Extra database work on a page that runs on every request is a bug and is fixed like one.",
+            "ka": "ყოველ მოთხოვნაზე გაშვებულ გვერდზე მონაცემთა ბაზის ზედმეტი დატვირთვა ბაგია და ისევე სწორდება, როგორც სხვა შეცდომები."
+          }
+        }
+      ]
+    },
+    "experience": {
+      "hidden": false,
+      "nav": null,
+      "title": {
+        "en": "Experience",
+        "ka": "გამოცდილება"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "samsiani-web",
+          "from": 2018,
+          "to": null,
+          "role": {
+            "en": "Founder & Lead Developer",
+            "ka": "დამფუძნებელი და წამყვანი დეველოპერი"
+          },
+          "org": {
+            "en": "Samsiani Web",
+            "ka": "Samsiani Web"
+          },
+          "orgHref": null,
+          "text": {
+            "en": "Independent studio providing web development, technical SEO and hosting for clients in retail, industrial B2B, consumer lending, automotive and education. Work includes WordPress and WooCommerce sites on Divi, Avada, Elementor and WoodMart, custom plugins, and headless Next.js front ends. I am the long-term engineering partner for several large online stores, covering payments, ERP sync, speed and infrastructure.",
+            "ka": "დამოუკიდებელი სტუდია, რომელიც უზრუნველყოფს ვებდეველოპმენტს, ტექნიკურ SEO-სა და ჰოსტინგს კლიენტებისთვის საცალო ვაჭრობის, B2B, სამომხმარებლო სესხების, ავტოინდუსტრიისა და განათლების სექტორებში. სამუშაო მოიცავს WordPress-ისა და WooCommerce-ის საიტებს Divi, Avada, Elementor და WoodMart-ზე, ინდივიდუალურ პლაგინებსა და headless Next.js-ის ფრონტენდებს. ვარ რამდენიმე მსხვილი ონლაინ მაღაზიის გრძელვადიანი საინჟინრო პარტნიორი გადახდების, ERP-სინქრონიზაციის, წარმადობისა და ინფრასტრუქტურის მიმართულებით."
+          }
+        }
+      ]
+    },
+    "languages": {
+      "hidden": true,
+      "nav": null,
+      "title": {
+        "en": "Languages",
+        "ka": "ენები"
+      },
+      "lead": null,
+      "items": [
+        {
+          "id": "georgian",
+          "name": {
+            "en": "Georgian",
+            "ka": "ქართული"
+          },
+          "proficiency": {
+            "en": "Native",
+            "ka": "მშობლიური"
+          }
+        }
+      ]
+    },
+    "contact": {
+      "hidden": false,
+      "nav": null,
+      "title": {
+        "en": "Let’s talk",
+        "ka": "ვისაუბროთ"
+      },
+      "lead": null,
+      "cta": null,
+      "primary": "email",
+      "buttons": []
+    }
+  }
+}
