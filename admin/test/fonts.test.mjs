@@ -136,7 +136,7 @@ test('the layout default face is served from the manifest, never from the path',
 test('rename keeps the family and cleans the display name', async () => {
   const { ctx, cookie } = await signedIn();
   const rec = await (await upload(ctx, cookie, NOTO_TTF())).json();
-  const res = await req(ctx, 'PATCH', `/admin/api/fonts/${rec.id}`, { cookie, body: { displayName: '  My <script> face  ' } });
+  const res = await req(ctx, 'PATCH', `/admin/api/fonts/${rec.id}`, { cookie, body: { displayName: '  My <script> face\u0007  ' } });
   assert.equal(res.status, 200);
   const after = await res.json();
   assert.equal(after.displayName, 'My script face');
