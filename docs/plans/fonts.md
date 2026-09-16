@@ -358,3 +358,41 @@ Production cut-over after F5 or later: deploy as usual (no migration: `cli migra
 | WOFF2 encoder bug | a custom font fails to load in some browser | round-trip through the reader on every conversion, Playwright loads converted fonts in CI (§7.4), and the original bytes are kept so a re-conversion is possible after a fix; WOFF2 uploads are shipped untouched |
 | satori cannot use a face (F8) | card in default fonts | explicit `FONT_OG_DEFAULT` warning; static TTF fetched for Google fonts |
 | Restore on a new server | fonts missing | index restored, `cli fonts refetch` for Google records, the admin lists uploads to re-add; publish refuses until resolved (never publishes a broken CSS) |
+
+---
+
+## 10. Build notes (added 2026-09-16, after C1–C7 and F1 landed)
+
+These correct the plan where the tree has moved on. They win over the sections above.
+
+**Schema.** `docs/plans/content-editing.md` landed first, so `SCHEMA_VERSION` is already **2** and
+`src/schema/migrate.mjs` exists. D10 still holds: `settings.fonts` is an optional key added to the v2
+schema, **no version bump and no migration step** (absent means "every layout uses its defaults").
+
+**Goldens.** C1 added `test/fixtures/golden/*.json` and `test/unit/render-golden.test.mjs`, which pin
+today's rendered bytes. In default mode (no `settings.fonts`, or every role `null`) they must stay green
+untouched — that is the §7.1 byte-identity criterion, already written. Only a deliberate output change
+may run `node scripts/update-golden.mjs`, and F2–F8 must not need it.
+
+**F1 as built** (`src/typography/sfnt.mjs`, commit `880aef6`) — the reader *and* the WOFF2 writer live in
+this one module; there is no `woff2.mjs`, so §4.1's table is wrong on that row. Exports: `sniff`,
+`parseFont`, `metricsOf`, `coverageOf`, `rangesOf`, `widthOf`, `unwrapWoff2`, `wrapWoff2`,
+`FontParseError`, `MKHEDRULI`, `GEORGIAN_RANGE`.
+- `widthOf(metrics, text, px, { weight = 400, letterSpacingEm = 0, headroom = 1 })`: no `script` option
+  (Georgian is detected per character), and `headroom` defaults to 1, so §5.4's ×1.06 / ×1.12 stay the
+  caller's job.
+- Means: `latin` over the 95 printable ASCII characters, `georgian` over the 33 Mkhedruli letters.
+  §1.3's "Chivo 0.598 em" does not match this repo's file (it measures 0.555 latin); `FONT_WIDE` must
+  compare measured means, never the prose figures.
+- `parseFont` already refuses collections, bitmap/SVG-only files, absent `OS/2`, `unitsPerEm` outside
+  16–16384 and `numGlyphs` outside 2–65535, so §4.4 steps 2–3 shrink to the coverage and italic checks.
+- `rangesOf` swallows the smallest gaps to stay within 64 entries instead of falling back to whole-plane
+  spans (a tighter fence, same guarantee).
+- **Dependency direction:** `roles.mjs` must stay pure and browser-safe (`validate.mjs` imports it), so
+  `sfnt.mjs` may import `roles.mjs`, never the reverse — `sfnt.mjs` imports `node:zlib`.
+- WOFF2 writing: the file must be padded to a four-byte boundary and `length` must count the padding, or
+  Chromium refuses it ("Failed to convert WOFF 2.0 font to SFNT"); `loca` must follow `glyf`; no
+  `transformLength` at transform version 3. Encoding costs ~0.3–0.6 s per face, so fetch and upload
+  responses must not block a request longer than their timeout budget.
+- Google's subset WOFF2 files carry the **instance** name ("Chivo Medium"), so a download's display name
+  comes from the catalogue, not from the file.
