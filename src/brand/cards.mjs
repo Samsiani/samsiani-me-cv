@@ -25,23 +25,25 @@ export function ogCard(i) {
     el('div', { fontFamily: `${LATIN}, ${KA}`, fontSize: 30, fontWeight: 600, lineHeight: 1, letterSpacing: -0.75, color: N.ink }, v),
     el('div', { marginTop: 10, lineHeight: 1.4, color: N.muted, ...label }, l),
   ]));
+  // A removed line draws no element at all: satori never receives a null child.
+  const column = [
+    i.eyebrow ? el('div', ka
+      ? { fontFamily: KA, fontSize: 16, fontWeight: 400, letterSpacing: 0.64, color: N.muted }
+      : { fontFamily: `${MONO}, ${KA}`, fontSize: 15, fontWeight: 500, letterSpacing: 2.7, textTransform: 'uppercase', color: N.muted }, i.eyebrow) : null,
+    el('div', { display: 'flex', flexDirection: 'column', marginTop: 34, fontFamily: text, fontWeight: 600, fontSize: ka ? 64 : 82, lineHeight: ka ? 1.06 : 0.98, letterSpacing: ka ? -0.96 : -2.46 }, [
+      el('div', {}, i.given), el('div', {}, i.family),
+    ]),
+    el('div', { marginTop: 22, fontSize: ka ? 27 : 32, lineHeight: 1.25, fontWeight: 400, color: N.role, letterSpacing: -0.32 }, i.role),
+    i.subrole ? el('div', { marginTop: 14, fontSize: 21, lineHeight: 1.4, color: N.muted }, i.subrole) : null,
+    el('div', { flex: 1 }, []),
+    facts.length ? el('div', { display: 'flex', borderTop: `1px solid ${N.rule2}`, paddingTop: 24 }, facts) : null,
+  ].filter(Boolean);
   return el('div', { width: 1200, height: 630, display: 'flex', position: 'relative', background: N.bg, color: N.ink, fontFamily: text }, [
     el('div', { position: 'absolute', left: 0, top: 0, width: 6, height: 630, background: i.accent }, []),
     el('div', { width: 86, height: 630, display: 'flex', justifyContent: 'center', paddingTop: 64, borderRight: `1px solid ${N.rule1}` }, [
       el('div', { width: 52, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', background: N.ink, color: N.bg, fontFamily: LATIN, fontSize: i.monogram.length > 2 ? 16 : 20, fontWeight: 600, letterSpacing: 1 }, i.monogram),
     ]),
-    el('div', { display: 'flex', flexDirection: 'column', flex: 1, height: 630, padding: '64px 72px 56px 56px' }, [
-      el('div', ka
-        ? { fontFamily: KA, fontSize: 16, fontWeight: 400, letterSpacing: 0.64, color: N.muted }
-        : { fontFamily: `${MONO}, ${KA}`, fontSize: 15, fontWeight: 500, letterSpacing: 2.7, textTransform: 'uppercase', color: N.muted }, i.eyebrow),
-      el('div', { display: 'flex', flexDirection: 'column', marginTop: 34, fontFamily: text, fontWeight: 600, fontSize: ka ? 64 : 82, lineHeight: ka ? 1.06 : 0.98, letterSpacing: ka ? -0.96 : -2.46 }, [
-        el('div', {}, i.given), el('div', {}, i.family),
-      ]),
-      el('div', { marginTop: 22, fontSize: ka ? 27 : 32, lineHeight: 1.25, fontWeight: 400, color: N.role, letterSpacing: -0.32 }, i.role),
-      el('div', { marginTop: 14, fontSize: 21, lineHeight: 1.4, color: N.muted }, i.subrole),
-      el('div', { flex: 1 }, []),
-      el('div', { display: 'flex', borderTop: `1px solid ${N.rule2}`, paddingTop: 24 }, facts),
-    ]),
+    el('div', { display: 'flex', flexDirection: 'column', flex: 1, height: 630, padding: '64px 72px 56px 56px' }, column),
     el('div', { position: 'absolute', right: 72, top: 64, fontFamily: MONO, fontSize: 19, fontWeight: 500, letterSpacing: 0.38, color: i.accentInk }, i.host),
   ]);
 }

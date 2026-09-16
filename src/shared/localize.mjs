@@ -25,6 +25,7 @@ export const SECTIONS = [
   { key: 'contact', anchor: 'contact', legacy: 'contact' },
 ];
 export const ANCHOR = Object.fromEntries(SECTIONS.map((s) => [s.key, s.anchor]));
+export const LEGACY = Object.fromEntries(SECTIONS.map((s) => [s.key, s.legacy]));
 
 export const LEVELS = ['core', 'strong', 'working'];
 export const DETAIL_SEP = ' · '; // "Name · detail" (U+00B7 with spaces)
@@ -48,6 +49,7 @@ export function localize(site, lang) {
   if (!LANGS.includes(lang)) throw new Error(`localize: unknown lang "${lang}"`);
   const alt = altOf(lang);
   const T = (v) => v[lang];
+  const T0 = (v) => (v == null ? null : v[lang]); // an optional line: null, never the string "null"
   const { ui, hero, person, contact, meta } = site;
   const s = site.sections;
 
@@ -93,7 +95,7 @@ export function localize(site, lang) {
       levels: Object.fromEntries(LEVELS.map((l) => [l, T(ui.levels[l])])),
       levelHints: Object.fromEntries(LEVELS.map((l) => [l, T(ui.levelHints[l])])),
       updated: T(ui.updated),
-      builtWith: T(ui.builtWith),
+      builtWith: T0(ui.builtWith),
       top: T(ui.top),
       atAGlance: T(ui.atAGlance),
       // additive (new layouts / new features)
@@ -104,13 +106,13 @@ export function localize(site, lang) {
       colDepth: T(ui.colDepth),
     },
     hero: {
-      eyebrow: T(hero.eyebrow),
+      eyebrow: T0(hero.eyebrow),
       name: displayName(person, lang),
       role: T(hero.role),
-      subrole: T(hero.subrole),
-      tagline: T(hero.tagline),
-      location: T(hero.location),
-      availability: T(hero.availability),
+      subrole: T0(hero.subrole),
+      tagline: T0(hero.tagline),
+      location: T0(hero.location),
+      availability: T0(hero.availability),
       facts: hero.facts.map((f) => ({ value: T(f.value), label: T(f.label), id: f.id })),
       // additive
       givenName: T(person.givenName),
@@ -126,7 +128,7 @@ export function localize(site, lang) {
         ...head('skills'),
         groups: s.skills.groups.map((g) => ({
           title: T(g.title),
-          lead: T(g.lead),
+          lead: T0(g.lead),
           items: g.items.map((i) => ({
             name: joinName(T(i.name), i.detail ? T(i.detail) : null),
             level: i.level,
@@ -161,12 +163,15 @@ export function localize(site, lang) {
       },
       contact: {
         ...head('contact'),
-        cta: T(s.contact.cta),
+        cta: T0(s.contact.cta),
         // additive: resolved references into contact.items (localized items, same shape as contact.items[])
         primary: contactOut.find((i) => i.id === s.contact.primary) || null,
         buttons: s.contact.buttons.map((id) => contactOut.find((i) => i.id === id)).filter(Boolean),
       },
     },
+    // additive: the sections the page shows, in order, as legacy keys ("education" is Languages).
+    // `sections` above still holds every section; hidden ones are simply not listed here.
+    sectionOrder: site.settings.sectionOrder.filter((k) => s[k] && s[k].hidden !== true).map((k) => LEGACY[k]),
   };
 }
 

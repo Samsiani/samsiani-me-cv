@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { brandNames, brandPlan } from '../../src/shared/brand.mjs';
+import { brandNames, brandPlan, ogInputs } from '../../src/shared/brand.mjs';
+import { ogCard } from '../../src/brand/cards.mjs';
 import { renderBrand, RENDERER_ID, stats } from '../../src/brand/render.mjs';
 import { loadPalettes } from '../../src/palettes.mjs';
 import { LAYOUTS } from '../../src/layouts/index.mjs';
@@ -70,4 +71,31 @@ test('every TTF is a static instance whose OS/2 weight matches its name', () => 
 test('the plan lists two cards and four icons', () => {
   const plan = brandPlan(seed(), P('cobalt'), meta, RENDERER_ID);
   assert.deepEqual(plan.map((p) => p.name.split('.')[0]).sort(), ['apple-touch-icon', 'favicon-32', 'icon-192', 'icon-512', 'og-en', 'og-ka']);
+});
+
+test('a removed line or fact renders a card without it, under a new name', async () => {
+  const base = names(seed());
+  const stripped = seed();
+  stripped.hero.eyebrow = null;
+  stripped.hero.subrole = null;
+  assert.notEqual(names(stripped).og.en, base.og.en, 'a removed line changes the card name');
+  const inputs = (s, lang = 'en') => ogInputs(s, lang, P('cobalt'), meta);
+  assert.equal(inputs(stripped).eyebrow, null);
+  assert.equal(inputs(stripped).subrole, null);
+  const noChildIsNull = (node) => {
+    const kids = node?.props?.children;
+    if (!Array.isArray(kids)) return true;
+    return kids.every((k) => k != null && noChildIsNull(k));
+  };
+  for (const n of [0, 1, 3, 4]) {
+    const s = structuredClone(stripped);
+    s.hero.facts = seed().hero.facts.slice(0, n);
+    const card = ogCard(inputs(s));
+    assert.ok(noChildIsNull(card), `${n} facts: no null child`);
+  }
+  const cacheDir = mkdtempSync(join(tmpdir(), 'brand-'));
+  const empty = seed();
+  empty.hero.eyebrow = null; empty.hero.subrole = null; empty.hero.facts = [];
+  const r = await renderBrand(empty, P('cobalt'), meta, { cacheDir });
+  for (const lang of ['en', 'ka']) assert.deepEqual(png(r.files.get(r.og[lang])), { w: 1200, h: 630, sig: 'PNG' });
 });
