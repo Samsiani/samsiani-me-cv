@@ -324,7 +324,8 @@ html[lang="ka"] .lg-btn { letter-spacing: .01em; }
   .lg-kv { margin-top: 28px; }
   .lg-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lg-facts li:nth-child(odd) { padding-inline-start: 0; border-inline-start: 0; }
-  .lg-facts li:nth-child(-n+2) { border-bottom: 1px solid var(--rule); }
+  .lg-facts li:first-child:nth-last-child(n+3), .lg-facts li:nth-child(2):nth-last-child(n+2) { border-bottom: 1px solid var(--rule); } /* only cells with a row beneath */
+  .lg-facts li:last-child:nth-child(odd) { grid-column: 1 / -1; } /* a lone last cell takes the whole row */
   /* skills: stacked; ARIA roles in the markup keep table semantics */
   .lg-skills, .lg-skills thead, .lg-skills tbody, .lg-skills tr, .lg-skills th, .lg-skills td { display: block; }
   .lg-skills colgroup { display: none; }

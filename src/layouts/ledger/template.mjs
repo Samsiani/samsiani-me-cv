@@ -70,6 +70,52 @@ export function renderBody(c, ctx) {
   // the visible word is the accessible name (WCAG 2.5.3): the fragment's aria-label/title get themeShort
   const theme = themeToggle({ ...c.ui, theme: c.ui.themeShort }, 'lg-theme', `${UI_ICONS.theme}<span class="lg-theme-t">${esc(c.ui.themeShort)}</span>`);
 
+  // the hero: every line under the name may be gone, and so may the facts strip
+  const meta = [c.hero.location, c.hero.availability].filter(Boolean).join(' · ');
+  const heroParts = [
+    c.hero.eyebrow ? `<p class="lg-eyebrow">${c.hero.eyebrow.split(' · ').map((p) => `<span>${esc(p)}</span>`).join('')}</p>` : '',
+    `<h1>${esc(c.hero.name)}</h1>`,
+    `<p class="lg-roleline"><span class="lg-role">${esc(c.hero.role)}</span>${meta ? `<span class="lg-meta">${esc(meta)}</span>` : ''}</p>`,
+    c.hero.subrole ? `<p class="lg-subrole">${esc(c.hero.subrole)}</p>` : '',
+    c.hero.tagline ? `<p class="lg-tagline">${esc(c.hero.tagline)}</p>` : '',
+    `<table class="lg-kv" aria-label="${esc(c.contact.heading)}"><colgroup><col class="k"><col><col></colgroup><tbody>${c.contact.items
+      .map(
+        (i) => `
+        <tr><th scope="row">${esc(i.label)}</th><td><a class="u-link" href="${esc(i.href)}"${isExternal(i.href) ? ' rel="me noopener"' : ''}>${esc(i.value)}</a></td><td class="c">${i.copy ? copyButton(i.value, c.ui, 'lg-copy copy') : ''}</td></tr>`
+      )
+      .join('')}
+      </tbody></table>`,
+    facts.length ? `<ul class="lg-facts" style="--n:${facts.length}">${facts.map((f) => `<li><span class="lg-fv">${esc(f.value)}</span><span class="lg-fl">${esc(f.label)}</span></li>`).join('')}</ul>` : '',
+  ].filter(Boolean);
+
+  // one body per section (keyed by its anchor); the row, its number and the head are shared
+  const BODY = {
+    profile: (sec) => `<div class="lg-prose">${sec.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`,
+    skills: (sec) => `<table class="lg-skills" role="table" aria-labelledby="${sec.id}-title" aria-describedby="skills-legend">
+        <colgroup><col class="g"><col><col class="d"></colgroup>
+        <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">${esc(c.ui.colGroup)}</th><th role="columnheader" scope="col">${esc(c.ui.colSkill)}</th><th role="columnheader" scope="col">${esc(c.ui.colDepth)}</th></tr></thead>${skillRows}
+      </table>
+      ${legend}`,
+    abilities: (sec) => `<ol class="lg-list">${sec.items.map((a, i) => `<li class="lg-li">${hang(sec, i)}<h3>${esc(a.title)}</h3><p>${esc(a.text)}</p></li>`).join('')}</ol>`,
+    'work-style': (sec) => `<ul class="lg-list lg-list--split">${sec.items.map((w) => `<li class="lg-li"><h3>${esc(w.title)}</h3><p>${esc(w.text)}</p></li>`).join('')}</ul>`,
+    principles: (sec) => `<ol class="lg-list lg-list--split">${sec.items.map((p, i) => `<li class="lg-li">${hang(sec, i)}<h3>${esc(p.title)}</h3><p>${esc(p.text)}</p></li>`).join('')}</ol>`,
+    experience: (sec) => `<ol class="lg-list lg-exp">${sec.items
+        .map((e) => `<li class="lg-li"><p class="lg-period">${esc(e.period)}</p><div><h3>${esc(e.role)} <span class="lg-org">· ${e.orgHref ? `<a class="u-link" href="${esc(e.orgHref)}" rel="noopener">${esc(e.org)}</a>` : esc(e.org)}</span></h3><p>${esc(e.text)}</p></div></li>`)
+        .join('')}</ol>`,
+    languages: (sec) => `<dl class="lg-list lg-langs">${sec.langs.map((l) => `<div class="lg-li"><dt>${esc(l.name)}</dt><dd>${esc(l.level)}</dd></div>`).join('')}</dl>`,
+    contact: (sec) => {
+      if (!primary) return '';
+      const row = [sec.cta ? `<a class="lg-btn lg-btn--primary" href="${esc(primary.href)}">${esc(sec.cta)}</a>` : '', ...sec.buttons.map(button)].join('');
+      return `<a class="lg-bigmail" href="${esc(primary.href)}">${esc(primary.value)}${UI_ICONS.arrow}</a>${row ? `
+      <div class="lg-cta">${row}</div>` : ''}`;
+    },
+  };
+  const CLASS = { contact: ' lg-sec--contact' };
+  const section = (sec) => {
+    const body = BODY[sec.id](sec);
+    return `${open(sec, CLASS[sec.id] || '')}${body ? `\n      ${body}` : ''}\n  ${close}`;
+  };
+
   return `<header class="lg-top ${navFit(c, ctx)}">
   <div class="lg-top-in">
     <a class="lg-brand" href="${c.path}"><span class="lg-gs">${esc(ctx.person.monogram)}</span><span class="lg-bsep" aria-hidden="true"></span><span class="lg-domain">${esc(ctx.host)}</span><span class="sr-only"> — ${esc(c.hero.name)}</span></a>
@@ -87,67 +133,14 @@ export function renderBody(c, ctx) {
   <section class="lg-row lg-hero" aria-label="${esc(c.ui.atAGlance)}">
     <div class="lg-idx" aria-hidden="true"><span class="lg-n">00</span></div>
     <div class="lg-body">
-      <p class="lg-eyebrow">${c.hero.eyebrow.split(' · ').map((p) => `<span>${esc(p)}</span>`).join('')}</p>
-      <h1>${esc(c.hero.name)}</h1>
-      <p class="lg-roleline"><span class="lg-role">${esc(c.hero.role)}</span><span class="lg-meta">${esc(c.hero.location)} · ${esc(c.hero.availability)}</span></p>
-      <p class="lg-subrole">${esc(c.hero.subrole)}</p>
-      <p class="lg-tagline">${esc(c.hero.tagline)}</p>
-      <table class="lg-kv" aria-label="${esc(c.contact.heading)}"><colgroup><col class="k"><col><col></colgroup><tbody>${c.contact.items
-        .map(
-          (i) => `
-        <tr><th scope="row">${esc(i.label)}</th><td><a class="u-link" href="${esc(i.href)}"${isExternal(i.href) ? ' rel="me noopener"' : ''}>${esc(i.value)}</a></td><td class="c">${i.copy ? copyButton(i.value, c.ui, 'lg-copy copy') : ''}</td></tr>`
-        )
-        .join('')}
-      </tbody></table>
-      <ul class="lg-facts" style="--n:${facts.length}">${facts.map((f) => `<li><span class="lg-fv">${esc(f.value)}</span><span class="lg-fl">${esc(f.label)}</span></li>`).join('')}</ul>
+      ${heroParts.join('\n      ')}
     </div>
   </section>
 
-  ${open(s.profile)}
-      <div class="lg-prose">${s.profile.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}</div>
-  ${close}
-
-  ${open(s.skills)}
-      <table class="lg-skills" role="table" aria-labelledby="${s.skills.id}-title" aria-describedby="skills-legend">
-        <colgroup><col class="g"><col><col class="d"></colgroup>
-        <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">${esc(c.ui.colGroup)}</th><th role="columnheader" scope="col">${esc(c.ui.colSkill)}</th><th role="columnheader" scope="col">${esc(c.ui.colDepth)}</th></tr></thead>${skillRows}
-      </table>
-      ${legend}
-  ${close}
-
-  ${open(s.abilities)}
-      <ol class="lg-list">${s.abilities.items.map((a, i) => `<li class="lg-li">${hang(s.abilities, i)}<h3>${esc(a.title)}</h3><p>${esc(a.text)}</p></li>`).join('')}</ol>
-  ${close}
-
-  ${open(s.workstyle)}
-      <ul class="lg-list lg-list--split">${s.workstyle.items.map((w) => `<li class="lg-li"><h3>${esc(w.title)}</h3><p>${esc(w.text)}</p></li>`).join('')}</ul>
-  ${close}
-
-  ${open(s.principles)}
-      <ol class="lg-list lg-list--split">${s.principles.items.map((p, i) => `<li class="lg-li">${hang(s.principles, i)}<h3>${esc(p.title)}</h3><p>${esc(p.text)}</p></li>`).join('')}</ol>
-  ${close}
-
-  ${open(s.experience)}
-      <ol class="lg-list lg-exp">${s.experience.items
-        .map((e) => `<li class="lg-li"><p class="lg-period">${esc(e.period)}</p><div><h3>${esc(e.role)} <span class="lg-org">· ${e.orgHref ? `<a class="u-link" href="${esc(e.orgHref)}" rel="noopener">${esc(e.org)}</a>` : esc(e.org)}</span></h3><p>${esc(e.text)}</p></div></li>`)
-        .join('')}</ol>
-  ${close}
-
-  ${open(s.education)}
-      <dl class="lg-list lg-langs">${s.education.langs.map((l) => `<div class="lg-li"><dt>${esc(l.name)}</dt><dd>${esc(l.level)}</dd></div>`).join('')}</dl>
-  ${close}
-
-  ${open(s.contact, ' lg-sec--contact')}${
-    primary
-      ? `
-      <a class="lg-bigmail" href="${esc(primary.href)}">${esc(primary.value)}${UI_ICONS.arrow}</a>
-      <div class="lg-cta"><a class="lg-btn lg-btn--primary" href="${esc(primary.href)}">${esc(s.contact.cta)}</a>${s.contact.buttons.map(button).join('')}</div>`
-      : ''
-  }
-  ${close}
+  ${order.map(section).join('\n\n  ')}
 
   <footer class="lg-foot">
-    <span>© ${esc(ctx.updated.slice(0, 4))} ${esc(c.hero.name)} · ${esc(c.ui.updated)} <time datetime="${esc(ctx.updated)}">${esc(ctx.updated)}</time> · ${esc(c.ui.builtWith)}</span>
+    <span>© ${esc(ctx.updated.slice(0, 4))} ${esc(c.hero.name)} · ${esc(c.ui.updated)} <time datetime="${esc(ctx.updated)}">${esc(ctx.updated)}</time>${c.ui.builtWith ? ` · ${esc(c.ui.builtWith)}` : ''}</span>
     <span class="lg-foot-links">${langSwitchLink(c, alt, c.altTitle)}<a href="#main">${esc(c.ui.top)} ↑</a></span>
   </footer>
 </main>`;

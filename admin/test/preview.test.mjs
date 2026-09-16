@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { LAYOUTS } from '../../src/layouts/index.mjs';
 import { setup, req, login, seed } from './_helpers.mjs';
 
@@ -86,4 +87,17 @@ test('content errors still preview; structural errors are refused', async () => 
   assert.equal(r.status, 201);
   const html = await (await req(ctx, 'GET', (await r.json()).base)).text();
   assert.ok(!html.includes('javascript:'), 'bad links are neutralised in previews');
+});
+
+test('the minimal fixture previews in both languages, in every layout', async () => {
+  const ctx = await ready();
+  const base = JSON.parse(readFileSync(new URL('../../test/fixtures/site.minimal.json', import.meta.url), 'utf8'));
+  for (const id of Object.keys(LAYOUTS)) {
+    const site = structuredClone(base);
+    site.settings.layout = id;
+    const r = await req(ctx, 'POST', '/admin/api/preview', { cookie: ctx.cookie, body: { site } });
+    assert.equal(r.status, 201, `${id}: ${await r.clone().text()}`);
+    const { base: at } = await r.json();
+    for (const page of [at, `${at}ka/`]) assert.equal((await req(ctx, 'GET', page)).status, 200, `${id} ${page}`);
+  }
 });

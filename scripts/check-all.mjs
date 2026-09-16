@@ -13,7 +13,7 @@ const PIXEL_BASE = '96e784e'; // the last commit before the refactor; Precision 
 const TABLE = {
   precision: { nav: '.topnav', design: 'cobalt', script: null, minimal: true },
   studio: { nav: '.st-nav', design: 'lime', script: 'scripts/checks/studio.mjs', minimal: true },
-  ledger: { nav: '.lg-nav', design: 'cobalt', script: 'scripts/checks/ledger.mjs', palettes: ['cobalt', 'lime', 'crimson'] },
+  ledger: { nav: '.lg-nav', design: 'cobalt', script: 'scripts/checks/ledger.mjs', palettes: ['cobalt', 'lime', 'crimson'], minimal: true },
 };
 const layouts = Object.keys(LAYOUTS).filter((id) => TABLE[id]);
 const palettes = loadPalettes().palettes.map((p) => p.id);

@@ -7,7 +7,7 @@ import { LANGS, SECTIONS } from '../../src/shared/localize.mjs';
 import { seed, renderArgs } from './_helpers.mjs';
 
 // Layouts join this list as their milestone lands (C3 Precision, C4 Studio, C5 Ledger).
-const LAYOUTS_UNDER_TEST = ['precision', 'studio'];
+const LAYOUTS_UNDER_TEST = ['precision', 'studio', 'ledger'];
 
 const PAGE = { en: 'index.html', ka: 'ka/index.html' };
 const OPTIONAL_LINES = ['eyebrow', 'subrole', 'tagline', 'location', 'availability'];
@@ -94,6 +94,14 @@ for (const id of LAYOUTS_UNDER_TEST) {
         assert.equal('worksFor' in ld, shown.includes('experience'), `${label}: worksFor`);
         assert.equal('knowsLanguage' in ld, shown.includes('languages'), `${label}: knowsLanguage`);
         assert.equal('knowsAbout' in ld, shown.includes('skills'), `${label}: knowsAbout`);
+        // Ledger hangs "<section>.<item>" numbers off its lists: they follow the new section number
+        if (id === 'ledger') {
+          for (const [i, k] of shown.entries()) {
+            const block = html.match(new RegExp(`<section class="lg-row lg-sec[^"]*" id="${ANCHOR[k]}"[\\s\\S]*?</section>`));
+            if (!block) continue;
+            for (const m of block[0].matchAll(/class="lg-hang"[^>]*>(\d+)\./g)) assert.equal(m[1], String(i + 1), `${label}: hang number in ${k}`);
+          }
+        }
         if (make === strip) {
           for (const cls of ['facts', 'st-facts', 'lg-facts']) assert.equal(html.includes(`"${cls}"`), false, `${label}: ${cls} without facts`);
           for (const cls of ['cta-row', 'st-cta-row', 'lg-cta']) assert.equal(html.includes(`"${cls}"`), false, `${label}: ${cls} without a button`);
